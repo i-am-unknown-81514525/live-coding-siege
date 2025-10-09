@@ -2,6 +2,7 @@ from enum import StrEnum
 from .user import User
 from .event import Event
 from dataclasses import dataclass
+from typing import Final, ClassVar
 from arrow import Arrow
 
 
@@ -74,6 +75,12 @@ class HuddleState(StrEnum):
     IN_HUDDLE = "huddle_state"
     NOT_IN_HUDDLE = "default_unset"
 
+    @classmethod
+    def parse(cls, data: str):
+        if data == "in_a_huddle":
+            return cls.IN_HUDDLE
+        return cls.NOT_IN_HUDDLE
+
 @dataclass(frozen=True)
 class HuddleChange(Event):
     event_timestamp: Arrow
@@ -82,4 +89,19 @@ class HuddleChange(Event):
     huddle_state: HuddleState
     call_id: str
     huddle_state_expiration_ts: Arrow
+    __EVENT__ = "user_huddle_changed"
 
+    @classmethod
+    def parse(cls, data: dict):
+        event_data = data.get("event", {})
+        user_profile = event_data.get("user",{}).get("profile", {})
+        huddle_state_str = user_profile.get("huddle_state", "default_unset")
+
+        return cls(
+            event_timestamp=Arrow.fromtimestamp(event_data["event_ts"]),
+            user=User.parse(event_data["user"]),
+            event_id=data["event_id"],
+            huddle_state=HuddleState.parse(huddle_state_str),
+            call_id=user_profile.get("huddle_state_call_id"),
+            huddle_state_expiration_ts=Arrow.fromtimestamp(user_profile.get("huddle_state_expiration_ts")),
+        )

@@ -72,6 +72,10 @@ class UserProfile:
     real_name: str
     real_name_normalized: str
     skype: str
+    status_text: str
+    status_emoji: str
+    status_expiration: int
+    title: str
 
     @classmethod
     def parse(cls, data: dict):
@@ -91,6 +95,10 @@ class UserProfile:
             real_name=data["real_name"],
             real_name_normalized=data["real_name_normalized"],
             skype=data["skype"],
+            status_text=data["status_text"],
+            status_emoji=data["status_emoji"],
+            status_expiration=data["status_expiration"],
+            title=data["title"],
         )
 
 @dataclass(frozen=True)
