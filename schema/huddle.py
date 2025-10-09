@@ -98,10 +98,10 @@ class HuddleChange(Event):
         huddle_state_str = user_profile.get("huddle_state", "default_unset")
 
         return cls(
-            event_timestamp=Arrow.fromtimestamp(event_data["event_ts"]),
-            user=User.parse(event_data["user"]),
-            event_id=data["event_id"],
+            event_timestamp=Arrow.fromtimestamp(float(event_data.get("event_ts", 0))),
+            user=User.parse(event_data.get("user", {})),
+            event_id=data.get("event_id", ""),
             huddle_state=HuddleState.parse(huddle_state_str),
             call_id=user_profile.get("huddle_state_call_id"),
-            huddle_state_expiration_ts=Arrow.fromtimestamp(user_profile.get("huddle_state_expiration_ts")),
+            huddle_state_expiration_ts=Arrow.fromtimestamp(int(user_profile.get("huddle_state_expiration_ts", 0))),
         )
