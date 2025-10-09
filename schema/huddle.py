@@ -1,6 +1,7 @@
 from enum import StrEnum
 from .user import User
 from .event import Event
+from .base import SlackID
 from dataclasses import dataclass
 from typing import Final, ClassVar
 from arrow import Arrow
@@ -104,4 +105,60 @@ class HuddleChange(Event):
             huddle_state=HuddleState.parse(huddle_state_str),
             call_id=user_profile.get("huddle_state_call_id"),
             huddle_state_expiration_ts=Arrow.fromtimestamp(int(user_profile.get("huddle_state_expiration_ts", 0))),
+        )
+
+@dataclass(frozen=True)
+class ParticipantEvent:
+    has_joined: bool
+    has_turned_camera_on: bool
+    has_turned_camera_off: bool
+    has_started_screenshare: bool
+    has_stopped_screenshare: bool
+
+    @classmethod
+    def parse(cls, data: dict):
+        return cls(
+            has_joined=data.get("joined", False),
+            has_turned_camera_on=data.get("camera_on", False),
+            has_turned_camera_off=data.get("camera_off", False),
+            has_started_screenshare=data.get("screenshare_on", False),
+            has_stopped_screenshare=data.get("screenshare_off", False),
+        )
+
+@dataclass(frozen=True)
+class Room:
+    id: SlackID
+    name: str
+    app_id: str
+    call_family: str
+    channels: list[SlackID]
+    created_by: SlackID
+    date_start: Arrow
+    date_end: Arrow
+    participants_events: dict[SlackID, ParticipantEvent]
+    participants: list[SlackID]
+    has_ended: bool
+    huddle_link: str
+    is_dm_call: bool
+    participant_history: list[SlackID]
+
+    @classmethod
+    def parse(cls, data: dict):
+        return cls(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            app_id=data.get("app_id", ""),
+            call_family=data.get("call_family", ""),
+            channels=data.get("channels", []),
+            created_by=data.get("created_by", ""),
+            date_start=Arrow.fromtimestamp(data.get("date_start", 0)),
+            date_end=Arrow.fromtimestamp(data.get("date_end", 0)),
+            participants_events={
+                k: ParticipantEvent.parse(v) for k, v in data.get("participants_events", {}).items()
+            },
+            participants=data.get("participants", []),
+            has_ended=data.get("has_ended", False),
+            huddle_link=data.get("huddle_link", ""),
+            is_dm_call=data.get("is_dm_call", False),
+            participant_history=data.get("participant_history", []),
         )

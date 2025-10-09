@@ -9,3 +9,4 @@ class Event:
 
 class EventEnum(StrEnum):
     HUDDLE_CHANGED = "user_huddle_changed"
+    MESSAGE = "message"
