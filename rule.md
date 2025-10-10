@@ -20,7 +20,7 @@ To successfully complete a live coding session, you must:
 - Don't vibe code on stream :heavysob:
 
 #### Rewards
-For every live coding session you complete, you can obtain 1 coin (Can be increased???).
+For every live coding session you complete, you can obtain 2 coins (for now).
 
 #### End of Huddle
 The huddle ends when no one monitoring the huddle status is available, or when no valid participants can be selected to continue the event.
