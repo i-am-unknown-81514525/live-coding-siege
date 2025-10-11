@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-from .event import Event
+from .base import Event
+from .base import SlackID
+from .huddle import Room
+from arrow import Arrow
 
 sample = {'api_app_id': 'A09KW3ZJLLQ',
  'authorizations': [{'enterprise_id': None,
@@ -185,10 +188,74 @@ sample2 = {'api_app_id': 'A09KW3ZJLLQ',
  'type': 'event_callback'}
 
 @dataclass(frozen=True)
-class Message:
-    ...
+class Edited:
+    user: SlackID
+    ts: Arrow
+
+@dataclass(frozen=True)
+class MessageData:
+    """Represents the data content of a message, ignoring blockkit."""
+    user: SlackID
+    ts: Arrow
+    text: str
+    thread_ts: SlackID | None
+    edited: Edited | None
+    room: Room | None
+    subtype: str | None
+
+    @classmethod
+    def parse(cls, data: dict):
+        if not data:
+            return None
+
+        edited_data = data.get("edited")
+        return cls(
+            ts=Arrow.fromtimestamp(float(data["ts"])),
+            user=data["user"],
+            text=data["text"],
+            thread_ts=data.get("thread_ts"),
+            edited=Edited(user=edited_data["user"], ts=Arrow.fromtimestamp(float(edited_data["ts"]))) if edited_data else None,
+            room=Room.parse(data["room"]) if "room" in data else None,
+            subtype=data.get("subtype"),
+        )
 
 
 @dataclass(frozen=True)
-class MessageChange(Event):
+class MessageEvent(Event):
+    """
+    Represents a message event from Slack.
+    This can be a new message, an edited message, a deleted message, etc.
+    """
+    __EVENT__ = "message"
+
+    # Event-level fields
+    event_ts: Arrow
+    channel: SlackID
+    channel_type: str
     subtype: str | None
+    hidden: bool | None
+
+    # Fields for a standard new message
+    client_msg_id: str | None
+    message_data: MessageData | None
+
+    # Fields for message_changed subtype
+    message: MessageData | None
+    previous_message: MessageData | None
+
+    @classmethod
+    def parse(cls, data: dict):
+        event_data = data.get("event", {})
+        subtype = event_data.get("subtype")
+
+        return cls(
+            event_ts=Arrow.fromtimestamp(float(event_data.get("event_ts", 0))),
+            channel=event_data.get("channel"),
+            channel_type=event_data.get("channel_type"),
+            subtype=subtype,
+            hidden=event_data.get("hidden", False),
+            client_msg_id=event_data.get("client_msg_id"),
+            message_data=MessageData.parse(event_data) if not subtype else None,
+            message=MessageData.parse(event_data.get("message", {})),
+            previous_message=MessageData.parse(event_data.get("previous_message", {})),
+        )

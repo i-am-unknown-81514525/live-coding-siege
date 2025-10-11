@@ -1,6 +1,6 @@
 from enum import StrEnum
 from .user import User
-from .event import Event
+from .base import Event
 from .base import SlackID
 from dataclasses import dataclass
 from typing import Final, ClassVar
