@@ -1,6 +1,6 @@
 
 CREATE TABLE IF NOT EXISTS "user" (
-    "slack_id" TEXT PRIMARY KEY,
+    "slack_id" TEXT PRIMARY KEY NOT NULL,
     "name" TEXT NOT NULL,
 );
 
@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS "huddle" (
     "channel_id" TEXT NOT NULL,
     "start_time" DATETIME NOT NULL,
     "end_time" DATETIME
+);
+
+-- Tracks which users are currently in a given huddle.
+CREATE TABLE IF NOT EXISTS "huddle_participant" (
+    "huddle_id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    PRIMARY KEY ("huddle_id", "user_id"),
+    FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
 );
 
 CREATE TABLE IF NOT EXISTS "game" (

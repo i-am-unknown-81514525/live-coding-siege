@@ -309,6 +309,27 @@ def add_game_manager(game_id: int, user_id: str):
         )
         conn.commit()
 
+def add_huddle_participant(huddle_id: str, user_id: str):
+    """Adds a user to the list of current participants in a huddle."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT OR IGNORE INTO huddle_participant (huddle_id, user_id) VALUES (?, ?)",
+            (huddle_id, user_id)
+        )
+        conn.commit()
+
+def remove_huddle_participant(huddle_id: str, user_id: str):
+    """Removes a user from the list of current participants in a huddle."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM huddle_participant WHERE huddle_id = ? AND user_id = ?",
+            (huddle_id, user_id)
+        )
+        conn.commit()
+
+
 # === State Querying Functions ===
 
 def get_active_game_in_huddle(huddle_id: str) -> int | None:
@@ -321,12 +342,25 @@ def get_active_game_in_huddle(huddle_id: str) -> int | None:
         ).fetchone()
         return row['id'] if row else None
 
+def get_huddle_id_by_channel(channel_id: str) -> str | None:
+    """Finds the ID of the most recent huddle in a given channel."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT id FROM huddle WHERE channel_id = ? ORDER BY start_time DESC LIMIT 1",
+            (channel_id,)
+        ).fetchone()
+        return row['id'] if row else None
+
+
 def get_eligible_participants(game_id: int) -> list[str]:
     """
     Gets a list of user IDs who are eligible to be selected for a turn.
-    (not opted out, not skipped twice consecutively, not the person who had the immediately preceding turn)
+    This includes users currently in the huddle, excluding those who have opted out of the game,
+    skipped twice, or were the last participant.
     """
     with get_db_connection() as conn:
+        # Get the last user to have a turn in this game
         cursor = conn.cursor()
 
         last_participant_row = cursor.execute(
@@ -335,15 +369,21 @@ def get_eligible_participants(game_id: int) -> list[str]:
         ).fetchone()
         last_participant_id = last_participant_row['user_id'] if last_participant_row else None
 
+        # Get all users in the huddle who are eligible for this specific game
         rows = cursor.execute(
             """
-            SELECT user_id FROM game_participant
-            WHERE game_id = ? AND is_opted_out = FALSE AND consecutive_skips < 2
+            SELECT hp.user_id FROM huddle_participant AS hp
+            JOIN game g ON hp.huddle_id = g.huddle_id
+            LEFT JOIN game_participant gp ON hp.user_id = gp.user_id AND g.id = gp.game_id
+            WHERE g.id = ?
+              AND (gp.is_opted_out IS NULL OR gp.is_opted_out = FALSE)
+              AND (gp.consecutive_skips IS NULL OR gp.consecutive_skips < 2)
             """,
             (game_id,)
         ).fetchall()
         
         eligible_users = {row['user_id'] for row in rows}
+        # Exclude the last person who had a turn
         if last_participant_id:
             eligible_users.discard(last_participant_id)
         
