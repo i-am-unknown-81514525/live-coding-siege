@@ -3,6 +3,7 @@ from .base import Event
 from .base import SlackID
 from .huddle import Room
 from arrow import Arrow
+from typing import Self
 
 sample = {'api_app_id': 'A09KW3ZJLLQ',
  'authorizations': [{'enterprise_id': None,
@@ -204,9 +205,7 @@ class MessageData:
     subtype: str | None
 
     @classmethod
-    def parse(cls, data: dict):
-        if not data:
-            return None
+    def parse(cls, data: dict) -> Self:
 
         edited_data = data.get("edited")
         return cls(
@@ -237,10 +236,9 @@ class MessageEvent(Event):
 
     # Fields for a standard new message
     client_msg_id: str | None
-    message_data: MessageData | None
 
     # Fields for message_changed subtype
-    message: MessageData | None
+    message: MessageData
     previous_message: MessageData | None
 
     @classmethod
@@ -248,14 +246,21 @@ class MessageEvent(Event):
         event_data = data.get("event", {})
         subtype = event_data.get("subtype")
 
+        # For 'message_changed' events, the current message data is in a nested 'message' object.
+        # For standard new messages, the data is at the top level of the event.
+        current_message_data = event_data.get("message") if subtype == "message_changed" else event_data
+
+        # Safely parse previous_message only if it exists
+        previous_message_data = event_data.get("previous_message")
+        previous_message = MessageData.parse(previous_message_data) if previous_message_data else None
+
         return cls(
             event_ts=Arrow.fromtimestamp(float(event_data.get("event_ts", 0))),
             channel=event_data.get("channel"),
             channel_type=event_data.get("channel_type"),
             subtype=subtype,
-            hidden=event_data.get("hidden", False),
+            hidden=event_data.get("hidden"),
             client_msg_id=event_data.get("client_msg_id"),
-            message_data=MessageData.parse(event_data) if not subtype else None,
-            message=MessageData.parse(event_data.get("message", {})),
-            previous_message=MessageData.parse(event_data.get("previous_message", {})),
+            message=MessageData.parse(current_message_data),
+            previous_message=previous_message,
         )

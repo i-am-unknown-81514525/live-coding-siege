@@ -1,5 +1,5 @@
 import os, logging
-from threading import Event
+from threading import Event as tEvent
 
 from dotenv import load_dotenv
 from slack_sdk.socket_mode import SocketModeClient
@@ -7,6 +7,29 @@ from slack_sdk.socket_mode.client import BaseSocketModeClient
 from slack_sdk.web import WebClient
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
+
+from schema.base import Event, Recv
+from schema.message import MessageEvent
+from schema.interactive import BlockActionEvent
+from reg import message_dispatch, msg_listen
+import blockkit
+
+@msg_listen("live.test1")
+def test_interactive(event: MessageEvent, client: WebClient):
+    message_payload = (
+        blockkit.Message(text="This is a test message with a button.") # Fallback text for notifications
+        .add_block(
+            blockkit.Section("test")
+            .accessory(
+                blockkit.Button("Test Button")
+                .action_id("test_button")
+            )
+        )
+    ).build()
+    client.chat_postMessage(
+        channel=event.channel, **message_payload
+    )
+
 
 load_dotenv()
 
@@ -18,25 +41,24 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     print(req.type, req.payload)
     with open("event.log", "a") as f:
         f.write(f"{req.type} {str(req.payload)}\n")
-    
+    event: Recv
     # Check if the event is a message and not from a bot
-    if req.type == "events_api" and req.payload["event"]["type"] == "message" and "bot_id" not in req.payload["event"]:
-        
-        # Extract message details
-        message_text = req.payload["event"]["text"]
-        channel_id = req.payload["event"]["channel"]
-        user_id = req.payload["event"]["user"]
-        
-        # The specific string to listen for
-        trigger_string = "hello bot"
+    if req.type == "events_api":
+        if req.payload["event"]["type"] == "message" and "bot_id" not in req.payload["event"]:
+            
+            event = MessageEvent.parse(req.payload)
+            print(event)
+            message_dispatch(event, client.web_client)
+    
+    elif req.type == "interactive" and req.payload.get("type") == "block_actions":
+        event = BlockActionEvent.parse(req.payload)
+        print(event)
+        # Here you would dispatch to an action handler
+        # For example: action_dispatch(event, client.web_client)
 
-        if trigger_string in message_text.lower():
-            # Respond to the message in the same channel
-            response_text = f"Hello <@{user_id}>! I'm here to help."
-            client.web_client.chat_postMessage(. # type: ignore
-                channel=channel_id,
-                text=response_text
-            )
+
+
+
 
 if __name__ == "__main__":
     # Initialize SocketModeClient with an app-level token and a WebClient
@@ -52,7 +74,7 @@ if __name__ == "__main__":
     client.connect()
     while True:
         try:
-            Event().wait()
+            tEvent().wait()
         except KeyboardInterrupt:
             break
         except Exception as e:
