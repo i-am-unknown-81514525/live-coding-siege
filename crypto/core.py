@@ -41,8 +41,12 @@ class DeterRnd[*T]:
         return tuple(result)
         
 
-def test() -> Handler[int]:
-    return (1, lambda x: x)
-
-def test2() -> Handler[bool]:
+def rnd_bool() -> Handler[bool]:
     return (1, lambda x: x == 0)
+
+
+def randint(low: int, high: int) -> Handler[int]:
+    if low > high:
+        raise ValueError("Low must be less than high")
+    bit_size = (high - low).bit_length()
+    return (bit_size, lambda x: x+low)
