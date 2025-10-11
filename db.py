@@ -352,6 +352,29 @@ def get_huddle_id_by_channel(channel_id: str) -> str | None:
         ).fetchone()
         return row['id'] if row else None
 
+def is_game_manager(game_id: int, user_id: str) -> bool:
+    """Checks if a user is a manager for the given game."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT 1 FROM game_manager WHERE game_id = ? AND user_id = ?",
+            (game_id, user_id)
+        ).fetchone()
+        return row is not None
+
+def get_game_latest_transaction_hash(game_id: int) -> str | None:
+    """Retrieves the hash of the most recent transaction for a given game."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            """
+            SELECT transaction_hash FROM event_transaction
+            WHERE game_id = ? ORDER BY timestamp DESC, id DESC LIMIT 1
+            """,
+            (game_id,)
+        ).fetchone()
+        return row['transaction_hash'] if row else None
+
 
 def get_eligible_participants(game_id: int) -> list[str]:
     """

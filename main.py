@@ -1,4 +1,4 @@
-import os, logging, secrets
+import os, logging, secrets, random
 from threading import Event as tEvent
 from datetime import datetime
 
@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from slack_sdk.socket_mode import SocketModeClient
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 from slack_sdk.web import WebClient
+import re
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
@@ -14,9 +15,13 @@ from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
 from reg import message_dispatch, msg_listen, action_dispatch, action_listen, huddle_dispatch, huddle_listen
-from crypto.core import DeterRnd, Handler
+from crypto.core import DeterRnd, Handler, _sha3
 import db
 import blockkit
+
+def int_handler(bits: int) -> Handler[int]:
+    """A handler for DeterRnd that returns an integer of a specified bit length."""
+    return (bits, lambda x: x)
 
 @msg_listen("live.test1")
 def test_interactive(event: MessageEvent, client: WebClient):
@@ -63,8 +68,84 @@ def init_game(event: MessageEvent, client: WebClient):
     client_secret = secrets.token_hex(16)
     server_secret = secrets.token_hex(16)
     game_id = db.start_game(huddle_id, datetime.utcnow(), client_secret, server_secret)
+    db.add_game_manager(game_id, user_id) # Add the initiator as a manager
     
     client.chat_postMessage(channel=channel_id, text=f"✨ A new game has started! (ID: {game_id})")
+
+@msg_listen("live.pick")
+def pick_user(event: MessageEvent, client: WebClient):
+    """
+    Allows a game manager to randomly pick the next participant from the eligible pool.
+    Usage: live.pick
+    """
+    manager_id = event.message.user
+    channel_id = event.channel
+
+    huddle_id = db.get_huddle_id_by_channel(channel_id)
+    if not huddle_id:
+        client.chat_postMessage(channel=manager_id, text="Cannot pick user: No active huddle found in this channel.")
+        return
+
+    game_id = db.get_active_game_in_huddle(huddle_id)
+    if not game_id:
+        client.chat_postMessage(channel=manager_id, text="Cannot pick user: No active game found in this huddle.")
+        return
+
+    if not db.is_game_manager(game_id, manager_id):
+        client.chat_postMessage(channel=manager_id, text="You are not authorized to pick a user for this game.")
+        return
+
+    eligible_users = db.get_eligible_participants(game_id)
+    if not eligible_users:
+        client.chat_postMessage(channel=channel_id, text="There are no eligible participants to pick from right now.")
+        return
+    
+    secrets = db.get_latest_secrets(game_id)
+    if not secrets:
+        client.chat_postMessage(channel=channel_id, text="Cannot pick user: Game secrets could not be retrieved.")
+        return
+    client_secret, server_secret = secrets
+    seed = f"{client_secret}{server_secret}"
+    # We request 64 bits to get a large random number.
+
+    rand_val = DeterRnd(int_handler(64)).with_seed(seed).retrieve()[0]
+    
+    selected_index = rand_val % len(eligible_users)
+    target_user_id = eligible_users[selected_index]
+
+    # Select the user and create the transaction
+    duration = 10 * 60 # Default 10 minutes, can be made configurable
+    db.add_user_selection_transaction(game_id, target_user_id, duration)
+    client.chat_postMessage(channel=channel_id, text=f"👉 <@{target_user_id}> has been selected for the next turn!")
+
+@msg_listen("live.rnd")
+def refresh_server_secret(event: MessageEvent, client: WebClient):
+    """
+    Allows a game manager to generate a new server secret and publish its hash.
+    This re-seeds the deterministic RNG for the next pick.
+    """
+    manager_id = event.message.user
+    channel_id = event.channel
+
+    huddle_id = db.get_huddle_id_by_channel(channel_id)
+    if not huddle_id:
+        client.chat_postMessage(channel=manager_id, text="Cannot refresh secret: No active huddle found in this channel.")
+        return
+
+    game_id = db.get_active_game_in_huddle(huddle_id)
+    if not game_id:
+        client.chat_postMessage(channel=manager_id, text="Cannot refresh secret: No active game found in this huddle.")
+        return
+
+    if not db.is_game_manager(game_id, manager_id):
+        client.chat_postMessage(channel=manager_id, text="You are not authorized to refresh the server secret for this game.")
+        return
+
+    new_server_secret = secrets.token_hex(16)
+    new_server_secret_hash = _sha3(new_server_secret)
+    db.update_server_secret(game_id, new_server_secret)
+
+    client.chat_postMessage(channel=channel_id, text=f"🎲 New server secret has been generated. Hash: `{new_server_secret_hash}`")
 
 @action_listen("test_button")
 def handle_test_button(event: BlockActionEvent, client: WebClient):
