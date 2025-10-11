@@ -14,7 +14,7 @@ You can tell the magician to not select you by clicking a button.
 
 #### Completion Requirements
 To successfully complete a live coding session, you must:
-- Be on the huddle for 90% of the time.
+- Be on the huddle for 90% of your assigned time.
 - Be streaming for 80% of your assigned time.
 - All activity performed on the screen share must be hackatime tracked toward your siege project (The only exclusion is researching on your browser for your siege project, which isn't trackable).
 - Don't vibe code on stream :heavysob:

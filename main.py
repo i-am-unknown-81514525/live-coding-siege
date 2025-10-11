@@ -33,7 +33,7 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
         if trigger_string in message_text.lower():
             # Respond to the message in the same channel
             response_text = f"Hello <@{user_id}>! I'm here to help."
-            client.web_client.chat_postMessage(
+            client.web_client.chat_postMessage(. # type: ignore
                 channel=channel_id,
                 text=response_text
             )
