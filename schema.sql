@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS "game_turn" (
     "game_id" INTEGER NOT NULL,
     "user_id" TEXT NOT NULL,
     "selection_time" DATETIME NOT NULL,
-    "assigned_duration_minutes" INTEGER NOT NULL,
+    "assigned_duration_seconds" INTEGER NOT NULL,
     "status" TEXT NOT NULL CHECK("status" IN ('PENDING', 'SKIPPED', 'COMPLETED', 'FAILED')),
     FOREIGN KEY("game_id") REFERENCES "game"("id"),
     FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
