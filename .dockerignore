@@ -1,0 +1,11 @@
+.venv/
+*.md
+data/*
+__pycache__/*
+**/__pycache__/*
+*.pyc
+.env
+*.log
+*.log.*
+key.event
+.gitkeep
