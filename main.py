@@ -49,17 +49,17 @@ def init_game(event: MessageEvent, client: WebClient):
     thread_ts = event.message.thread_ts or event.message.ts
 
     if user_id not in AUTHORIZED_USERS:
-        client.chat_postMessage(channel=user_id, text="You are not authorized to start a game.")
+        client.chat_postMessage(channel=user_id, text="You cannot overrule the magician.")
         return
 
     user_huddles = db.get_user_huddles(user_id)
     if not user_huddles:
-        client.chat_postEphemeral(user=user_id, channel=channel_id, text="You don't seem to be in an active huddle.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="You don't seem to be in an active show.", thread_ts=thread_ts)
         return
     huddle_id = user_huddles[0] # Assume the user is in one huddle at a time
 
     if db.get_active_game_in_huddle(huddle_id):
-        client.chat_postEphemeral(user=user_id, channel=channel_id, text="A game is already active in this huddle.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="A magic show is already active in this huddle.", thread_ts=thread_ts)
         return
 
     client_secret = secrets.token_hex(16)
@@ -67,16 +67,16 @@ def init_game(event: MessageEvent, client: WebClient):
     game_id = db.start_game(huddle_id, channel_id, thread_ts, datetime.now(timezone.utc), client_secret, server_secret)
     db.add_game_manager(game_id, user_id)
 
-    client.chat_postMessage(channel=channel_id, text=f"✨ A new game has started! (ID: {game_id})", thread_ts=thread_ts)
+    client.chat_postMessage(channel=channel_id, text=f"✨ A new show has started! (ID: {game_id})", thread_ts=thread_ts)
 
 def _handle_manager_action_timeout(game_id: int, user_id: str, channel_id: str, thread_ts: str, client: WebClient):
     pending_user = db.get_pending_turn_user(game_id)
     if pending_user == user_id:
         print(f"Manager action timeout for user {user_id} in game {game_id}.")
         message_payload = (
-            Message(text=f"⏰ <@{user_id}>'s turn was not started in time.")
+            Message(text=f"⏰ <@{user_id}>'s performance was not started in time.")
             .add_block(
-                Section(f"⏰ <@{user_id}>'s setup time has expired. A manager must confirm to skip their turn.")
+                Section(f"⏰ <@{user_id}>'s performance setup time has expired. A manager must confirm to skip their performance.")
                 .accessory(
                     Button("Confirm Skip")
                     .action_id("confirm_skip")
@@ -91,8 +91,6 @@ def _handle_manager_action_timeout(game_id: int, user_id: str, channel_id: str, 
 ACTIVE_TURN_TIMERS: dict[tuple[int, str], Timer] = {}
 
 def _handle_user_turn_timeout(game_id: int, user_id: str, channel_id: str, thread_ts: str, client: WebClient):
-
-    # Check the most recent turn for this user to see if we've already sent a notification
     turn_details = db.get_turn_by_status(game_id, ['IN_PROGRESS', 'ACCEPTED'])
     if not turn_details or turn_details['user_id'] != user_id or turn_details['timeout_notified']:
         return
@@ -180,14 +178,14 @@ def show_game_info(event: MessageEvent, client: WebClient):
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(user=user_id, channel=channel_id, text="No active game found in this thread.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="No active show found in this thread.", thread_ts=thread_ts)
         return
 
     message = _build_active_turn_message(game_id, is_public=False)
     if message:
         client.chat_postEphemeral(user=user_id, channel=channel_id, thread_ts=thread_ts, **message.build())
     else:
-        client.chat_postEphemeral(user=user_id, channel=channel_id, text="No turn is currently active.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="No performance is currently active.", thread_ts=thread_ts)
 
 @msg_listen("live.pick")
 def pick_user(event: MessageEvent, client: WebClient):
@@ -205,7 +203,7 @@ def pick_user(event: MessageEvent, client: WebClient):
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to pick a user for this game.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
     active_turn_message = _build_active_turn_message(game_id, is_public=False)
@@ -215,7 +213,7 @@ def pick_user(event: MessageEvent, client: WebClient):
 
     eligible_users = db.get_eligible_participants(game_id)
     if not eligible_users:
-        client.chat_postMessage(channel=channel_id, text="There are no eligible participants to pick from right now.", thread_ts=thread_ts)
+        client.chat_postMessage(channel=channel_id, text="Magician don't like any of you so he don't want to start a performance.", thread_ts=thread_ts)
         return
     
     secrets = db.get_latest_secrets(game_id)
@@ -249,17 +247,17 @@ def pick_user(event: MessageEvent, client: WebClient):
     Timer(timeout_seconds, _handle_manager_action_timeout, args=(game_id, target_user_id, channel_id, thread_ts, client)).start()
 
     message_payload = (
-        Message(text=f"👉 <@{target_user_id}> has been selected for the next turn!")
+        Message(text=f"👉 <@{target_user_id}> has been selected for the next performance by the magician!")
         .add_block(
-            Section(f"👉 <@{target_user_id}> has been selected for the next turn for *{duration_text}*!")
+            Section(f"👉 <@{target_user_id}> has been selected for the next performance for *{duration_text}* by the magician!")
         )
         .add_block(
             blockkit.Actions([
                 Button("Start Turn").action_id("start_turn"),
                 Button("Skip Turn").action_id("skip_turn").confirm(
                     blockkit.Confirm(
-                        title="Are you sure you want to skip this turn?",
-                        text="This will count as one of your two consecutive skips.",
+                        title="Are you sure you want to skip this performance?",
+                        text="This will make the magician don't like you.",
                         confirm="Yes, skip",
                         deny="No"
                     )
@@ -277,31 +275,30 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
     thread_ts = event.message.thread_ts or event.message.ts
 
     if not thread_ts:
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="This command must be used within a game's thread.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot be doing this outside the performance, get back here.", thread_ts=thread_ts)
         return
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Cannot refresh secret: No active game found in this thread.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="There are no active magic performance, do you want to start one with `live.init`?", thread_ts=thread_ts)
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to refresh the server secret for this game.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
     new_server_secret = secrets.token_hex(16)
     new_server_secret_hash = _sha3(new_server_secret)
     db.update_server_secret(game_id, new_server_secret)
     
-    # Fetch eligible users to show who is in the pool for the next pick
     eligible_users = db.get_eligible_participants(game_id)
     if eligible_users:
         user_names_map = db.get_user_names(eligible_users)
         # Fallback to user_id if name not found, though this shouldn't happen in normal operation
         user_name_list = [user_names_map.get(uid, uid) for uid in eligible_users]
-        eligible_section = Section(f"👥 *Eligible Participants:*\n{', '.join(user_name_list)}")
+        eligible_section = Section(f"👥 *The participant the magician like:*\n{', '.join(user_name_list)}")
     else:
-        eligible_section = Section("👥 *Eligible Participants:*\nNo one is currently eligible to be picked.")
+        eligible_section = Section("👥 *The participant the magician like:*\nLiterally no one he hate y'all (or maybe he like the one who just completed it and give him a break)")
 
     message = (
         Message(text=f"🎲 New server secret has been generated. Hash: `{new_server_secret_hash}`")
@@ -318,7 +315,7 @@ def end_game(event: MessageEvent, client: WebClient):
     thread_ts = event.message.thread_ts or event.message.ts
 
     if not thread_ts:
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="This command must be used within a game's thread.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="This command must be used within the magic show thread.", thread_ts=thread_ts)
         return
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
@@ -327,22 +324,22 @@ def end_game(event: MessageEvent, client: WebClient):
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to end this game.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
     db.update_game_status(game_id, "COMPLETED")
 
     summary_stats = db.get_game_summary_stats(game_id)
     
-    summary_message = Message(text="The game has ended! Here is the summary:")
-    summary_message.add_block(Section("*The game has ended! Here is the summary:*"))
+    summary_message = Message(text="The show has ended! Here is the summary:")
+    summary_message.add_block(Section("*The show has ended! Here is the summary:*"))
     
     if not summary_stats:
         summary_message.add_block(Section("No participants had any recorded activity."))
     else:
         summary_text = ""
         for stat in summary_stats:
-            summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful round(s), {stat['consecutive_skips']} skip(s).\n"
+            summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful performance(s) :), {stat['consecutive_skips']} skip(s) :(.\n"
         
         summary_message.add_block(Section(summary_text))
 
@@ -362,11 +359,11 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id or not user_id:
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active game or user for this action.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active show or user for this action.", thread_ts=thread_ts)
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to perform this action.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
     db.update_turn_status(game_id, user_id, "COMPLETED")
@@ -374,8 +371,8 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
     client.chat_update(
         channel=channel_id,
         ts=message_ts,
-        text=f"✅ Turn for <@{user_id}> marked as COMPLETED by <@{manager_id}>.",
-        blocks=Message().add_block(Section(f"✅ Turn for <@{user_id}> marked as *COMPLETED* by <@{manager_id}>.")).build()['blocks']
+        text=f"Turn for <@{user_id}> marked as *completed* by <@{manager_id}>.",
+        blocks=Message().add_block(Section(f"✅ Turn for <@{user_id}> marked as *COcompletedMPLETED* by <@{manager_id}>.")).build()['blocks']
     )
 
 @action_listen("manager_mark_failed")
@@ -393,7 +390,7 @@ def handle_manager_mark_failed(event: BlockActionEvent, client: WebClient):
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to perform this action.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
     db.update_turn_status(game_id, user_id, "FAILED")
@@ -420,33 +417,30 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
     """Handles a manager starting the current turn."""
     manager_id = event.user.id
     channel_id = event.container.channel_id
-    # Use the message's thread_ts if it exists, otherwise use the message's own ts to reply in a thread.
     thread_ts = event.message.thread_ts or event.container.message_ts
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active game in this thread.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active show in this thread.", thread_ts=thread_ts)
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to start the turn.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="YYou cannot overrule the magician.", thread_ts=thread_ts)
         return
 
     pending_user_id = db.get_pending_turn_user(game_id)
     if not pending_user_id:
-        client.chat_postMessage(channel=channel_id, text="There is no pending turn to start.", thread_ts=thread_ts)
+        client.chat_postMessage(channel=channel_id, text="There is no pending performance to start.", thread_ts=thread_ts)
         return
 
     try:
         turn_details = db.start_turn(game_id, pending_user_id)
-        # The turn is now 'IN_PROGRESS'. The user's time has started.
         message_payload = (
-            Message(text=f"▶️ <@{pending_user_id}>'s turn has officially started! Good luck! 🍀")
+            Message(text=f"<@{pending_user_id}>'s performance has officially started! Good luck!")
         ).build()
 
         client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
 
-        # Start the main timer for the user's turn duration
         duration_seconds = turn_details['assigned_duration_seconds']
         user_turn_timer = Timer(
             duration_seconds, 
@@ -480,15 +474,13 @@ def handle_accept_turn(event: BlockActionEvent, client: WebClient):
         client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="It's not your turn to accept.", thread_ts=thread_ts)
         return
 
-    # Mark the turn as 'ACCEPTED' in the database
     db.update_turn_status(game_id, clicker_id, "ACCEPTED")
 
-    # Update the message that contained the buttons
     client.chat_update(
         channel=channel_id,
         ts=message_ts,
-        text=f"✅ <@{clicker_id}> has accepted the turn.",
-        blocks=Message().add_block(Section(f"✅ <@{clicker_id}> has accepted their turn. The countdown is on!")).build()['blocks']
+        text=f"<@{clicker_id}> has *started* the turn.",
+        blocks=Message().add_block(Section(f"<@{clicker_id}> has *started* their performance. The countdown is on!")).build()['blocks']
     )
 
 @action_listen("reject_turn")
@@ -501,27 +493,25 @@ def handle_reject_turn(event: BlockActionEvent, client: WebClient):
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="Could not find an active game in this thread.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="Could not find an active show in this thread.", thread_ts=thread_ts)
         return
 
     in_progress_user_id = db.get_in_progress_turn_user(game_id)
     if not in_progress_user_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="There is no turn currently in progress to reject.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="There is no performance currently in progress to reject.", thread_ts=thread_ts)
         return
 
     if clicker_id != in_progress_user_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="It's not your turn to reject.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="You cannot skip performance that is not yours..", thread_ts=thread_ts)
         return
-
-    # Update the turn status to 'REJECTED'
+    
     db.update_turn_status(game_id, clicker_id, "REJECTED")
 
-    # Update the message that contained the buttons
     client.chat_update(
         channel=channel_id,
         ts=message_ts,
-        text=f"❌ <@{clicker_id}> has rejected the turn.",
-        blocks=Message().add_block(Section(f"❌ <@{clicker_id}> has rejected (skipped) their turn.")).build()['blocks']
+        text=f"<@{clicker_id}> has rejected the performance.",
+        blocks=Message().add_block(Section(f"<@{clicker_id}> has rejected (skipped) their performance.")).build()['blocks']
     )
 
 @action_listen("confirm_skip")
@@ -539,13 +529,11 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You are not authorized to perform this action.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
-    # Mark the turn as 'SKIPPED'
     db.update_turn_status(game_id, str(user_to_skip), "SKIPPED")
 
-    # Update the original timeout message to show it was handled
     client.chat_update(
         channel=channel_id,
         ts=message_ts,
@@ -557,10 +545,8 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
 
 @action_listen("skip_turn")
 def handle_skip_turn(event: BlockActionEvent, client: WebClient):
-    """Handles a user or manager skipping the current turn."""
     clicker_id = event.user.id
     channel_id = event.container.channel_id
-    # Use the message's thread_ts if it exists, otherwise use the message's own ts to reply in a thread.
     thread_ts = event.message.thread_ts or event.container.message_ts
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
@@ -570,30 +556,23 @@ def handle_skip_turn(event: BlockActionEvent, client: WebClient):
 
     pending_user_id = db.get_pending_turn_user(game_id)
     if not pending_user_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="There is no pending turn to skip.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="There is no pending performance to skip.", thread_ts=thread_ts)
         return
 
     is_manager = db.is_game_manager(game_id, clicker_id)
     is_selected_user = (clicker_id == pending_user_id)
 
     if not is_manager and not is_selected_user:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="You are not authorized to skip this turn.", thread_ts=thread_ts)
+        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
-    # Update the turn status to 'SKIPPED'
     db.update_turn_status(game_id, pending_user_id, "SKIPPED")
 
-    # Notify the channel
-    client.chat_postMessage(channel=channel_id, text=f"🏃 <@{pending_user_id}>'s turn has been skipped.", thread_ts=thread_ts)
+    client.chat_postMessage(channel=channel_id, text=f"🏃 <@{pending_user_id}>'s turn has been skipped, now the magician like you less.", thread_ts=thread_ts)
 
 
 @msg_listen("huddle_thread", is_subtype=True)
 def handle_huddle_start_message(event: MessageEvent, client: WebClient):
-    """
-    Listens for the message that signifies a huddle has started
-    and stores the huddle-to-channel mapping in the database.
-    This is more reliable than using calls.info.
-    """
     room = event.message.room
     if not room or not room.channels:
         print(f"⚠️ Received huddle_thread message without room or channel data. TS: {event.message.ts}")
@@ -608,7 +587,6 @@ def handle_huddle_start_message(event: MessageEvent, client: WebClient):
 
 @huddle_listen(HuddleState.IN_HUDDLE)
 def handle_huddle_join(event: HuddleChange, client: WebClient):
-    """Handles a user joining a huddle."""
     user_id = event.user.id
     user_name = event.user.name
     huddle_id = event.call_id
@@ -622,7 +600,6 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)
 def handle_huddle_leave(event: HuddleChange, client: WebClient):
-    """Handles a user leaving a huddle by removing them from the huddle participant list."""
     user_id = event.user.id
     user_name = event.user.real_name or event.user.name
     # When a user leaves, the event doesn't specify which huddle.
@@ -636,10 +613,6 @@ def handle_huddle_leave(event: HuddleChange, client: WebClient):
 load_dotenv()
 
 def load_active_timers(client: WebClient):
-    """
-    On startup, loads any turns that are 'PENDING' or 'IN_PROGRESS' and
-    restarts their respective timeout timers.
-    """
     print("⏳ Loading active timers from the database...")
     pending_turns = db.get_all_turns_by_status(['PENDING'])
     manager_timeout_duration = 120  # 2 minutes
@@ -718,7 +691,7 @@ if __name__ == "__main__":
     )
     load_active_timers(client.web_client)
     client.socket_mode_request_listeners.append(process_message)
-    print("🤖 Bot is listening for messages...")
+    print("Bot is listening for messages...")
     client.connect()
     while True:
         try:

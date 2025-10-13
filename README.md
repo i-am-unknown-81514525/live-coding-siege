@@ -29,7 +29,7 @@ Do `uv run main.py`
 Go to siege channel and start a huddle, and do `live.init`
 
 ### How is it magical
-TBD
+I have made basically all user visible message magic theme like :) (Idk if that count)
 
 ### Demo vid
 TBD
