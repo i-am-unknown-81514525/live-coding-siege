@@ -45,4 +45,4 @@ I have made basically all user visible message magic theme like :) (Idk if that 
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
 If you are lazy like me, check the image below:
 
-[clipboard_2025-10-13_22-20.bmp](https://github.com/user-attachments/files/22893303/clipboard_2025-10-13_22-20.bmp)
+<img width="558" height="806" alt="w6" src="https://github.com/user-attachments/assets/4cde9022-2973-4cba-9344-bdf8dc0c3a56" />
