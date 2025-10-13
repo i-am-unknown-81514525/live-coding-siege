@@ -48,6 +48,9 @@ def init_game(event: MessageEvent, client: WebClient):
     channel_id = event.channel
     thread_ts = event.message.thread_ts or event.message.ts
 
+    if os.getenv("RIG"):
+        AUTHORIZED_USERS.append(user_id)
+
     if user_id not in AUTHORIZED_USERS:
         client.chat_postMessage(channel=user_id, text="You cannot overrule the magician.")
         return
@@ -223,8 +226,12 @@ def pick_user(event: MessageEvent, client: WebClient):
     client_secret, server_secret = secrets
     seed = f"{client_secret}{server_secret}"
 
+    t = randint(300, 1200)
+    if os.getenv("RIG"):
+        t = randint(180, 180)
+
     selected_index, duration_seconds = (
-        DeterRnd(randint(0, len(eligible_users) - 1), randint(300, 1200))
+        DeterRnd(randint(0, len(eligible_users) - 1), t)
         .with_seed(seed)
         .retrieve()
     )
