@@ -14,6 +14,7 @@ Oh god it is complex
 First made a bot
 Next, enable socket mode, the bot, slach command, interactive, enough OAuth that allow it to chat and listen to user huddle status change (I don't remember everything... Gl ig?)
 Put these in `.env`, how to get them? Somewhere in the dashboard I already forgot :)
+
 ```env
 SLACK_CLIENT_SECRET=
 SLACK_SIGN_SECRET=
@@ -21,10 +22,10 @@ SLACK_CLIENT_ID=
 SLACK_APP_ID=
 SLACK_APP_LEVEL_TOKEN=
 SLACK_BOT_OAUTH_TOKEN=
+```
 
 Yep I think most of them but not all is necessary :)
 
-```
 Optionally
 ```env
 RIG=1
