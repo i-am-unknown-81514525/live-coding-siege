@@ -4,9 +4,10 @@ from contextlib import contextmanager
 import json
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
+from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "live_coding.db")
+DB_FILE = Path(BASE_DIR) / "data" / "live_coding.db"
 SCHEMA_FILE = os.path.join(BASE_DIR, "schema.sql")
 
 @contextmanager

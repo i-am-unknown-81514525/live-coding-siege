@@ -33,7 +33,10 @@ class DeterRnd[*T]:
     def retrieve(self) -> tuple[*T]:
         total_bit = sum(map(lambda x: x[0], self.handlers))
         rnd_seed = self._collect(total_bit)
-        rnd_int = int(rnd_seed, 16)
+        if rnd_seed:
+            rnd_int = int(rnd_seed, 16)
+        else:
+            rnd_int = 0
         result = []
         for bit_count, fn in self.handlers:
             rnd_int, curr = divmod(rnd_int, 2 ** bit_count)
