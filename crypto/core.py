@@ -46,7 +46,19 @@ def rnd_bool() -> Handler[bool]:
 
 
 def randint(low: int, high: int) -> Handler[int]:
+    if low == high:
+        return (0, lambda x: low)
     if low > high:
         raise ValueError("Low must be less than high")
     bit_size = (high - low).bit_length()
-    return (bit_size, lambda x: x+low)
+    lim = (high-low)
+    def inner(v: int) -> int:
+        base = v % (2**bit_size)
+        other = v >> bit_size
+        if other == 0:
+            other = 2**(bit_size-1)
+        k = 0
+        while (base + k*other) % (2**bit_size) > lim:
+            k += 1
+        return min(((base + k*other) % (2**bit_size)) + low, 180)
+    return (bit_size*2-1, inner)

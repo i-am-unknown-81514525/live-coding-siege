@@ -197,7 +197,7 @@ class Edited:
 class MessageData:
     """Represents the data content of a message, ignoring blockkit."""
     user: SlackID
-    ts: Arrow
+    ts: str
     text: str
     thread_ts: SlackID | None
     edited: Edited | None
@@ -208,13 +208,14 @@ class MessageData:
     def parse(cls, data: dict) -> Self:
 
         edited_data = data.get("edited")
+        room_data = data.get("room")
         return cls(
-            ts=Arrow.fromtimestamp(float(data["ts"])),
-            user=data["user"],
-            text=data["text"],
+            ts=data.get("ts", ""),
+            user=data.get("user", ""),
+            text=data.get("text", ""),
             thread_ts=data.get("thread_ts"),
             edited=Edited(user=edited_data["user"], ts=Arrow.fromtimestamp(float(edited_data["ts"]))) if edited_data else None,
-            room=Room.parse(data["room"]) if "room" in data else None,
+            room=Room.parse(room_data) if room_data else None,
             subtype=data.get("subtype"),
         )
 
@@ -227,17 +228,14 @@ class MessageEvent(Event):
     """
     __EVENT__ = "message"
 
-    # Event-level fields
     event_ts: Arrow
     channel: SlackID
     channel_type: str
     subtype: str | None
     hidden: bool | None
 
-    # Fields for a standard new message
     client_msg_id: str | None
 
-    # Fields for message_changed subtype
     message: MessageData
     previous_message: MessageData | None
 
@@ -246,11 +244,11 @@ class MessageEvent(Event):
         event_data = data.get("event", {})
         subtype = event_data.get("subtype")
 
-        # For 'message_changed' events, the current message data is in a nested 'message' object.
-        # For standard new messages, the data is at the top level of the event.
-        current_message_data = event_data.get("message") if subtype == "message_changed" else event_data
+        if subtype in ("message_changed", "huddle_thread"):
+            current_message_data = event_data.get("message", {})
+        else:
+            current_message_data = event_data
 
-        # Safely parse previous_message only if it exists
         previous_message_data = event_data.get("previous_message")
         previous_message = MessageData.parse(previous_message_data) if previous_message_data else None
 

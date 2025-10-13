@@ -24,14 +24,14 @@ class InteractionUser:
 class Container:
     type: str
     channel_id: SlackID
-    message_ts: Arrow
+    message_ts: str # Keep as string for API compatibility
 
     @classmethod
     def parse(cls, data: dict) -> Self:
         return cls(
             type=data["type"],
             channel_id=data["channel_id"],
-            message_ts=Arrow.fromtimestamp(float(data["message_ts"])),
+            message_ts=data["message_ts"],
         )
 
 @dataclass(frozen=True)
@@ -40,6 +40,7 @@ class Action:
     action_id: str
     block_id: str
     action_ts: Arrow
+    value: str | None = None
 
     @classmethod
     def parse(cls, data: dict) -> Self:
@@ -48,28 +49,28 @@ class Action:
             action_id=data["action_id"],
             block_id=data["block_id"],
             action_ts=Arrow.fromtimestamp(float(data["action_ts"])),
+            value=data.get("value"),
         )
 
 @dataclass(frozen=True)
 class BlockActionEvent(Recv):
-    """Represents a user interaction with a block element (e.g., clicking a button)."""
     user: InteractionUser
     api_app_id: str
     container: Container
     trigger_id: str
     response_url: str
-    message: MessageData
+    message: MessageData | None
     actions: list[Action]
 
     @classmethod
     def parse(cls, data: dict) -> Self:
+        message_data = data.get("message")
         return cls(
             user=InteractionUser.parse(data["user"]),
             api_app_id=data["api_app_id"],
             container=Container.parse(data["container"]),
             trigger_id=data["trigger_id"],
             response_url=data["response_url"],
-            # The 'message' object in a block action is a full message payload
-            message=MessageData.parse(data["message"]),
+            message=MessageData.parse(message_data) if message_data else None,
             actions=[Action.parse(action) for action in data.get("actions", [])],
         )

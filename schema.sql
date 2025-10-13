@@ -1,7 +1,7 @@
 
 CREATE TABLE IF NOT EXISTS "user" (
     "slack_id" TEXT PRIMARY KEY NOT NULL,
-    "name" TEXT NOT NULL,
+    "name" TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "huddle" (
@@ -16,12 +16,15 @@ CREATE TABLE IF NOT EXISTS "huddle_participant" (
     "huddle_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     PRIMARY KEY ("huddle_id", "user_id"),
-    FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
+    FOREIGN KEY("user_id") REFERENCES "user"("slack_id"),
+    FOREIGN KEY("huddle_id") REFERENCES "huddle"("id")
 );
 
 CREATE TABLE IF NOT EXISTS "game" (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT,
     "huddle_id" TEXT NOT NULL,
+    "channel_id" TEXT NOT NULL,
+    "thread_ts" TEXT NOT NULL,
     "start_time" DATETIME NOT NULL,
     "end_time" DATETIME,
     "status" TEXT NOT NULL CHECK("status" IN ('PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED')),
@@ -34,8 +37,10 @@ CREATE TABLE IF NOT EXISTS "game_turn" (
     "game_id" INTEGER NOT NULL,
     "user_id" TEXT NOT NULL,
     "selection_time" DATETIME NOT NULL,
+    "start_time" DATETIME,
     "assigned_duration_seconds" INTEGER NOT NULL,
-    "status" TEXT NOT NULL CHECK("status" IN ('PENDING', 'SKIPPED', 'COMPLETED', 'FAILED')),
+    "status" TEXT NOT NULL CHECK("status" IN ('PENDING', 'IN_PROGRESS', 'ACCEPTED', 'REJECTED', 'SKIPPED', 'COMPLETED', 'FAILED')),
+    "timeout_notified" BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY("game_id") REFERENCES "game"("id"),
     FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
 );

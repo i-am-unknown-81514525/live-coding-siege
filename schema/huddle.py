@@ -103,7 +103,7 @@ class HuddleChange(Event):
             user=User.parse(event_data.get("user", {})),
             event_id=data.get("event_id", ""),
             huddle_state=HuddleState.parse(huddle_state_str),
-            call_id=user_profile.get("huddle_state_call_id"),
+            call_id=user_profile.get("huddle_state_call_id", ""),
             huddle_state_expiration_ts=Arrow.fromtimestamp(int(user_profile.get("huddle_state_expiration_ts", 0))),
         )
 
