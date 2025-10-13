@@ -21,15 +21,25 @@ SLACK_CLIENT_ID=
 SLACK_APP_ID=
 SLACK_APP_LEVEL_TOKEN=
 SLACK_BOT_OAUTH_TOKEN=
-```
+
 Yep I think most of them but not all is necessary :)
+
+```
+Optionally
+```env
+RIG=1
+```
+
+This would set so anyone can run live.init with no restriction, and also the run time would be < 3 minutes
+
 Do `uv run main.py`
 
 ### How to use
-Go to siege channel and start a huddle, and do `live.init`
+Go to siege channel and start a huddle, and do `live.init` (It should have `RIG` enabled to allow you test it, unless I am hosting one and forgot to turn it back on)
 
 ### How is it magical
 I have made basically all user visible message magic theme like :) (Idk if that count)
 
-### Demo vid
-TBD
+### Demo?
+I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
+If you are lazy like me, check the image below:

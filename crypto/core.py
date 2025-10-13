@@ -60,5 +60,5 @@ def randint(low: int, high: int) -> Handler[int]:
         k = 0
         while (base + k*other) % (2**bit_size) > lim:
             k += 1
-        return min(((base + k*other) % (2**bit_size)) + low, 180)
+        return ((base + k*other) % (2**bit_size)) + low
     return (bit_size*2-1, inner)
