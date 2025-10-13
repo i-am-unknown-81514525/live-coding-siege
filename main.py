@@ -645,7 +645,7 @@ def load_active_timers(client: WebClient):
     manager_timeout_duration = 120  # 2 minutes
 
     for turn in pending_turns:
-        selection_time = datetime.fromisoformat(turn['selection_time'])
+        selection_time = datetime.fromisoformat(turn['selection_time']).replace(tzinfo=timezone.utc)
         elapsed_time = (datetime.now(timezone.utc) - selection_time).total_seconds()
         remaining_time = manager_timeout_duration - elapsed_time
 
@@ -663,7 +663,7 @@ def load_active_timers(client: WebClient):
     # Load IN_PROGRESS and ACCEPTED turns
     in_progress_turns = db.get_all_turns_by_status(['IN_PROGRESS', 'ACCEPTED'])
     for turn in in_progress_turns:
-        start_time = datetime.fromisoformat(turn['start_time']) if turn['start_time'] else None
+        start_time = datetime.fromisoformat(turn['start_time']).replace(tzinfo=timezone.utc) if turn['start_time'] else None
         if not start_time:
             continue # Should not happen for IN_PROGRESS turns, but good practice
 
