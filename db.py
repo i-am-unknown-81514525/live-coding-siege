@@ -423,6 +423,17 @@ def upsert_huddle(huddle_id: str, channel_id: str, start_time: datetime):
 
 # === State Querying Functions ===
 
+def has_game_manager(user_id: str) -> bool:
+    """Check if a user is a manager for any active game."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            """SELECT 1 FROM game_manager gm LEFT JOIN game ON gm.game_id = game.id
+            WHERE gm.user_id = ? AND (game.status IS NULL OR game.status = 'ACTIVE' OR game.status = 'PENDING')""",
+            (user_id,)
+        ).fetchone()
+        return row is not None
+
 def is_game_manager(game_id: int, user_id: str) -> bool:
     """Checks if a user is a manager for the given game."""
     with get_db_connection() as conn:
