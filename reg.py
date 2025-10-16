@@ -4,9 +4,11 @@ from schema.interactive import BlockActionEvent
 from schema.huddle import HuddleChange, HuddleState
 from slack_sdk.web import WebClient
 import threading
-from typing import Any
+from typing import Any, Sequence, overload
 from dataclasses import dataclass
 
+from slack_sdk.models.blocks import Block
+from slack_sdk.models.attachments import Attachment
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
 ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
@@ -35,6 +37,56 @@ def msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Calla
 class MessageContext:
     event: MessageEvent
     client: WebClient
+
+    @overload
+    def private_send(self, always_thread: bool = False, *, text: str | None = None, # pyright: ignore[reportInconsistentOverload]
+    as_user: bool | None = None,
+    attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+    blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+    thread_ts: str | None = None,
+    icon_emoji: str | None = None,
+    icon_url: str | None = None,
+    link_names: bool | None = None,
+    username: str | None = None,
+    parse: str | None = None, **kwargs) -> Any: ...
+
+    def private_send[**P](self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs):
+        thread_ts = self.event.message.thread_ts
+        if thread_ts is None and always_thread and self.event.message.ts:
+            thread_ts = self.event.message.ts
+        return self.client.chat_postEphemeral(
+            user=self.event.message.user, 
+            channel=self.event.channel, 
+            thread_ts=thread_ts, 
+            *args, 
+            **kwargs
+        )
+
+    @overload
+    def public_send(self, always_thread: bool = False, *, text: str | None = None, # pyright: ignore[reportInconsistentOverload]
+    as_user: bool | None = None,
+    attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+    blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+    thread_ts: str | None = None,
+    icon_emoji: str | None = None,
+    icon_url: str | None = None,
+    link_names: bool | None = None,
+    username: str | None = None,
+    parse: str | None = None, **kwargs) -> Any: ...
+
+    
+    def public_send[**P](self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs):
+        thread_ts = self.event.message.thread_ts
+        if thread_ts is None and always_thread and self.event.message.ts:
+            thread_ts = self.event.message.ts
+        return self.client.chat_postMessage(
+            channel=self.event.channel, 
+            thread_ts=thread_ts, 
+            *args, 
+            **kwargs
+        )
+
+
 
 
 
