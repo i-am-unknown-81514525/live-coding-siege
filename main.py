@@ -204,6 +204,14 @@ def add_manager(event: MessageEvent, client: WebClient):
         client.chat_postMessage(channel=channel_id, text="<@" + user_id + "> is already a manager in some active game show!", thread_ts=thread_ts)
     return
 
+@msg_listen("live.force_leave") # Deregister as game manager in any active game participated. Would also end the huddle if it is the last game manager
+def force_leave(event: MessageEvent, client: WebClient):
+    user_id = event.message.user
+    channel_id = event.channel
+    thread_ts = event.message.thread_ts # Reason of difference: don't thread the message if not already threaded
+
+    raise NotImplementedError("Later I think I haven't implement game manager list op")
+
 @msg_listen("live.turn")
 @msg_listen("live.info")
 def show_game_info(event: MessageEvent, client: WebClient):
