@@ -712,7 +712,7 @@ def load_active_timers(client: WebClient):
     for turn in in_progress_turns:
         start_time = datetime.fromisoformat(turn['start_time']).replace(tzinfo=timezone.utc) if turn['start_time'] else None
         if not start_time:
-            continue # Should not happen for IN_PROGRESS turns, but good practice
+            continue
 
         duration = turn['assigned_duration_seconds']
         elapsed_time = (datetime.now(timezone.utc) - start_time).total_seconds()

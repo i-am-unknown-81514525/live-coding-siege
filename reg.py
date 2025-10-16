@@ -5,6 +5,8 @@ from schema.huddle import HuddleChange, HuddleState
 from slack_sdk.web import WebClient
 import threading
 from typing import Any
+from dataclasses import dataclass
+
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
 ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
@@ -28,6 +30,36 @@ def msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Calla
         setattr(func, '_is_subtype_handler', is_subtype)
         return func # type: ignore
     return decorator
+
+@dataclass
+class MessageContext:
+    event: MessageEvent
+    client: WebClient
+
+
+
+def smart_msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Callable[[A], A]:
+    """
+    A decorator factory that registers a function to handle a specific message key.
+
+    Args:
+        message_key: The key for the message that the decorated function will handle.
+        is_subtype: If True, matches against the message subtype instead of the text content.
+    """
+    if not isinstance(message_key, str):
+        raise TypeError("The message_key for @smart_msg_listen must be a string.")
+
+    def decorator[F: Callable[[MessageContext], Any]](func: F) -> F:
+        """The actual decorator that performs the registration."""
+        handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
+        def inner(event: MessageEvent, client: WebClient):
+            return func(MessageContext(event, client))
+        handlers.append(inner)
+        setattr(func, '_is_subtype_handler', is_subtype)
+        return func # type: ignore
+    return decorator
+
+    
 
 def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
     """
