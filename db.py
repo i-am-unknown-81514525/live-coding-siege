@@ -372,6 +372,17 @@ def add_game_manager(game_id: int, user_id: str):
         )
         conn.commit()
 
+def list_game_manager(game_id: int):
+    """Lists all managers for a game."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        rows = cursor.execute(
+            "SELECT user_id FROM game_manager WHERE game_id = ?",
+            (game_id, )
+        ).fetchall()
+        return [row['user_id'] for row in rows]
+
+
 def add_huddle_participant(huddle_id: str, user_id: str):
     """Adds a user to the list of current participants in a huddle."""
     with get_db_connection() as conn:
