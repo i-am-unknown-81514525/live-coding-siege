@@ -172,6 +172,38 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
     
     return message
 
+@msg_listen("live.add_mgr")
+def add_manager(event: MessageEvent, client: WebClient):
+    user_id = event.message.user
+    channel_id = event.channel
+    thread_ts = event.message.thread_ts or event.message.ts
+
+    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    if not game_id:
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="No active show found in this thread.", thread_ts=thread_ts)
+        return
+
+    if not db.is_game_manager(game_id, user_id):
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
+
+    user_id = event.message.text.removeprefix("live.add_mgr").strip()
+
+    if not re.match(r"<@(U\w+)>", user_id):
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="Invalid user ID.", thread_ts=thread_ts)
+        return
+    user_id = user_id.removeprefix("<@").removesuffix(">")
+
+    if not db.has_user(user_id):
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="The user have not been indexed... Ask them to join the huddle to do so!", thread_ts=thread_ts)
+        return
+    
+    if not db.has_game_manager(user_id):
+        db.add_game_manager(game_id, user_id)
+        client.chat_postMessage(channel=channel_id, text="<@" + user_id + "> is now the new show manager!", thread_ts=thread_ts)
+    else:
+        client.chat_postMessage(channel=channel_id, text="<@" + user_id + "> is already a manager in some active game show!", thread_ts=thread_ts)
+    return
+
 @msg_listen("live.turn")
 @msg_listen("live.info")
 def show_game_info(event: MessageEvent, client: WebClient):
