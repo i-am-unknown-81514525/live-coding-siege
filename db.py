@@ -382,6 +382,18 @@ def list_game_manager(game_id: int):
         ).fetchall()
         return [row['user_id'] for row in rows]
 
+def get_game_mgr_active_game(user_id: str) -> str | None:
+    """Get the active game the game manager is manging, if exists"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT game_id FROM game_manager gm " \
+            "LEFT JOIN game ON game_manager.game_id = game.id " \
+            "WHERE gm.user_id = ? AND (game.status IS NULL OR game.status = 'ACTIVE' OR game.status = 'PENDING')",
+            (user_id,)
+        ).fetchone()
+        return row['game_id'] if row else None
+
 
 def add_huddle_participant(huddle_id: str, user_id: str):
     """Adds a user to the list of current participants in a huddle."""

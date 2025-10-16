@@ -400,7 +400,7 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
     """Handles a manager marking a timed-out turn as COMPLETED."""
     manager_id = event.user.id
     channel_id = event.container.channel_id
-    thread_ts = event.message.thread_ts or event.container.message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
     message_ts = event.container.message_ts
     user_id = event.actions[0].value
 
@@ -427,7 +427,7 @@ def handle_manager_mark_failed(event: BlockActionEvent, client: WebClient):
     """Handles a manager marking a timed-out turn as FAILED."""
     manager_id = event.user.id
     channel_id = event.container.channel_id
-    thread_ts = event.message.thread_ts or event.container.message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
     message_ts = event.container.message_ts
     user_id = event.actions[0].value
 
@@ -464,7 +464,7 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
     """Handles a manager starting the current turn."""
     manager_id = event.user.id
     channel_id = event.container.channel_id
-    thread_ts = event.message.thread_ts or event.container.message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
@@ -505,7 +505,7 @@ def handle_accept_turn(event: BlockActionEvent, client: WebClient):
     clicker_id = event.user.id
     channel_id = event.container.channel_id
     message_ts = event.container.message_ts
-    thread_ts = event.message.thread_ts or message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
@@ -536,7 +536,7 @@ def handle_reject_turn(event: BlockActionEvent, client: WebClient):
     clicker_id = event.user.id
     channel_id = event.container.channel_id
     message_ts = event.container.message_ts
-    thread_ts = event.message.thread_ts or message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
@@ -566,7 +566,7 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
     """Handles a manager confirming to skip a user after a timeout."""
     manager_id = event.user.id
     channel_id = event.container.channel_id
-    thread_ts = event.message.thread_ts or event.container.message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
     message_ts = event.container.message_ts
     user_to_skip = event.actions[0].value
 
@@ -594,7 +594,7 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
 def handle_skip_turn(event: BlockActionEvent, client: WebClient):
     clicker_id = event.user.id
     channel_id = event.container.channel_id
-    thread_ts = event.message.thread_ts or event.container.message_ts
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
