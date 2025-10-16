@@ -505,6 +505,16 @@ def get_active_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
             (channel_id, thread_ts)
         ).fetchone()
         return row['id'] if row else None
+    
+def get_any_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
+    """Finds the ID of the game in a given thread."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT id FROM game WHERE channel_id = ? AND thread_ts = ? LIMIT 1",
+            (channel_id, thread_ts)
+        ).fetchone()
+        return row['id'] if row else None
 
 
 def get_huddle_id_by_channel(channel_id: str) -> str | None:

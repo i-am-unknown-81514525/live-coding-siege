@@ -14,7 +14,7 @@ from schema.base import Event, Recv
 from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
-from reg import message_dispatch, msg_listen, action_dispatch, action_listen, huddle_dispatch, huddle_listen
+from reg import message_dispatch, msg_listen, action_dispatch, action_listen, huddle_dispatch, huddle_listen, smart_msg_listen, MessageContext
 from crypto.core import DeterRnd, Handler, _sha3, randint
 import db
 import blockkit
@@ -341,6 +341,10 @@ def pick_user(event: MessageEvent, client: WebClient):
     ).build()
 
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
+
+@smart_msg_listen("live.summary")
+def show_game_summary(ctx: MessageContext):
+    ...
 
 @msg_listen("live.rnd")
 def refresh_server_secret(event: MessageEvent, client: WebClient):
