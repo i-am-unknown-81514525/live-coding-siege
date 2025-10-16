@@ -659,6 +659,15 @@ def get_user_names(user_ids: list[str]) -> dict[str, str]:
         rows = cursor.execute(query, user_ids).fetchall()
         return {row['slack_id']: row['name'] for row in rows}
 
+def has_user(user_id: str) -> bool:
+    """Checks if a user exists in the database."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT 1 FROM user WHERE slack_id = ?",
+            (user_id,)
+        ).fetchone()
+        return row is not None
 
 if __name__ == "__main__":
     init_db()
