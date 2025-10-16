@@ -372,6 +372,16 @@ def add_game_manager(game_id: int, user_id: str):
         )
         conn.commit()
 
+def remove_game_manager(game_id: int, user_id: str):
+    """Removes a user as a manager for a game."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM game_manager WHERE game_id = ? AND user_id = ?",
+            (game_id, user_id)
+        )
+        conn.commit()
+
 def list_game_manager(game_id: int):
     """Lists all managers for a game."""
     with get_db_connection() as conn:
@@ -382,7 +392,7 @@ def list_game_manager(game_id: int):
         ).fetchall()
         return [row['user_id'] for row in rows]
 
-def get_game_mgr_active_game(user_id: str) -> str | None:
+def get_game_mgr_active_game(user_id: str) -> int | None:
     """Get the active game the game manager is manging, if exists"""
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -394,6 +404,15 @@ def get_game_mgr_active_game(user_id: str) -> str | None:
         ).fetchone()
         return row['game_id'] if row else None
 
+def game_exists_in_thread(channel_id: str, thread_ts: str) -> bool:
+    """Checks if there are any game in the thread regardless of status"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT 1 FROM game WHERE channel_id = ? AND thread_ts = ? LIMIT 1",
+            (channel_id, thread_ts)
+        ).fetchone()
+        return row is not None
 
 def add_huddle_participant(huddle_id: str, user_id: str):
     """Adds a user to the list of current participants in a huddle."""
