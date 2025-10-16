@@ -55,6 +55,10 @@ def init_game(event: MessageEvent, client: WebClient):
         client.chat_postMessage(channel=user_id, text="You cannot overrule the magician.")
         return
 
+    if db.game_exists_in_thread(channel_id, thread_ts):
+        client.chat_postMessage(channel=channel_id, text="A magic show already exist in this thread.", thread_ts=thread_ts)
+        return
+
     user_huddles = db.get_user_huddles(user_id)
     if not user_huddles:
         client.chat_postEphemeral(user=user_id, channel=channel_id, text="You don't seem to be in an active show.", thread_ts=thread_ts)
