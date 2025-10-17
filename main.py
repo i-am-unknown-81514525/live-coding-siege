@@ -441,7 +441,7 @@ def export_game_history(ctx: MessageContext):
             min_string += " "
         
         history_text += (
-            f"{i}. <@{user_id}> - Status: `{status}` - Assigned Time: `{min_string}{sec_string}`\n"
+            f"{i}. `{user_id}` - Status: `{status}` - Assigned Time: `{min_string}{sec_string}`\n"
         )
 
     ctx.public_send(text=history_text)    
