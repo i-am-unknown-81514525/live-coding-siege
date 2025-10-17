@@ -24,6 +24,8 @@ def int_handler(bits: int) -> Handler[int]:
     """A handler for DeterRnd that returns an integer of a specified bit length."""
     return (bits, lambda x: x)
 
+AUTHORIZED_USERS = ["U092BGL0UUQ"]
+
 @msg_listen("live.test1")
 def test_interactive(event: MessageEvent, client: WebClient):
     message_payload = (
@@ -42,8 +44,6 @@ def test_interactive(event: MessageEvent, client: WebClient):
 
 @msg_listen("live.init")
 def init_game(event: MessageEvent, client: WebClient):
-    AUTHORIZED_USERS = ["U092BGL0UUQ"]
-
     user_id = event.message.user
     channel_id = event.channel
     thread_ts = event.message.thread_ts or event.message.ts
@@ -225,18 +225,42 @@ def force_leave(event: MessageEvent, client: WebClient):
         db.update_turn_status(managing_game_id, user_id, "COMPLETED")
         client.chat_postEphemeral(user=user_id, channel=channel_id, text="Additional from removing from game manager, the event is also ended", thread_ts=thread_ts)
 
-@msg_listen("live.leave")
-def leave(event: MessageEvent, client: WebClient):
-    user_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts
+@smart_msg_listen("live.leave")
+def leave(ctx: MessageContext):
+    user_id = ctx.event.message.user
+    channel_id = ctx.event.channel
+    thread_ts = ctx.event.message.thread_ts
 
     if (managing_game_id := db.get_game_mgr_active_game(user_id)) is None: 
-        return client.chat_postEphemeral(user=user_id, channel=channel_id, text="You are not a game manager in any active show instance.", thread_ts=thread_ts)
+        return ctx.private_send(text="You are not a game manager in any active show instance.")
+    
+    if db.list_game_manager(managing_game_id) == [user_id]:
+        return ctx.private_send(text="You are the only manager left, therefore you cannot leave without ending the event. If you still want to do so, use `live.force_leave`")
 
     db.remove_game_manager(managing_game_id, user_id)
 
-    client.chat_postMessage(channel=channel_id, text="You are removed from the game manager in the active game", thread_ts=thread_ts)
+    ctx.public_send(channel=channel_id, text="You are removed from the game manager in the active game")
+
+
+@smart_msg_listen("live.takeover")
+def takeover(ctx: MessageContext):
+    if ctx.event.message.user not in AUTHORIZED_USERS:
+        return ctx.private_send(text="You cannot pretend to be authorised magician.")
+    
+    user_id = ctx.event.message.user
+    channel_id = ctx.event.channel
+    thread_ts = ctx.event.message.thread_ts
+    if not thread_ts:
+        return ctx.private_send(text="This command must be used within a game show's thread.")
+
+    if not (game_id := db.get_active_game_by_thread(channel_id, thread_ts)):
+        return ctx.private_send(text="No active game found in this thread.")
+    
+    db.add_game_manager(game_id, user_id)
+    
+    return ctx.public_send(text=f"You have been added as a game manager in game {game_id}")
+
+
 
 
 @msg_listen("live.turn")
@@ -344,7 +368,9 @@ def pick_user(event: MessageEvent, client: WebClient):
 
 @smart_msg_listen("live.summary")
 def show_game_summary(ctx: MessageContext):
-    ...
+    if ctx.event.message.thread_ts is None:
+        return ctx.private_send(text="This command must be used within a game's thread.")
+    game_id = db.get_any_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
 
 @msg_listen("live.rnd")
 def refresh_server_secret(event: MessageEvent, client: WebClient):
