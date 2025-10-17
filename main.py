@@ -435,9 +435,13 @@ def export_game_history(ctx: MessageContext):
         duration_seconds = turn['assigned_duration_seconds']
         duration_minutes = duration_seconds // 60
         remaining_seconds = duration_seconds % 60
+        min_string = f"{duration_minutes}m" if duration_minutes > 0 else ""
+        sec_string = f"{remaining_seconds}s" if remaining_seconds > 0 else ""
+        if min_string and sec_string:
+            min_string += " "
         
         history_text += (
-            f"{i}. <@{user_id}> - Status: `{status}` - Assigned Time: `{duration_minutes}m {remaining_seconds}s`\n"
+            f"{i}. <@{user_id}> - Status: `{status}` - Assigned Time: `{min_string}{sec_string}`\n"
         )
 
     ctx.public_send(text=history_text)    
