@@ -261,7 +261,41 @@ def takeover(ctx: MessageContext):
     return ctx.public_send(text=f"You have been added as a game manager in game {game_id}")
 
 
+@smart_msg_listen("live.rm_mgr")
+def remove_manager(ctx: MessageContext):
+    if ctx.event.message.user not in AUTHORIZED_USERS:
+        return ctx.private_send(text="You cannot pretend to be authorised magician.")
 
+    user_id = ctx.event.message.user
+    channel_id = ctx.event.channel
+    thread_ts = ctx.event.message.thread_ts
+
+    if not thread_ts:
+        return ctx.private_send(text="This command must be used within a game show's thread.")
+
+    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    if not game_id:
+        ctx.private_send(text="No active show found in this thread.")
+        return
+
+    user_id = ctx.event.message.text.removeprefix("live.rm_mgr").strip()
+
+    if not re.match(r"<@(U\w+)>", user_id):
+        ctx.private_send(text="Invalid user ID.")
+        return
+    user_id = user_id.removeprefix("<@").removesuffix(">")
+
+    if not db.has_user(user_id):
+        ctx.private_send(text="The user have not been indexed... (Probably currently isn't a game manager)!")
+        return
+    
+    if not db.has_game_manager(user_id):
+        ctx.public_send(text="<@" + user_id + "> is not a manager anyway :)")
+    else:
+        db.remove_game_manager(game_id, user_id)
+        ctx.public_send(text="<@" + user_id + "> is now no longer a show manager!")
+        
+    return
 
 @msg_listen("live.turn")
 @msg_listen("live.info")
