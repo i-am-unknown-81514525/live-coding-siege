@@ -679,6 +679,28 @@ def get_game_summary_stats(game_id: int) -> list[sqlite3.Row]:
         ).fetchall()
         return rows
 
+def get_all_turns_for_game(game_id: int) -> list[sqlite3.Row]:
+    """Gets all turns for a specific game, ordered by selection time."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        rows = cursor.execute(
+            """
+            SELECT
+                t.user_id,
+                t.status,
+                t.selection_time,
+                t.start_time,
+                t.assigned_duration_seconds,
+                u.name
+            FROM game_turn AS t
+            JOIN user AS u ON t.user_id = u.slack_id
+            WHERE t.game_id = ?
+            ORDER BY t.selection_time ASC, t.id ASC
+            """,
+            (game_id,)
+        ).fetchall()
+        return rows
+
 def get_game_participants_by_status(game_id: int) -> dict[str, list[str]]:
     """
     Gets all participants for a game, categorized by their opt-out status.

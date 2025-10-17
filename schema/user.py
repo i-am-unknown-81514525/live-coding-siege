@@ -66,8 +66,8 @@ class UserProfile:
     last_name: str
     fields: dict[str, UserFieldEntry]
     avatars: UserAvatar
-    pronouns: str
-    phone: str
+    pronouns: str | None
+    phone: str | None
     team: str
     real_name: str
     real_name_normalized: str
@@ -89,8 +89,8 @@ class UserProfile:
                 k: UserFieldEntry.parse(v) for k, v in data["fields"].items()
             },
             avatars=UserAvatar.parse(data),
-            pronouns=data["pronouns"],
-            phone=data["phone"],
+            pronouns=data.get("pronouns"),
+            phone=data.get("phone"),
             team=data["team"],
             real_name=data["real_name"],
             real_name_normalized=data["real_name_normalized"],
@@ -105,11 +105,11 @@ class UserProfile:
 class User:
     id: str
     deleted: bool
-    real_name: str
+    real_name: str | None
     name: str
-    tz: str
-    tz_label: str
-    tz_offset: int
+    tz: str | None
+    tz_label: str | None
+    tz_offset: int | None
     updated: int
     profile: UserProfile
     flags: UserFlag
@@ -118,12 +118,12 @@ class User:
     def parse(cls, data: dict):
         return cls(
             id=data["id"],
-            deleted=data["deleted"],
-            real_name=data["real_name"],
+            deleted=data.get("deleted", False),
+            real_name=data.get("real_name"),
             name=data["name"],
-            tz=data["tz"],
-            tz_label=data["tz_label"],
-            tz_offset=data["tz_offset"],
+            tz=data.get("tz"),
+            tz_label=data.get("tz_label"),
+            tz_offset=data.get("tz_offset"),
             updated=data["updated"],
             profile=UserProfile.parse(data["profile"]),
             flags=UserFlag.parse(data)
