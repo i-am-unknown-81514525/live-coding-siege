@@ -533,7 +533,7 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
     new_server_secret_hash = _sha3(new_server_secret)
     db.update_server_secret(game_id, new_server_secret)
 
-    (_, client_secret) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
+    (client_secret, _) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
     
     eligible_users = db.get_eligible_participants(game_id)
     if eligible_users:
@@ -633,7 +633,7 @@ def show_client_secret(ctx: MessageContext):
         ctx.private_send(text="No active show found in this thread.")
         return
     
-    (_, client_secret) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
+    (client_secret, _) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
     ctx.public_send(text=f"Current client secret: `{client_secret}`.")
     
 
