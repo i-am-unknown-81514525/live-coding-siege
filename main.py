@@ -486,8 +486,12 @@ def pick_user(event: MessageEvent, client: WebClient):
                         text="This will make the magician don't like you.",
                         confirm="Yes, skip",
                         deny="No"
-                    )
-                )
+                    ),
+                ),
+                Button("Safe skip (Mark Failed)")
+                    .action_id("manager_mark_failed")
+                    .value(target_user_id)
+                    .style("danger")
             ])
         ).add_block(
             blockkit.Divider()
