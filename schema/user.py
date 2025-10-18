@@ -87,7 +87,7 @@ class UserProfile:
             last_name=data["last_name"],
             fields={
                 k: UserFieldEntry.parse(v) for k, v in data["fields"].items()
-            },
+            } if "fields" in data else {},
             avatars=UserAvatar.parse(data),
             pronouns=data.get("pronouns"),
             phone=data.get("phone"),

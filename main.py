@@ -113,6 +113,7 @@ def _handle_user_turn_timeout(game_id: int, user_id: str, channel_id: str, threa
     except KeyError:
         pass
     
+    db.set_turn_timeout_notified(game_id, user_id)
     print(f"⌛️ User turn for {user_id} in game {game_id} has expired. Sending manager notification.")
     message_payload = (
         Message(text=f"⌛️ Time's up for <@{user_id}>!")
@@ -133,7 +134,6 @@ def _handle_user_turn_timeout(game_id: int, user_id: str, channel_id: str, threa
         )
     ).build()
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
-    db.set_turn_timeout_notified(game_id, user_id)
 
 @smart_msg_listen("live.debug_turn")
 def debug(ctx: MessageContext):
