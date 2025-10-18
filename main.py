@@ -621,6 +621,22 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
         blocks=Message().add_block(Section(f"✅ Turn for <@{user_id}> marked as *COcompletedMPLETED* by <@{manager_id}>.")).build()['blocks']
     )
 
+@smart_msg_listen("live.client_secret")
+def show_client_secret(ctx: MessageContext):
+    if ctx.event.message.thread_ts is None:
+        ctx.private_send(text="This command must be used within the magic show thread.")
+        return
+    
+    game_id = db.get_active_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+    
+    if game_id is None:
+        ctx.private_send(text="No active show found in this thread.")
+        return
+    
+    (_, client_secret) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
+    ctx.public_send(text=f"Current client secret: `{client_secret}`.")
+    
+
 @action_listen("manager_mark_failed")
 def handle_manager_mark_failed(event: BlockActionEvent, client: WebClient):
     """Handles a manager marking a timed-out turn as FAILED."""
