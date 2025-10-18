@@ -36,10 +36,15 @@ def test_interactive(event: MessageEvent, client: WebClient):
                 blockkit.Button("Test Button")
                 .action_id("test_button")
             )
-        )
+        ) 
     ).build()
     client.chat_postMessage(
         channel=event.channel, **message_payload
+    )
+
+def _technical_not_reveal(client_secret: str, server_secret: str) -> Message:
+    return Message().add_block(
+        Section(f"Technical data:\nClient secret: `{client_secret}`\nServer secret hash: `{_sha3(server_secret)}`")
     )
 
 @msg_listen("live.init")
@@ -71,10 +76,11 @@ def init_game(event: MessageEvent, client: WebClient):
 
     client_secret = secrets.token_hex(16)
     server_secret = secrets.token_hex(16)
+    server_secret_hash = _sha3(server_secret)
     game_id = db.start_game(huddle_id, channel_id, thread_ts, datetime.now(timezone.utc), client_secret, server_secret)
     db.add_game_manager(game_id, user_id)
 
-    client.chat_postMessage(channel=channel_id, text=f"✨ A new show has started! (ID: {game_id})", thread_ts=thread_ts)
+    client.chat_postMessage(channel=channel_id, text=f"✨ A new show has started! (ID: {game_id})", thread_ts=thread_ts, **_technical_not_reveal(client_secret, server_secret).build())
 
 def _handle_manager_action_timeout(game_id: int, user_id: str, channel_id: str, thread_ts: str, client: WebClient):
     pending_user = db.get_pending_turn_user(game_id)
@@ -389,11 +395,12 @@ def pick_user(event: MessageEvent, client: WebClient):
         client.chat_postMessage(channel=channel_id, text="Magician don't like any of you so he don't want to start a performance.", thread_ts=thread_ts)
         return
     
-    secrets = db.get_latest_secrets(game_id)
-    if not secrets:
+    game_secrets = db.get_latest_secrets(game_id)
+    if not game_secrets:
         client.chat_postMessage(channel=channel_id, text="Cannot pick user: Game secrets could not be retrieved.", thread_ts=thread_ts)
         return
-    client_secret, server_secret = secrets
+    client_secret, server_secret = game_secrets
+
     seed = f"{client_secret}{server_secret}"
 
     t = randint(300, 1200)
@@ -422,6 +429,8 @@ def pick_user(event: MessageEvent, client: WebClient):
 
     timeout_seconds = 120
     Timer(timeout_seconds, _handle_manager_action_timeout, args=(game_id, target_user_id, channel_id, thread_ts, client)).start()
+    new_server_secret = secrets.token_hex(16)
+    db.update_server_secret(game_id, new_server_secret)
 
     message_payload = (
         Message(text=f"👉 <@{target_user_id}> has been selected for the next performance by the magician!")
@@ -440,6 +449,15 @@ def pick_user(event: MessageEvent, client: WebClient):
                     )
                 )
             ])
+        ).add_block(
+            blockkit.Divider()
+        ).add_block(
+            blockkit.Section(
+                "Technical Data: \n"
+                f"Client secret: `{client_secret}`\n"
+                f"Previous Server secret: `{_sha3(new_server_secret)} \n"
+                f"New Server secret hash: `{_sha3(server_secret)}`"
+            )
         )
     ).build()
 
@@ -514,6 +532,8 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
     new_server_secret = secrets.token_hex(16)
     new_server_secret_hash = _sha3(new_server_secret)
     db.update_server_secret(game_id, new_server_secret)
+
+    (_, client_secret) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
     
     eligible_users = db.get_eligible_participants(game_id)
     if eligible_users:
@@ -528,6 +548,8 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
         Message(text=f"🎲 New server secret has been generated. Hash: `{new_server_secret_hash}`")
         .add_block(Section(f"🎲 New server secret has been generated.\n*Hash:* `{new_server_secret_hash}`"))
         .add_block(eligible_section)
+        .add_block(Section(f"Current client secret: `{client_secret}`. \n"
+                           "The sent messsage content and message ID would influence this value!"))
     )
 
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message.build())
