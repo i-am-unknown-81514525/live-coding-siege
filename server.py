@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from contextlib import asynccontextmanager
 import os
 import typing
 import asyncio
@@ -10,7 +11,9 @@ from types import TracebackType
 from dataclasses import dataclass
 import jwt
 
-from ws_mgr import controller, schema
+from ws_mgr import controller, schema, signals
+import uvicorn
+import db
 
 type ExcInfo[E: BaseException] = tuple[type[E], E, TracebackType]
 
@@ -44,7 +47,14 @@ async def get_result[**P, R, E: BaseException](fn: Callable[P, R], *args: P.args
         return r # pyright: ignore[reportReturnType]
     return await checker()
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    loop = asyncio.get_running_loop()
+    signals.ROOT.set_loop(loop)
+    signals.LOOP = loop
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 async def check_jwt(req: Request) -> str:
     try:
@@ -56,6 +66,11 @@ async def check_jwt(req: Request) -> str:
 @app.websocket("/client-secret-ws")
 async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str, Depends(check_jwt)]):
     await websocket.accept()
-    conn = schema.UserConnection(meta=user_id, ws=websocket)
+    if (game_id := await get_result(db.get_game_mgr_active_game, user_id)) is None:
+        raise HTTPException(404, "Cannot find a game that you actively managing.")
+    conn = schema.UserConnection(meta=f"client/{game_id}", ws=websocket)
     controller.connection_manager.add(conn)
     await conn.handler()
+
+def start_server():
+    uvicorn.run(app)

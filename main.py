@@ -1,6 +1,9 @@
+import asyncio
+from collections.abc import Awaitable
 import os, logging, secrets
-from threading import Event as tEvent, Timer
+from threading import Event as tEvent, Timer, Thread
 from datetime import datetime, timezone
+from typing import Any
 
 from dotenv import load_dotenv
 from slack_sdk.socket_mode import SocketModeClient
@@ -19,7 +22,8 @@ from crypto.core import DeterRnd, Handler, _sha3, randint
 import db
 import blockkit
 from blockkit import Message, Section, Button
-
+from server import start_server
+from ws_mgr import controller, signals
 def int_handler(bits: int) -> Handler[int]:
     """A handler for DeterRnd that returns an integer of a specified bit length."""
     return (bits, lambda x: x)
@@ -964,6 +968,12 @@ def handle_skip_turn(event: BlockActionEvent, client: WebClient):
 
     client.chat_postMessage(channel=channel_id, text=f"🏃 <@{pending_user_id}>'s turn has been skipped, now the magician like you less.", thread_ts=thread_ts)
 
+async def _dispatch_async(coro: Awaitable[Any]):
+    try:
+        await coro
+    except Exception:
+        logging.error("Exception in a dispatched task:", exc_info=True)
+
 @smart_msg_listen("")
 def listen_all(ctx: MessageContext):
     if ctx.event.message.text.startswith("live.") or ctx.event.message.user == os.environ["SLACK_APP_ID"]:
@@ -975,6 +985,10 @@ def listen_all(ctx: MessageContext):
     
     if game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts):
         db.add_message_transaction(game_id, ctx.event.message.user, ctx.event.message.text, ctx.event.message.ts)
+        client_secret, _ = db.get_latest_secrets(game_id) or ("N/A", "N/A")
+        coro = controller.connection_manager.send(f"client/{game_id}", client_secret.encode('utf-8'))
+        asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
     
 
 
@@ -1092,6 +1106,8 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     db.init_db()
+    thread = Thread(target=start_server)
+    thread.start()
     client = SocketModeClient(
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"])

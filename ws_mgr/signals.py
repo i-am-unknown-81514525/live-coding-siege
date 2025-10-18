@@ -101,6 +101,12 @@ class Broadcast:
     def loop(self) -> asyncio.AbstractEventLoop:
         return self._loop
 
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
+        """Recursively sets the event loop for this broadcast and all its children."""
+        self._loop = loop
+        for child in self._children:
+            child.set_loop(loop)
+
     def subscribe(self, callback: Callable[[Any], Coroutine[Any, Any, Any]], event: Optional[str] = None):
         self._listener[event].append(callback)
 
