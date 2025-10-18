@@ -24,7 +24,8 @@ def int_handler(bits: int) -> Handler[int]:
     """A handler for DeterRnd that returns an integer of a specified bit length."""
     return (bits, lambda x: x)
 
-AUTHORIZED_USERS = ["U092BGL0UUQ"]
+AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
+ALLOWLIST = os.environ.get("ALLOWLIST", "").split(",")
 
 @msg_listen("live.test1")
 def test_interactive(event: MessageEvent, client: WebClient):
@@ -53,10 +54,7 @@ def init_game(event: MessageEvent, client: WebClient):
     channel_id = event.channel
     thread_ts = event.message.thread_ts or event.message.ts
 
-    if os.getenv("RIG"):
-        AUTHORIZED_USERS.append(user_id)
-
-    if user_id not in AUTHORIZED_USERS:
+    if user_id not in AUTHORIZED_USERS and user_id not in ALLOWLIST and not os.getenv("RIG"):
         client.chat_postMessage(channel=user_id, text="You cannot overrule the magician.")
         return
 
