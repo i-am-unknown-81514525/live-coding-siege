@@ -395,6 +395,8 @@ def pick_user(event: MessageEvent, client: WebClient):
         client.chat_postMessage(channel=channel_id, text="Magician don't like any of you so he don't want to start a performance.", thread_ts=thread_ts)
         return
     
+    eligible_users = list(sorted(eligible_users))
+    
     game_secrets = db.get_latest_secrets(game_id)
     if not game_secrets:
         client.chat_postMessage(channel=channel_id, text="Cannot pick user: Game secrets could not be retrieved.", thread_ts=thread_ts)
@@ -412,7 +414,6 @@ def pick_user(event: MessageEvent, client: WebClient):
         .with_seed(seed)
         .retrieve()
     )
-
     target_user_id = eligible_users[selected_index]
     
     duration_minutes = duration_seconds // 60
@@ -455,8 +456,9 @@ def pick_user(event: MessageEvent, client: WebClient):
             blockkit.Section(
                 "Technical Data: \n"
                 f"Client secret: `{client_secret}`\n"
-                f"Previous Server secret: `{_sha3(new_server_secret)} \n"
-                f"New Server secret hash: `{_sha3(server_secret)}`"
+                f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
+                f"New Server secret hash: `{_sha3(server_secret)}` \n"
+                f"Eligiable list: {", ".join(f"`{user_id}`" for user_id in eligible_users)}"
             )
         )
     ).build()
@@ -804,7 +806,6 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
     )
 
 
-
 @action_listen("skip_turn")
 def handle_skip_turn(event: BlockActionEvent, client: WebClient):
     clicker_id = event.user.id
@@ -831,6 +832,19 @@ def handle_skip_turn(event: BlockActionEvent, client: WebClient):
     db.update_turn_status(game_id, pending_user_id, "SKIPPED")
 
     client.chat_postMessage(channel=channel_id, text=f"🏃 <@{pending_user_id}>'s turn has been skipped, now the magician like you less.", thread_ts=thread_ts)
+
+@smart_msg_listen("")
+def listen_all(ctx: MessageContext):
+    if ctx.event.message.text.startswith("live.") or ctx.event.message.user == os.environ["SLACK_APP_ID"]:
+        return
+
+    thread_ts = ctx.event.message.thread_ts
+    if not thread_ts:
+        return
+    
+    if game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts):
+        db.add_message_transaction(game_id, ctx.event.message.user, ctx.event.message.text, ctx.event.message.ts)
+    
 
 
 @msg_listen("huddle_thread", is_subtype=True)

@@ -108,6 +108,7 @@ def add_message_transaction(
     game_id: int,
     user_id: str,
     message_text: str,
+    message_id: str
 ) -> str:
     """
     Adds a 'MSG_SENT' transaction.
@@ -117,7 +118,7 @@ def add_message_transaction(
         if not secrets:
             raise ValueError(f"Cannot add message to game {game_id} with no existing transactions.")
         old_client_secret, server_secret = secrets
-        new_client_secret = _sha3(f"{old_client_secret}{message_text}")
+        new_client_secret = _sha3(f"{old_client_secret}:{message_text}:{message_id}")
         new_hash = _add_transaction(
             conn,
             game_id=game_id,
