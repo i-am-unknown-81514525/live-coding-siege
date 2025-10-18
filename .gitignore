@@ -9,6 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .env
-event.log*
+*.log*
 
 *.db
