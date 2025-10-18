@@ -208,22 +208,21 @@ def add_manager(event: MessageEvent, client: WebClient):
         client.chat_postMessage(channel=channel_id, text="<@" + user_id + "> is already a manager in some active game show!", thread_ts=thread_ts)
     return
 
-@msg_listen("live.force_leave") # Deregister as game manager in any active game participated. Would also end the huddle if it is the last game manager
-def force_leave(event: MessageEvent, client: WebClient):
-    user_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts # Reason of difference: don't thread the message if not already threaded
+@smart_msg_listen("live.force_leave") # Deregister as game manager in any active game participated. Would also end the huddle if it is the last game manager
+def force_leave(ctx: MessageContext):
+    user_id = ctx.event.message.user
+    channel_id = ctx.event.channel
 
     if (managing_game_id := db.get_game_mgr_active_game(user_id)) is None: 
-        return client.chat_postEphemeral(user=user_id, channel=channel_id, text="You are not a game manager in any active show instance.", thread_ts=thread_ts)
+        return ctx.private_send(text="You are not a game manager in any active show instance.")
 
     db.remove_game_manager(managing_game_id, user_id)
 
-    client.chat_postMessage(channel=channel_id, text="You are removed from the game manager in the active game", thread_ts=thread_ts)
+    ctx.public_send(text="You are removed from the game manager in the active game")
 
     if not db.list_game_manager(managing_game_id):
         db.update_turn_status(managing_game_id, user_id, "COMPLETED")
-        client.chat_postEphemeral(user=user_id, channel=channel_id, text="Additional from removing from game manager, the event is also ended", thread_ts=thread_ts)
+        ctx.private_send(channel=channel_id, text="Additional from removing from game manager, the event is also ended")
 
 @smart_msg_listen("live.leave")
 def leave(ctx: MessageContext):
