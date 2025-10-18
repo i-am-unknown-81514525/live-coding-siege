@@ -7,19 +7,19 @@ from .const import ws_mgr_broadcast
 
 class ConnectionManagerCls:
     def __init__(self):
-        self._connection_pool: dict[int, list[UserConnection]] = defaultdict(list)
+        self._connection_pool: dict[str, list[UserConnection]] = defaultdict(list)
 
     def add(self, conn: UserConnection):
-        self._connection_pool[conn.user_id].append(conn)
+        self._connection_pool[conn.meta].append(conn)
 
-    async def send(self, user_id: int, message: bytes):
-        for conn in self._connection_pool[user_id]:
+    async def send(self, meta: str, message: bytes):
+        for conn in self._connection_pool[meta]:
             if conn.is_connected:
                 await conn.send(message)
 
     def remove(self, conn: UserConnection):
-        if conn in self._connection_pool[conn.user_id]:
-            self._connection_pool[conn.user_id].remove(conn)
+        if conn in self._connection_pool[conn.meta]:
+            self._connection_pool[conn.meta].remove(conn)
 
 async def disconnect_handler(conn: UserConnection) -> None:
     if not isinstance(conn, UserConnection):

@@ -1,13 +1,16 @@
 from collections.abc import Callable
 
+import os
 import typing
 import asyncio
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, Request, Depends, HTTPException
 import threading
 import sys
 from types import TracebackType
 from dataclasses import dataclass
+import jwt
 
+from ws_mgr import controller, schema
 
 type ExcInfo[E: BaseException] = tuple[type[E], E, TracebackType]
 
@@ -43,9 +46,16 @@ async def get_result[**P, R, E: BaseException](fn: Callable[P, R], *args: P.args
 
 app = FastAPI()
 
-client_secret_hook: list[WebSocket] = []
+async def check_jwt(req: Request) -> str:
+    try:
+        result = jwt.decode(req.cookies["JWT"], os.environ["JWT_SECRET"], algorithms=["HS256"])
+        return result["user_id"]
+    except:
+        raise HTTPException(401, "Unauthorized")
 
 @app.websocket("/client-secret-ws")
-async def client_ws(websocket: WebSocket):
+async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str, Depends(check_jwt)]):
     await websocket.accept()
-    ...
+    conn = schema.UserConnection(meta=user_id, ws=websocket)
+    controller.connection_manager.add(conn)
+    await conn.handler()

@@ -57,8 +57,8 @@ class Connection:
 
 
 class UserConnection(Connection):
-    def __init__(self, user_id: int, ws: WebSocket):
-        self.user_id = user_id
+    def __init__(self, meta: str, ws: WebSocket):
+        self.meta = meta
         super().__init__(ws)
 
 class VerifyResponse(TypedDict):
