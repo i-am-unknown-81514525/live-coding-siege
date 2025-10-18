@@ -182,6 +182,45 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
     
     return message
 
+@smart_msg_listen("live.optout")
+def optout(ctx: MessageContext):
+    thread_ts = ctx.event.message.thread_ts
+    channel_id = ctx.event.channel
+
+    if not thread_ts:
+        return ctx.private_send(text="This command must be used within a game show's thread.")
+    
+    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    if not game_id:
+        ctx.private_send(text="No active show found in this thread.")
+        return
+
+@action_listen("confirm_optout")
+def confirm_optout(event: BlockActionEvent, client: WebClient):
+    user_id = event.user.id
+    thread_ts = event.message and event.message.thread_ts
+
+
+    if thread_ts is None:
+        logging.warning("Cannot find thread.")
+        return
+
+    channel_id = db.get_channel_id_by_thread(thread_ts)
+
+    if channel_id is None:
+        logging.warning("Cannot find channel")
+        return
+
+    game_id = db.get_active_game_by_only_thread(thread_ts)
+    if game_id is None:
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="Could not find an active show in this thread.", thread_ts=thread_ts)
+        return
+
+    db.update_participant_opt_out(game_id, user_id, is_opted_out=True)
+
+    client.chat_postEphemeral(user=user_id, channel=channel_id, text="You have opted out of the current show. You will no longer be selected for performances.", thread_ts=thread_ts)
+    client.chat_update(channel=channel_id, ts=event.container.message_ts, text="You have opted out.", blocks=[])
+
 @msg_listen("live.add_mgr")
 def add_manager(event: MessageEvent, client: WebClient):
     user_id = event.message.user

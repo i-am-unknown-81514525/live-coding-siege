@@ -507,6 +507,26 @@ def get_active_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
         ).fetchone()
         return row['id'] if row else None
     
+def get_active_game_by_only_thread(thread_ts: str) -> int | None:
+    """Finds the ID of the currently active game in a given thread."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT id FROM game WHERE thread_ts = ? AND status = 'ACTIVE' LIMIT 1",
+            (thread_ts)
+        ).fetchone()
+        return row['id'] if row else None
+    
+def get_channel_id_by_thread(thread_ts: str) -> str | None:
+    """Finds the channel ID for a given thread."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT channel_id FROM game WHERE thread_ts = ? LIMIT 1",
+            (thread_ts)
+        ).fetchone()
+        return row['channel_id'] if row else None
+
 def get_any_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
     """Finds the ID of the game in a given thread."""
     with get_db_connection() as conn:
