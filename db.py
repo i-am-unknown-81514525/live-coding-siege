@@ -516,6 +516,16 @@ def get_any_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
         ).fetchone()
         return row['id'] if row else None
 
+def get_huddle_id_by_game_id(game_id: int) -> str | None:
+    """Finds the huddle ID for a given game ID."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT huddle_id FROM game WHERE id = ? LIMIT 1",
+            (game_id,)
+        ).fetchone()
+        return row['huddle_id'] if row else None
+
 
 def get_huddle_id_by_channel(channel_id: str) -> str | None:
     """Finds the ID of the most recent huddle in a given channel."""
@@ -562,6 +572,38 @@ def get_eligible_participants(game_id: int) -> list[str]:
             WHERE g.id = ?
               AND (gp.is_opted_out IS NULL OR gp.is_opted_out = FALSE)
               AND (gp.consecutive_skips IS NULL OR gp.consecutive_skips < 2)
+            """,
+            (game_id,)
+        ).fetchall()
+        
+        eligible_users = {row['user_id'] for row in rows}
+        # Exclude the last person who had a turn
+        if last_participant_id:
+            eligible_users.discard(last_participant_id)
+        
+        return list(eligible_users)
+
+def get_huddle_participants(game_id: int) -> list[str]:
+    """
+    Gets a list of user IDs who are in the huddle, even if currently not eligiable.
+    """
+    with get_db_connection() as conn:
+        # Get the last user to have a turn in this game
+        cursor = conn.cursor()
+
+        last_participant_row = cursor.execute(
+            "SELECT user_id FROM game_turn WHERE game_id = ? ORDER BY selection_time DESC, id DESC LIMIT 1",
+            (game_id,)
+        ).fetchone()
+        last_participant_id = last_participant_row['user_id'] if last_participant_row else None
+
+        # Get all users in the huddle who are eligible for this specific game
+        rows = cursor.execute(
+            """
+            SELECT hp.user_id FROM huddle_participant AS hp
+            JOIN game g ON hp.huddle_id = g.huddle_id
+            LEFT JOIN game_participant gp ON hp.user_id = gp.user_id AND g.id = gp.game_id
+            WHERE g.id = ?
             """,
             (game_id,)
         ).fetchall()
