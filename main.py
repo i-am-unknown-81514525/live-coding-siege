@@ -312,7 +312,7 @@ def show_members(ctx: MessageContext):
     user_names_map = db.get_user_names(user_ids)
     user_name_list = [user_names_map.get(uid, uid) for uid in user_ids]
 
-    message = "\n".join(map(lambda x: f"- {x}", user_name_list))
+    message =f"All member in the huddle: \n{"\n".join(map(lambda x: f"- {x}", user_name_list))}"
 
     if db.is_game_manager(game_id, ctx.event.message.user):
         ctx.public_send(True, text=message)
