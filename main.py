@@ -107,8 +107,11 @@ def _handle_user_turn_timeout(game_id: int, user_id: str, channel_id: str, threa
     turn_details = db.get_turn_by_status(game_id, ['IN_PROGRESS', 'ACCEPTED'])
     if not turn_details or turn_details['user_id'] != user_id or turn_details['timeout_notified']:
         return
-
-    ACTIVE_TURN_TIMERS.pop((game_id, user_id), None)
+    
+    try:
+        ACTIVE_TURN_TIMERS.pop((game_id, user_id), None)
+    except KeyError:
+        pass
     
     print(f"⌛️ User turn for {user_id} in game {game_id} has expired. Sending manager notification.")
     message_payload = (
@@ -131,6 +134,56 @@ def _handle_user_turn_timeout(game_id: int, user_id: str, channel_id: str, threa
     ).build()
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
     db.set_turn_timeout_notified(game_id, user_id)
+
+@smart_msg_listen("live.debug_turn")
+def debug(ctx: MessageContext):
+    if ctx.event.message.user not in AUTHORIZED_USERS:
+        return
+    
+    thread_ts = ctx.event.message.thread_ts
+    channel_id = ctx.event.channel
+
+    if not thread_ts:
+        return
+
+    user_id = ctx.event.message.text.removeprefix("live.debug_turn").strip()
+
+    if not re.match(r"<@(U\w+)>", user_id):
+        ctx.private_send(text="Invalid user ID.")
+        return
+    user_id = user_id.removeprefix("<@").removesuffix(">")
+
+    if not db.has_user(user_id):
+        ctx.private_send(text="The user have not been indexed... Ask them to join the huddle to do so!")
+        return
+
+    message_payload = (
+        Message(text=f"DEBUGGER")
+        .add_block(
+            blockkit.Actions([
+                Button("Mark Completed")
+                .action_id("manager_mark_completed")
+                .value(user_id)
+                .style("primary"),
+                Button("Mark Failed")
+                .action_id("manager_mark_failed")
+                .value(user_id)
+                .style("danger"),
+                Button("Skip Turn").action_id("skip_turn").confirm(
+                    blockkit.Confirm(
+                        title="Are you sure you want to skip this turn?",
+                        text="This will count as one of your two consecutive skips.",
+                        confirm="Yes, skip",
+                        deny="No"
+                    )
+                ),
+                Button("Start Turn").action_id("start_turn"),
+            ])
+        )
+    ).build()
+
+    ctx.public_send(**message_payload)
+    
 
 
 def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message | None:
@@ -220,6 +273,27 @@ def confirm_optout(event: BlockActionEvent, client: WebClient):
 
     client.chat_postEphemeral(user=user_id, channel=channel_id, text="You have opted out of the current show. You will no longer be selected for performances.", thread_ts=thread_ts)
     client.chat_update(channel=channel_id, ts=event.container.message_ts, text="You have opted out.", blocks=[])
+
+@smart_msg_listen("live.reject")
+def reject_turn(ctx: MessageContext):
+    user_id = ctx.event.message.user
+    thread_ts = ctx.event.message.thread_ts
+
+    if thread_ts is None or (game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts)) is None:
+        ctx.private_send(text="There are no performance here, go somewhere else!")
+        return 
+    
+    if not db.is_game_manager(game_id, user_id):
+        ctx.private_send(text="You cannot overrule the magician.")
+    
+    turn_row = db.get_active_turn_details(game_id)
+
+    if turn_row:
+        db.update_turn_status(game_id, turn_row["user_id"], "REJECTED")
+        ctx.public_send(text=f"Rejected <@{turn_row['user_id']}>'s performance")
+    else:
+        ctx.public_send(text="There are no active turn rn!")
+
 
 @msg_listen("live.add_mgr")
 def add_manager(event: MessageEvent, client: WebClient):
