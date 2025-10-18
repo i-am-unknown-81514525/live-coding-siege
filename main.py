@@ -364,6 +364,7 @@ def show_members(ctx: MessageContext):
     else:
         ctx.private_send(text=message)
 
+@smart_msg_listen("live.elligible")
 @smart_msg_listen("live.eligiable")
 def show_eligiable(ctx: MessageContext):
     thread_ts = ctx.event.message.thread_ts
@@ -511,17 +512,32 @@ def pick_user(event: MessageEvent, client: WebClient):
 @smart_msg_listen("live.summary")
 def show_game_summary(ctx: MessageContext):
     if ctx.event.message.thread_ts is None:
-        return ctx.private_send(text="This command must be used within a game's thread.")
+        return ctx.private_send(text="This command must be used within a game show's thread.")
     game_id = db.get_any_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
     if not game_id:
-        ctx.private_send(text="No active show found in this thread.")
-        return
+        return ctx.private_send(text="No show found in this thread.")
 
-    message = _build_active_turn_message(game_id, is_public=False)
-    if message:
-        ctx.public_send(**message.build())
+    summary_stats = db.get_game_summary_stats(game_id)
+    
+    summary_message = Message(text="Here is the current show summary:")
+    summary_message.add_block(Section("*Here is the current show summary:*"))
+    
+    if not summary_stats:
+        summary_message.add_block(Section("No participants have had a turn yet."))
     else:
-        ctx.private_send(text="No performance is currently active.")
+        summary_text = ""
+        for stat in summary_stats:
+            summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful performance(s), {stat['consecutive_skips']} consecutive skip(s).\n"
+        
+        summary_message.add_block(Section(summary_text))
+
+    summary_message.add_block(blockkit.Divider())
+    summary_message.add_block(Section("The show is still ongoing! 🎉"))
+
+    if db.is_game_manager(game_id, ctx.event.message.user):
+        ctx.public_send(**summary_message.build())
+    else:
+        ctx.private_send(**summary_message.build())
 
 @smart_msg_listen("live.export")
 def export_game_history(ctx: MessageContext):
@@ -549,7 +565,7 @@ def export_game_history(ctx: MessageContext):
             min_string += " "
         
         history_text += (
-            f"{i}. `{user_id}` - Status: `{status}` - Assigned Time: `{min_string}{sec_string} ({turn['status']})`\n"
+            f"{i}. `{user_id}` - Status: `{status}` - Assigned Time: `{min_string}{sec_string}` `({turn['status']})`\n"
         )
 
     ctx.public_send(text=history_text)    

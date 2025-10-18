@@ -612,12 +612,6 @@ def get_huddle_participants(game_id: int) -> list[str]:
         # Get the last user to have a turn in this game
         cursor = conn.cursor()
 
-        last_participant_row = cursor.execute(
-            "SELECT user_id FROM game_turn WHERE game_id = ? ORDER BY selection_time DESC, id DESC LIMIT 1",
-            (game_id,)
-        ).fetchone()
-        last_participant_id = last_participant_row['user_id'] if last_participant_row else None
-
         # Get all users in the huddle who are eligible for this specific game
         rows = cursor.execute(
             """
@@ -630,9 +624,6 @@ def get_huddle_participants(game_id: int) -> list[str]:
         ).fetchall()
         
         eligible_users = {row['user_id'] for row in rows}
-        # Exclude the last person who had a turn
-        if last_participant_id:
-            eligible_users.discard(last_participant_id)
         
         return list(eligible_users)
 
