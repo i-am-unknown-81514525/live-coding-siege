@@ -319,7 +319,28 @@ def show_members(ctx: MessageContext):
     else:
         ctx.private_send(text=message)
 
+@smart_msg_listen("live.eligiable")
+def show_eligiable(ctx: MessageContext):
+    thread_ts = ctx.event.message.thread_ts
 
+    if not thread_ts:
+        return ctx.private_send(text="This command must be used within a game show's thread.")
+    
+    game_id = db.get_active_game_by_thread(ctx.event.channel, thread_ts)
+
+    if game_id is None:
+        return ctx.private_send(text="No active show found in this thread.")
+
+    user_ids = db.get_eligible_participants(game_id)
+    user_names_map = db.get_user_names(user_ids)
+    user_name_list = [user_names_map.get(uid, uid) for uid in user_ids]
+
+    message =f"All eligiable participants for this round: \n{"\n".join(map(lambda x: f"- {x}", user_name_list))}"
+
+    if db.is_game_manager(game_id, ctx.event.message.user):
+        ctx.public_send(True, text=message)
+    else:
+        ctx.private_send(text=message)
 
 @msg_listen("live.turn")
 @msg_listen("live.info")
