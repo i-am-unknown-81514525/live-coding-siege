@@ -58,3 +58,40 @@ button:hover, .button_alike:hover {
 #err_msg {
     color: darkred;
 }
+
+.client-transaction {
+    /* display: flex; */
+    align-items: center;
+    gap: 0.5em;
+}
+
+#client-secret-container {
+    height: 1.3em; 
+    display: grid;
+    overflow: hidden; 
+    align-items: center;
+}
+
+#client-secret-container > span {
+    grid-column: 1;
+    grid-row: 1;
+    white-space: nowrap;
+}
+
+.roll-out {
+    animation: rollOut 0.5s ease-in-out forwards;
+}
+
+.roll-in {
+    animation: rollIn 0.5s ease-in-out forwards;
+}
+
+@keyframes rollOut {
+    from { transform: translateY(0); opacity: 1; }
+    to   { transform: translateY(-100%); opacity: 0; }
+}
+
+@keyframes rollIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}

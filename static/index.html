@@ -6,7 +6,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     </head>
     <body>
-        <div id="login" style="visibility: true">
+        <div id="login" style="display: unset">
             <div>JWT Token: </div>
             <input placeholder="Input JWT Token from Slack here", style="min-width: 500px" class="right_strip" id="login-field"><button 
             onclick="save_jwt()", 
@@ -18,9 +18,16 @@
         <br>
         <div id="login-err"></div>
         </div>
-        <div id="authenticated" style="visibility: true">
-            <div>Authenticated, User ID: </div>
-            <div id="user_id">unknown</div>
+        <div id="authenticated" style="display: none">
+            <div>Authenticated, User ID: </div><div id="user_id">unknown</div>
+            <br>
+            <div id="client-transaction">
+                <div>Client Secret: </div><div id="client-secret-container">
+                    <span class="client-transaction">
+                        N/A
+                    </span>
+                </div>
+            </div>
         </div>
     </body>
 </html>
