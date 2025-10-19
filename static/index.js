@@ -12,6 +12,7 @@ async function login() {
     user_id = await validate_jwt();
     set_login_with(user_id);
     if (user_id !== null) {
+        updateClientSecret(await get_client_secret());
         connect_ws();
     }
 }
@@ -22,6 +23,14 @@ async function validate_jwt() {
         return null;
     }
     return (await resp.json())["user_id"];
+}
+
+async function get_client_secret() {
+    resp = await fetch("/client-secret");
+    if (!resp.ok) {
+        return null;
+    }
+    return (await resp.json())["client_secret"];
 }
 
 function set_login_with(user_id, is_init=false) {
