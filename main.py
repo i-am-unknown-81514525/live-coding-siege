@@ -206,6 +206,9 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
     status_text = f"Status: `{status}`"
     time_text = ""
 
+    finish_button = False
+    in_progress_button = False
+
     if status in ('IN_PROGRESS', 'ACCEPTED') and active_turn['start_time']:
         start_time = datetime.fromisoformat(active_turn['start_time'])
         duration = active_turn['assigned_duration_seconds']
@@ -214,8 +217,10 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
         
         if remaining_seconds > 0:
             time_text = f" | Remaining: `{remaining_seconds // 60}m {remaining_seconds % 60}s`"
+            in_progress_button = True
         else:
             time_text = " | Time's up!"
+            finish_button = True
 
     message = Message(text=f"A turn for {user_display_name} is already active.")
     message.add_block(
@@ -234,6 +239,31 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                         deny="No"
                     )
                 )
+            ])
+        )
+    if in_progress_button:
+        message.add_block(
+            blockkit.Actions([
+                Button("Mark Skipped").action_id("skip_turn").confirm(
+                    blockkit.Confirm(
+                        title="Are you sure you want to skip this performance?",
+                        text="This will make the magician don't like you.",
+                        confirm="Yes, skip",
+                        deny="No"
+                    ),
+                ),
+                Button("Safe skip (Mark Failed)")
+                    .action_id("manager_mark_failed")
+                    .value(user_id)
+                    .style("danger")
+            ])
+        )
+    
+    if finish_button:
+        message.add_block(
+            blockkit.Actions([
+                Button("Mark Completed").action_id("manager_mark_completed").value(user_id).style("primary"),
+                Button("Mark Failed").action_id("manager_mark_failed").value(user_id).style("danger")
             ])
         )
     
@@ -837,22 +867,20 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
     manager_id = event.user.id
     channel_id = event.container.channel_id
     thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
-
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active show in this thread.", thread_ts=thread_ts)
-        return
-
-    if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="YYou cannot overrule the magician.", thread_ts=thread_ts)
-        return
-
-    pending_user_id = db.get_pending_turn_user(game_id)
-    if not pending_user_id:
-        client.chat_postMessage(channel=channel_id, text="There is no pending performance to start.", thread_ts=thread_ts)
-        return
-
     try:
+        game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+        if not game_id:
+            client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active show in this thread.", thread_ts=thread_ts)
+            return
+
+        if not db.is_game_manager(game_id, manager_id):
+            client.chat_postEphemeral(user=manager_id, channel=channel_id, text="YYou cannot overrule the magician.", thread_ts=thread_ts)
+            return
+
+        pending_user_id = db.get_pending_turn_user(game_id)
+        if not pending_user_id:
+            client.chat_postMessage(channel=channel_id, text="There is no pending performance to start.", thread_ts=thread_ts)
+            return
         turn_details = db.start_turn(game_id, pending_user_id)
         message_payload = (
             Message(text=f"<@{pending_user_id}>'s performance has officially started! Good luck!")
@@ -869,6 +897,7 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
         ACTIVE_TURN_TIMERS[(game_id, pending_user_id)] = user_turn_timer
         user_turn_timer.start()
     except ValueError as e:
+        logging.error(f"Error starting turn:", exc_info=True)
         client.chat_postMessage(channel=channel_id, text=f"Error starting turn: {e}", thread_ts=thread_ts)
 
 @action_listen("accept_turn")
