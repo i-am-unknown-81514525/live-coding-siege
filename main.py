@@ -251,6 +251,24 @@ def optout(ctx: MessageContext):
     if not game_id:
         ctx.private_send(text="No active show found in this thread.")
         return
+    
+    ctx.private_send(
+        **Message()
+            .add_block(
+                Section("Click below to optout")
+                .accessory(
+                    Button("Optout")
+                    .action_id("confirm_optout")
+                    .confirm(
+                        blockkit.Confirm(
+                            title="Are you sure you want to opt out? You will not able to continue partcipate in this show.",
+                            confirm="Yes, opt out",
+                            deny="No"
+                        )
+                    )
+                )
+            ).build()
+    )
 
 @action_listen("confirm_optout")
 def confirm_optout(event: BlockActionEvent, client: WebClient):
