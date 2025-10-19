@@ -71,10 +71,10 @@ class UserProfile:
     team: str
     real_name: str
     real_name_normalized: str
-    skype: str
-    status_text: str
-    status_emoji: str
-    status_expiration: int
+    skype: str | None
+    status_text: str | None
+    status_emoji: str | None
+    status_expiration: int | None
     title: str
 
     @classmethod
@@ -94,10 +94,10 @@ class UserProfile:
             team=data["team"],
             real_name=data["real_name"],
             real_name_normalized=data["real_name_normalized"],
-            skype=data["skype"],
-            status_text=data["status_text"],
-            status_emoji=data["status_emoji"],
-            status_expiration=data["status_expiration"],
+            skype=data.get("skype"),
+            status_text=data.get("status_text"),
+            status_emoji=data.get("status_emoji"),
+            status_expiration=data.get("status_expiration"),
             title=data["title"],
         )
 

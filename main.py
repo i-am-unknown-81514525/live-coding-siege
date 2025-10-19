@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import Awaitable
-import os, logging, secrets
+import os, logging, secrets, time
 from threading import Event as tEvent, Timer, Thread
 from datetime import datetime, timezone
 from typing import Any
@@ -24,6 +24,8 @@ import blockkit
 from blockkit import Message, Section, Button
 from server import start_server
 from ws_mgr import controller, signals
+import jwt
+
 def int_handler(bits: int) -> Handler[int]:
     """A handler for DeterRnd that returns an integer of a specified bit length."""
     return (bits, lambda x: x)
@@ -974,6 +976,47 @@ async def _dispatch_async(coro: Awaitable[Any]):
     except Exception:
         logging.error("Exception in a dispatched task:", exc_info=True)
 
+@smart_msg_listen("live.mgr_secret")
+def show_mgr_secret(ctx: MessageContext):
+    user_id = ctx.event.message.user
+
+    if (game_id := db.get_game_mgr_active_game(user_id)) is None:
+        return ctx.private_send(text="You are not a game manager of any active game instance")
+
+    jwt_token = jwt.encode(
+        {
+            "user_id": user_id, 
+            "exp": time.time() + 43200, 
+            "iss": "bot", 
+            "aud": "web", 
+            "sub": user_id, 
+            "iat": time.time(), 
+            "nbf": time.time() - 1
+        }, 
+        algorithm="HS256", 
+        key=os.environ["JWT_SECRET"]
+    )
+
+    msg = Message(
+        "DO NOT SHARE THIS with anyone."
+    ).add_block(
+        Section("This token is is not revokable and can be used for the next 12 hours, for web dashboard access").accessory(
+            Button("Show secret").action_id("mgr_secret_display").style("danger").value(f"{ctx.event.channel};{jwt_token};{ctx.event.message.thread_ts or ""}")
+        )
+    )
+
+    ctx.private_send(**msg.build())
+
+@action_listen("mgr_secret_display")
+def handle_mgr_secret_display(event: BlockActionEvent, client: WebClient):
+    data = event.actions[0].value
+    if data is None:
+        return
+    channel_id, jwt_token, thread_ts = data.split(";")
+    thread_ts = thread_ts or None
+    client.chat_postEphemeral(channel=channel_id, thread_ts=thread_ts, text=f"The secret is:", **Message().add_block(Section(f"`{jwt_token}`")).build(), user=event.user.id)
+    
+
 @smart_msg_listen("")
 def listen_all(ctx: MessageContext):
     if ctx.event.message.text.startswith("live.") or ctx.event.message.user == os.environ["SLACK_APP_ID"]:
@@ -988,8 +1031,6 @@ def listen_all(ctx: MessageContext):
         client_secret, _ = db.get_latest_secrets(game_id) or ("N/A", "N/A")
         coro = controller.connection_manager.send(f"client/{game_id}", client_secret.encode('utf-8'))
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
-
-    
 
 
 @msg_listen("huddle_thread", is_subtype=True)

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from contextlib import asynccontextmanager
+import logging
 import os
 import typing
 import asyncio
@@ -58,19 +59,39 @@ app = FastAPI(lifespan=lifespan)
 
 async def check_jwt(req: Request) -> str:
     try:
-        result = jwt.decode(req.cookies["JWT"], os.environ["JWT_SECRET"], algorithms=["HS256"])
+        result = jwt.decode(req.cookies["JWT"], os.environ["JWT_SECRET"], algorithms=["HS256"], issuer="bot", audience="web")
         return result["user_id"]
     except:
+        logging.info("Error on jwt check", exc_info=True)
         raise HTTPException(401, "Unauthorized")
 
+async def check_jwt_ws(websocket: WebSocket) -> str | None:
+    try:
+        token = websocket.cookies["JWT"]
+        result = jwt.decode(token, os.environ["JWT_SECRET"], algorithms=["HS256"], issuer="bot", audience="web")
+        return result["user_id"]
+    except:
+        logging.info("Error on jwt check", exc_info=True)
+        return None
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.websocket("/client-secret-ws")
-async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str, Depends(check_jwt)]):
+async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]):
+    if user_id is None:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
     await websocket.accept()
-    if (game_id := await get_result(db.get_game_mgr_active_game, user_id)) is None:
-        raise HTTPException(404, "Cannot find a game that you actively managing.")
+
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        await websocket.close(code=4004, reason="Cannot find a game that you are actively managing.")
+        return
     conn = schema.UserConnection(meta=f"client/{game_id}", ws=websocket)
     controller.connection_manager.add(conn)
     await conn.handler()
 
 def start_server():
-    uvicorn.run(app)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

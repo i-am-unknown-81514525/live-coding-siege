@@ -399,7 +399,7 @@ def get_game_mgr_active_game(user_id: str) -> int | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT game_id FROM game_manager gm " \
-            "LEFT JOIN game ON game_manager.game_id = game.id " \
+            "LEFT JOIN game ON gm.game_id = game.id " \
             "WHERE gm.user_id = ? AND (game.status IS NULL OR game.status = 'ACTIVE' OR game.status = 'PENDING')",
             (user_id,)
         ).fetchone()
