@@ -10,6 +10,7 @@ import threading
 import sys
 from types import TracebackType
 from dataclasses import dataclass
+from fastapi.staticfiles import StaticFiles
 import jwt
 
 from ws_mgr import controller, schema, signals
@@ -57,6 +58,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 async def check_jwt(req: Request) -> str:
     try:
         result = jwt.decode(req.cookies["JWT"], os.environ["JWT_SECRET"], algorithms=["HS256"], issuer="bot", audience="web")
@@ -78,12 +80,17 @@ async def check_jwt_ws(websocket: WebSocket) -> str | None:
 async def health():
     return {"status": "ok"}
 
+@app.get("/validate")
+async def validate(user_id: typing.Annotated[str, Depends(check_jwt)]):
+    return {"user_id": user_id}
+    
+
 @app.websocket("/client-secret-ws")
 async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]):
+    await websocket.accept()
     if user_id is None:
         await websocket.close(code=4001, reason="Unauthorized")
         return
-    await websocket.accept()
 
     game_id = await get_result(db.get_game_mgr_active_game, user_id)
     if game_id is None:
@@ -92,6 +99,8 @@ async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, 
     conn = schema.UserConnection(meta=f"client/{game_id}", ws=websocket)
     controller.connection_manager.add(conn)
     await conn.handler()
+
+app.mount('/', StaticFiles(directory="static", html=True), name="static")
 
 def start_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)

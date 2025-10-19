@@ -1,0 +1,60 @@
+:root {
+    background-color: #101010;
+    color: white;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+}
+body {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+}
+input {
+    background-color: #202020;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    border: none;
+    border-radius: 10px;
+    padding: 3px 6px;
+    color: white;
+}
+input:hover {
+    background-color: #303030;
+    cursor: pointer;
+}
+button, .button_alike {
+    background-color: #202020;
+    color: white;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    border: none;
+    border-radius: 10px;
+    padding: 3px 6px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+button:hover, .button_alike:hover {
+    background-color: #303030;
+    cursor: pointer;
+    color: yellow;
+}
+#instance_id_display {
+    display: inline-flex;
+    font-size: 13px;
+}
+#instance_id_display:hover {
+    background-color: #202020;
+    cursor: pointer;
+    border-radius: 5px;
+    max-width: 400px;
+    min-width: 357px;
+}
+.right_strip {
+    border-radius: 10px 0 0 10px; padding-right: 0; margin-right: 0; 
+}
+.left_strip {
+    border-radius: 0 10px 10px 0; padding-left: 0; margin-left: 0; 
+}
+#err_msg {
+    color: darkred;
+}

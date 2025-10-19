@@ -33,6 +33,7 @@ async def run_test():
                     elif msg.type == aiohttp.WSMsgType.ERROR:
                         logging.error(f"Connection closed with error: {ws.exception()}")
                         break
+            logging.info("Connection closed.")
     except aiohttp.ClientError as e:
         logging.error(f"Failed to connect:", exc_info=True)
 
