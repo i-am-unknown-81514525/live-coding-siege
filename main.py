@@ -255,7 +255,15 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                 Button("Safe skip (Mark Failed)")
                     .action_id("manager_mark_failed")
                     .value(user_id)
-                    .style("danger")
+                    .style("danger"),
+                Button("Force mark as completed").action_id("force_manager_mark_completed").value(user_id).style("primary").confirm(
+                    blockkit.Confirm(
+                        title="Are you sure you want to mark as completed?",
+                        text="This is only to be used when you start the turn late/other error occur.",
+                        confirm="Yes, mark as completed anyway",
+                        deny="No"
+                    )
+                )
             ])
         )
     
@@ -780,6 +788,33 @@ def end_game(event: MessageEvent, client: WebClient):
     summary_message.add_block(Section("Thanks for playing! 🎉"))
 
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **summary_message.build())
+
+@action_listen("force_manager_mark_completed")
+def handle_manager_force_mark_completed(event: BlockActionEvent, client: WebClient):
+    """Handles a manager marking a timed-out turn as COMPLETED."""
+    manager_id = event.user.id
+    channel_id = event.container.channel_id
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
+    message_ts = event.container.message_ts
+    user_id = event.actions[0].value
+
+    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    if not game_id or not user_id:
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="Could not find an active show or user for this action.", thread_ts=thread_ts)
+        return
+
+    if not db.is_game_manager(game_id, manager_id):
+        client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
+        return
+
+    db.update_turn_status(game_id, user_id, "COMPLETED")
+
+    client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_ts,
+        text=f"Turn for <@{user_id}> marked as *completed* by <@{manager_id}>.",
+        blocks=Message().add_block(Section(f"✅ Turn for <@{user_id}> marked as *COMPLETED* by <@{manager_id}> before the time limit forcibly.")).build()['blocks']
+    )
 
 @action_listen("manager_mark_completed")
 def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
