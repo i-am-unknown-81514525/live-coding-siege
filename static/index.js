@@ -1,5 +1,5 @@
 function get_jwt_from_element() {
-    return document.getElementById("jwt").value;
+    return document.getElementById("login-field").value;
 }
 
 async function save_jwt() {
