@@ -84,6 +84,17 @@ async def health():
 async def validate(user_id: typing.Annotated[str, Depends(check_jwt)]):
     return {"user_id": user_id}
     
+@app.get("/client-secret")
+async def client_secret_curr(user_id: typing.Annotated[str, Depends(check_jwt)]):
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        raise HTTPException(404, "Cannot find a game that you are actively managing.")
+    
+    secrets = await get_result(db.get_latest_secrets, game_id)
+    if not secrets:
+        raise HTTPException(419, "No secrets found")
+    client_secret, _ = secrets
+    return {"client_secret": client_secret}
 
 @app.websocket("/client-secret-ws")
 async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]):
