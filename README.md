@@ -31,6 +31,7 @@ Other
 JWT_SECRET= # for web dashboard
 AUTHORIZED_USERS= # comma seperated list of user id that have special ability
 ALLOWLIST= # comman seperated list of user id that can start a show
+SIEGE_MODE=1 # Soon - it would query the user on siege API. Only user with a existing project would be selected, checked on each pick. The hour coded since game started/join is also tracked, checked on each pick for ticket count.
 ```
 
 Optionally

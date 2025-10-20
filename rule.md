@@ -25,3 +25,6 @@ For every live coding session you complete, you can obtain 2 coins (for now).
 #### End of Huddle
 The huddle ends when no one monitoring the huddle status is available, or when no valid participants can be selected to continue the event.
 (For Saturday huddle, I will be available until at least 20:00 BST)
+
+#### Rule updates
+21/10 - The selection chance is not same not for Siege. The bot will only selected user with a existing Siege project, and the chance of selection increase as the hackatime tracked on the siege project increase. (Each eligible participant would start with 10 ticket, and get a ticket for every 0.1 hours coded in the event. The bot would pick a ticket and the corresponding participant will be selected for the performance)
