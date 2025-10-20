@@ -501,6 +501,7 @@ def show_members(ctx: MessageContext):
 
 @smart_msg_listen("live.elligible")
 @smart_msg_listen("live.eligiable")
+@smart_msg_listen("live.eligible")
 def show_eligiable(ctx: MessageContext):
     thread_ts = ctx.event.message.thread_ts
 

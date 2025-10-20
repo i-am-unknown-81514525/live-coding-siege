@@ -12,8 +12,8 @@ It handle all the countdown and user selection process for the entire huddle eve
 
 Oh god it is complex
 First made a bot
-Next, enable socket mode, the bot, slach command, interactive, enough OAuth that allow it to chat and listen to user huddle status change (I don't remember everything... Gl ig?)
-Put these in `.env`, how to get them? Somewhere in the dashboard I already forgot :)
+Next, enable socket mode, the bot, slach command, interactive, enough OAuth that allow it to chat and listen to user huddle status change (I don't remember everything... Gl ig? Check the manifest instead in `manifest.json`)
+Put these in `.env`, how to get them? Somewhere in the dashboard I already forgot :>
 
 ```env
 SLACK_CLIENT_SECRET=
@@ -26,20 +26,45 @@ SLACK_BOT_OAUTH_TOKEN=
 
 Yep I think most of them but not all is necessary :)
 
+Other
+```env
+JWT_SECRET= # for web dashboard
+AUTHORIZED_USERS= # comma seperated list of user id that have special ability
+ALLOWLIST= # comman seperated list of user id that can start a show
+```
+
 Optionally
 ```env
 RIG=1
 ```
+This would set so anyone can run `live.init` with no restriction, and also the run time would be < 3 minutes
 
-This would set so anyone can run live.init with no restriction, and also the run time would be < 3 minutes
-
-Do `uv run main.py`
+Do `docker compose up -d --build` to start with docker setup, or `uv run main.py`
 
 ### How to use
-Go to siege channel and start a huddle, and do `live.init` (It should have `RIG` enabled to allow you test it, unless I am hosting one and forgot to turn it back on)
+You do `live.init` to start a show, and then use `live.pick` to pick a user, use `live.end` to fianlly end the entirely event. The rest should be fairly intuative, just click the correct button for the rule specified.
+As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashboard on https://livecode.relay7f98.us.to/ (or `http://127.0.0.1:13724` when run locally)
 
-### How is it magical
-I have made basically all user visible message magic theme like :) (Idk if that count)
+### Public command list
+
+`live.init` - Start a game show \[Only allowlist user or authorised user\]
+`live.pick` - Bot pick a user to do a new turn, or show status if started 
+`live.rnd` - Pick a different server secret
+`live.turn` - Get turn information
+`live.eligible` - List of user for the next turn
+`live.members` - List of all user in the huddle
+`live.optout` - Optout from the event
+`live.reject` - Reject a turn
+`live.add_mgr` - Add a game manager 
+`live.leave` - Remove yourself as a game manager
+`live.force_leave` - Remove yourself as a game manager, and also end the event if you are the only manager
+`live.summary` - Generate a summary for the game
+`live.export` - Export the status to Olive (for dispatching coins)
+`live.end` - End the event
+
+
+### How does it follow the signal theme
+Websocket, Slack Bot, *Live*Coding
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
