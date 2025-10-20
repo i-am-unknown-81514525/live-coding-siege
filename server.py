@@ -96,6 +96,29 @@ async def client_secret_curr(user_id: typing.Annotated[str, Depends(check_jwt)])
     client_secret, _ = secrets
     return {"client_secret": client_secret}
 
+@app.get("/turn-status")
+async def get_turn_status(user_id: typing.Annotated[str, Depends(check_jwt)]):
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        raise HTTPException(404, "Cannot find a game that you are actively managing.")
+    
+    active_turn = await get_result(db.get_active_turn_details, game_id)
+    if not active_turn:
+        return {"status": "NO_ACTIVE_TURN"}
+
+    turn_user_id = active_turn['user_id']
+    user_names_map = await get_result(db.get_user_names, [turn_user_id])
+    user_name = user_names_map.get(turn_user_id, turn_user_id)
+
+    response = {"status": active_turn['status'], "user_id": turn_user_id, "user_name": user_name}
+    
+    if active_turn['status'] in ('IN_PROGRESS', 'ACCEPTED') and active_turn['start_time']:
+        start_time = db.datetime.fromisoformat(active_turn['start_time'])
+        duration = active_turn['assigned_duration_seconds']
+        response['endTime'] = start_time.timestamp() + duration
+
+    return response
+
 @app.websocket("/client-secret-ws")
 async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]):
     await websocket.accept()
@@ -108,6 +131,21 @@ async def client_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, 
         await websocket.close(code=4004, reason="Cannot find a game that you are actively managing.")
         return
     conn = schema.UserConnection(meta=f"client/{game_id}", ws=websocket)
+    controller.connection_manager.add(conn)
+    await conn.handler()
+
+@app.websocket("/turn-ws")
+async def turn_ws(websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]):
+    await websocket.accept()
+    if user_id is None:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        await websocket.close(code=4004, reason="Cannot find a game that you are actively managing.")
+        return
+    conn = schema.UserConnection(meta=f"turn/{game_id}", ws=websocket)
     controller.connection_manager.add(conn)
     await conn.handler()
 

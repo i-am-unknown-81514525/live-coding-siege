@@ -14,6 +14,7 @@ from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
 from schema.base import Event, Recv
+import json
 from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
@@ -601,6 +602,12 @@ def pick_user(event: MessageEvent, client: WebClient):
     duration_text = " and ".join(duration_text_parts)
 
     db.add_user_selection_transaction(game_id, target_user_id, duration_seconds)
+    
+    user_names_map = db.get_user_names([target_user_id])
+    user_name = user_names_map.get(target_user_id, target_user_id)
+    
+    coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "PENDING", "user_id": target_user_id, "user_name": user_name}).encode())
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     timeout_seconds = 120
     Timer(timeout_seconds, _handle_manager_action_timeout, args=(game_id, target_user_id, channel_id, thread_ts, client)).start()
@@ -807,6 +814,11 @@ def handle_manager_force_mark_completed(event: BlockActionEvent, client: WebClie
         client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
+    user_names_map = db.get_user_names([user_id])
+    user_name = user_names_map.get(user_id, user_id)
+    coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "COMPLETED", "user_id": user_id, "user_name": user_name}).encode())
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
     db.update_turn_status(game_id, user_id, "COMPLETED")
 
     client.chat_postMessage(
@@ -833,6 +845,11 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
     if not db.is_game_manager(game_id, manager_id):
         client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
+
+    user_names_map = db.get_user_names([user_id])
+    user_name = user_names_map.get(user_id, user_id)
+    coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "COMPLETED", "user_id": user_id, "user_name": user_name}).encode())
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     db.update_turn_status(game_id, user_id, "COMPLETED")
 
@@ -876,6 +893,11 @@ def handle_manager_mark_failed(event: BlockActionEvent, client: WebClient):
     if not db.is_game_manager(game_id, manager_id):
         client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
+
+    user_names_map = db.get_user_names([user_id])
+    user_name = user_names_map.get(user_id, user_id)
+    coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "FAILED", "user_id": user_id, "user_name": user_name}).encode())
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     db.update_turn_status(game_id, user_id, "FAILED")
 
@@ -929,6 +951,11 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
             _handle_user_turn_timeout, 
             args=(game_id, pending_user_id, channel_id, thread_ts, client)
         )
+        user_names_map = db.get_user_names([pending_user_id])
+        user_name = user_names_map.get(pending_user_id, pending_user_id)
+        end_time = datetime.now(timezone.utc).timestamp() + duration_seconds
+        coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "IN_PROGRESS", "user_id": pending_user_id, "user_name": user_name, "endTime": end_time}).encode())
+        asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
         ACTIVE_TURN_TIMERS[(game_id, pending_user_id)] = user_turn_timer
         user_turn_timer.start()
     except ValueError as e:
@@ -1015,6 +1042,11 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
         client.chat_postEphemeral(user=manager_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
 
+    user_names_map = db.get_user_names([str(user_to_skip)])
+    user_name = user_names_map.get(str(user_to_skip), str(user_to_skip))
+    coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "SKIPPED", "user_id": str(user_to_skip), "user_name": user_name}).encode())
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
     db.update_turn_status(game_id, str(user_to_skip), "SKIPPED")
 
     client.chat_update(
@@ -1047,6 +1079,11 @@ def handle_skip_turn(event: BlockActionEvent, client: WebClient):
     if not is_manager and not is_selected_user:
         client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="You cannot overrule the magician.", thread_ts=thread_ts)
         return
+
+    user_names_map = db.get_user_names([pending_user_id])
+    user_name = user_names_map.get(pending_user_id, pending_user_id)
+    coro = controller.connection_manager.send(f"turn/{game_id}", json.dumps({"type": "turn_update", "status": "SKIPPED", "user_id": pending_user_id, "user_name": user_name}).encode())
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     db.update_turn_status(game_id, pending_user_id, "SKIPPED")
 
@@ -1111,7 +1148,7 @@ def listen_all(ctx: MessageContext):
     if game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts):
         db.add_message_transaction(game_id, ctx.event.message.user, ctx.event.message.text, ctx.event.message.ts)
         client_secret, _ = db.get_latest_secrets(game_id) or ("N/A", "N/A")
-        coro = controller.connection_manager.send(f"client/{game_id}", client_secret.encode('utf-8'))
+        coro = controller.connection_manager.send(f"client/{game_id}", json.dumps({"type": "secret", "value": client_secret}).encode())
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
 

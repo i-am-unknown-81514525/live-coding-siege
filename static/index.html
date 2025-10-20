@@ -4,6 +4,7 @@
         <link rel="stylesheet" href="styles.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     </head>
     <body>
         <div id="login" style="display: unset">
@@ -20,6 +21,11 @@
         </div>
         <div id="authenticated" style="display: none">
             <div>Authenticated, User ID: </div><div id="user_id">unknown</div>
+            <br>
+            <div id="turn-status-display">NOT_CONNECTED</div>
+            <div id="countdown-container" style="display: none;">
+                <span id="countdown-display">00:00.00</span>
+            </div>
             <br>
             <div id="client-transaction">
                 <div>Client Secret: </div><div id="client-secret-container">

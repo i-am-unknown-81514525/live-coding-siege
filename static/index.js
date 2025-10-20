@@ -1,3 +1,6 @@
+let countdownInterval = null;
+let reconnectTimer = null;
+
 function get_jwt_from_element() {
     return document.getElementById("login-field").value;
 }
@@ -5,15 +8,28 @@ function get_jwt_from_element() {
 async function save_jwt() {
     jwt = get_jwt_from_element();
     document.cookie = `JWT=${jwt}`;
-    
+    await login();
 }
 
 async function login() {
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+
     user_id = await validate_jwt();
     set_login_with(user_id);
     if (user_id !== null) {
-        updateClientSecret(await get_client_secret());
-        connect_ws();
+        const turnStatus = await get_turn_status();
+        if (turnStatus.status === "ERROR") {
+            updateClientSecret("No active game found.");
+            updateTurnStatus({ status: "Waiting for an active game..." });
+            scheduleLoginAttempt();
+        } else {
+            updateClientSecret(await get_client_secret());
+            updateTurnStatus(turnStatus);
+            connect_ws();
+        }
     }
 }
 
@@ -31,6 +47,14 @@ async function get_client_secret() {
         return null;
     }
     return (await resp.json())["client_secret"];
+}
+
+async function get_turn_status() {
+    const resp = await fetch("/turn-status");
+    if (!resp.ok) {
+        return { status: "ERROR" };
+    }
+    return await resp.json();
 }
 
 function set_login_with(user_id, is_init=false) {
@@ -72,23 +96,117 @@ function updateClientSecret(newValue) {
     }
 }
 
+function updateTurnStatus(turnData) {
+    const statusDisplay = document.getElementById('turn-status-display');
+    const countdownContainer = document.getElementById('countdown-container');
+    const countdownDisplay = document.getElementById('countdown-display');
+
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    countdownDisplay.classList.remove('flash-red');
+
+    const userName = turnData.user_name || turnData.user_id || 'N/A';
+
+    if (turnData.status === 'IN_PROGRESS' && turnData.endTime) {
+        statusDisplay.textContent = `Live: ${userName}`;
+        countdownContainer.style.display = 'unset';
+
+        const updateTimer = () => {
+            const secondsRemaining = turnData.endTime - (Date.now() / 1000);
+
+            if (secondsRemaining <= 0) {
+                clearInterval(countdownInterval);
+                countdownDisplay.textContent = "00:00.00";
+                countdownDisplay.classList.add('flash-red');
+                return;
+            }
+
+            if (secondsRemaining <= 10) {
+                countdownDisplay.classList.add('flash-red');
+            } else {
+                countdownDisplay.classList.remove('flash-red');
+            }
+
+            const totalSeconds = Math.floor(secondsRemaining);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const centiseconds = Math.floor((secondsRemaining * 100) % 100);
+
+            countdownDisplay.textContent = 
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+        };
+
+        updateTimer();
+        countdownInterval = setInterval(updateTimer, 10);
+    } else if (turnData.status === 'PENDING') {
+        statusDisplay.textContent = `Waiting for: ${userName}`;
+        countdownContainer.style.display = 'none';
+    } else {
+        countdownContainer.style.display = 'none';
+        statusDisplay.textContent = turnData.status;
+    }
+}
+
+function scheduleLoginAttempt() {
+    if (reconnectTimer) {
+        return;
+    }
+    console.log("No active game found. Checking again in 5 seconds...");
+    reconnectTimer = setTimeout(async () => {
+        await login();
+    }, 5000);
+}
+
 function connect_ws() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws_url = `${protocol}//${window.location.host}/client-secret-ws`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.host;
 
-    const ws = new WebSocket(ws_url);
+    const secret_ws_url = `${wsProtocol}//${wsHost}/client-secret-ws`;
+    const secret_ws = new WebSocket(secret_ws_url);
 
-    ws.onmessage = async function(event) {
-        let messageData = event.data;
-        if (messageData instanceof Blob) {
-            messageData = await messageData.text();
+    secret_ws.onmessage = async function(event) {
+        let rawData = event.data;
+        if (rawData instanceof Blob) {
+            rawData = await rawData.text();
         }
-        updateClientSecret(messageData);
+        try {
+            const message = JSON.parse(rawData);
+            if (message.type === 'secret') {
+                updateClientSecret(message.value);
+            }
+        } catch (e) {
+            updateClientSecret(rawData);
+        }
     };
 
-    ws.onclose = async function() {
-        updateClientSecret("Websocket disconnected");
-        await login();
+    secret_ws.onclose = async function() {
+        updateClientSecret("Websocket disconnected. Retrying...");
+        scheduleLoginAttempt();
+    };
+
+    const turn_ws_url = `${wsProtocol}//${wsHost}/turn-ws`;
+    const turn_ws = new WebSocket(turn_ws_url);
+
+    turn_ws.onmessage = async function(event) {
+        let rawData = event.data;
+        if (rawData instanceof Blob) {
+            rawData = await rawData.text();
+        }
+        try {
+            const message = JSON.parse(rawData);
+            if (message.type === 'turn_update') {
+                updateTurnStatus(message);
+            }
+        } catch (e) {
+            console.error("Failed to parse turn update message:", e);
+        }
+    };
+
+    turn_ws.onclose = async function() {
+        updateTurnStatus({ status: "Websocket disconnected. Retrying..." });
+        scheduleLoginAttempt();
     };
 }
 
