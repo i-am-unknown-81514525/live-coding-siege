@@ -65,8 +65,47 @@ def init_game(event: MessageEvent, client: WebClient):
         client.chat_postMessage(channel=user_id, text="You cannot overrule the magician.")
         return
 
-    if db.game_exists_in_thread(channel_id, thread_ts):
-        client.chat_postMessage(channel=channel_id, text="A magic show already exist in this thread.", thread_ts=thread_ts)
+    existing_game_id = db.get_any_game_by_thread(channel_id, thread_ts)
+    if existing_game_id:
+        game_is_active = db.get_active_game_by_thread(channel_id, thread_ts) is not None
+        if game_is_active:
+            client.chat_postMessage(channel=channel_id, text="A magic show is already active in this thread.", thread_ts=thread_ts)
+            return
+
+        previous_managers = db.list_game_manager(existing_game_id)
+        if user_id in previous_managers:
+            can_restart = False
+            is_authorized = user_id in AUTHORIZED_USERS
+
+            if is_authorized:
+                if not db.get_game_mgr_active_game(user_id):
+                    can_restart = True
+            else:
+                any_manager_busy = any(db.get_game_mgr_active_game(mgr_id) for mgr_id in previous_managers)
+                if not any_manager_busy:
+                    can_restart = True
+            
+            if can_restart:
+                client.chat_postEphemeral(user=user_id, channel=channel_id, thread_ts=thread_ts, **Message(
+                    "A previous show in this thread has ended. But currently you can restart the game."
+                ).add_block(Section("A previous show in this thread has ended.").accessory(
+                    Button("Restart Show").action_id("restart_game").value(str(existing_game_id)).style("primary")
+                )).build())
+                client.chat_postMessage(
+                    channel=channel_id, 
+                    thread_ts=thread_ts, 
+                    text="It is currently valid to restart the existing game, awaiting manager action."
+                )
+                return
+            else:
+                client.chat_postMessage(
+                    channel=channel_id, 
+                    thread_ts=thread_ts, 
+                    text="A magic show has already concluded in this thread and the condition required to restart the show is not sastified."
+                )
+                return
+
+        client.chat_postMessage(channel=channel_id, text="A magic show has already concluded in this thread.", thread_ts=thread_ts)
         return
 
     user_huddles = db.get_user_huddles(user_id)
@@ -86,6 +125,62 @@ def init_game(event: MessageEvent, client: WebClient):
     db.add_game_manager(game_id, user_id)
 
     client.chat_postMessage(channel=channel_id, text=f"✨ A new show has started! (ID: {game_id})", thread_ts=thread_ts, **_technical_not_reveal(client_secret, server_secret).build())
+
+@action_listen("restart_game")
+def handle_restart_game(event: BlockActionEvent, client: WebClient):
+    """Handles a manager restarting a completed game."""
+    user_id = event.user.id
+    channel_id = event.container.channel_id
+    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
+    
+    if event.actions[0].value is None:
+        logging.warning("Missing game_id in restart_game button")
+        return
+
+    try:
+        game_id_to_restart = int(event.actions[0].value)
+    except (ValueError, TypeError):
+        client.chat_postEphemeral(user=user_id, channel=channel_id, text="Invalid game ID for restart.", thread_ts=thread_ts)
+        return
+
+    is_authorized = user_id in AUTHORIZED_USERS
+    if is_authorized:
+        if db.get_game_mgr_active_game(user_id):
+            client.chat_postEphemeral(user=user_id, channel=channel_id, text="You are already managing another active game.", thread_ts=thread_ts)
+            return
+    else:
+        previous_managers = db.list_game_manager(game_id_to_restart)
+        if user_id not in previous_managers or any(db.get_game_mgr_active_game(mgr_id) for mgr_id in previous_managers):
+            client.chat_postEphemeral(user=user_id, channel=channel_id, text="Cannot restart: One of the previous managers is busy with another show.", thread_ts=thread_ts)
+            return
+
+    with db.get_db_connection() as conn:
+        if is_authorized:
+            previous_managers = db.list_game_manager(game_id_to_restart)
+            for mgr_id in previous_managers:
+                if db.get_game_mgr_active_game(mgr_id):
+                    conn.execute("DELETE FROM game_manager WHERE game_id = ? AND user_id = ?", (game_id_to_restart, mgr_id))
+
+            conn.execute(
+                "INSERT OR IGNORE INTO game_manager (game_id, user_id) VALUES (?, ?)",
+                (game_id_to_restart, user_id)
+            )
+        
+        conn.execute("UPDATE game SET status = 'ACTIVE', end_time = NULL WHERE id = ?", (game_id_to_restart,))
+        
+        client_secret = secrets.token_hex(16)
+        server_secret = secrets.token_hex(16)
+        db._add_transaction(conn, game_id_to_restart, "GAME_RESTART", client_secret, server_secret)
+        conn.commit()
+
+    client.chat_postMessage(
+        channel=channel_id, 
+        thread_ts=thread_ts, 
+        text=f"✨ The show (ID: {game_id_to_restart}) has been restarted by <@{user_id}>!",
+        **_technical_not_reveal(client_secret, server_secret).build()
+    )
+    client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text="Show restarted.", blocks=[])
+
 
 def _handle_manager_action_timeout(game_id: int, user_id: str, channel_id: str, thread_ts: str, client: WebClient):
     pending_user = db.get_pending_turn_user(game_id)
@@ -300,7 +395,8 @@ def optout(ctx: MessageContext):
                     .action_id("confirm_optout")
                     .confirm(
                         blockkit.Confirm(
-                            title="Are you sure you want to opt out? You will not able to continue partcipate in this show.",
+                            title="Are you sure you want to opt out?",
+                            text="You will not be able to participate further in this show.",
                             confirm="Yes, opt out",
                             deny="No"
                         )
@@ -350,7 +446,7 @@ def reject_turn(ctx: MessageContext):
     turn_row = db.get_active_turn_details(game_id)
 
     if turn_row:
-        db.update_turn_status(game_id, turn_row["user_id"], "REJECTED")
+        db.update_turn_status(game_id, turn_row["user_id"], "FAILED")
         ctx.public_send(text=f"Rejected <@{turn_row['user_id']}>'s performance")
     else:
         ctx.public_send(text="There are no active turn rn!")
@@ -994,37 +1090,6 @@ def handle_accept_turn(event: BlockActionEvent, client: WebClient):
         blocks=Message().add_block(Section(f"<@{clicker_id}> has *started* their performance. The countdown is on!")).build()['blocks']
     )
 
-@action_listen("reject_turn")
-def handle_reject_turn(event: BlockActionEvent, client: WebClient):
-    """Handles the selected user rejecting (skipping) their turn."""
-    clicker_id = event.user.id
-    channel_id = event.container.channel_id
-    message_ts = event.container.message_ts
-    thread_ts = (event.message and event.message.thread_ts) or event.container.message_ts
-
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="Could not find an active show in this thread.", thread_ts=thread_ts)
-        return
-
-    in_progress_user_id = db.get_in_progress_turn_user(game_id)
-    if not in_progress_user_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="There is no performance currently in progress to reject.", thread_ts=thread_ts)
-        return
-
-    if clicker_id != in_progress_user_id:
-        client.chat_postEphemeral(user=clicker_id, channel=channel_id, text="You cannot skip performance that is not yours..", thread_ts=thread_ts)
-        return
-    
-    db.update_turn_status(game_id, clicker_id, "REJECTED")
-
-    client.chat_update(
-        channel=channel_id,
-        ts=message_ts,
-        text=f"<@{clicker_id}> has rejected the performance.",
-        blocks=Message().add_block(Section(f"<@{clicker_id}> has rejected (skipped) their performance.")).build()['blocks']
-    )
-
 @action_listen("confirm_skip")
 def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
     """Handles a manager confirming to skip a user after a timeout."""
@@ -1147,6 +1212,7 @@ def listen_all(ctx: MessageContext):
         return
     
     if game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts):
+        db.upsert_user(ctx.event.message.user, "UNKNOWN")
         db.add_message_transaction(game_id, ctx.event.message.user, ctx.event.message.text, ctx.event.message.ts)
         client_secret, _ = db.get_latest_secrets(game_id) or ("N/A", "N/A")
         coro = controller.connection_manager.send(f"client/{game_id}", json.dumps({"type": "secret", "value": client_secret}).encode())

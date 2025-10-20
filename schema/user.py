@@ -46,14 +46,14 @@ class UserFlag:
     @classmethod
     def parse(cls, data: dict):
         return cls(
-            is_admin=data["is_admin"],
-            is_app_user=data["is_app_user"],
-            is_bot=data["is_bot"],
-            is_email_confirmed=data["is_email_confirmed"],
-            is_owner=data["is_owner"],
-            is_primary_owner=data["is_primary_owner"],
-            is_restricted=data["is_restricted"],
-            is_ultra_restricted=data["is_ultra_restricted"],
+            is_admin=data.get("is_admin", False),
+            is_app_user=data.get("is_app_user", False),
+            is_bot=data.get("is_bot", False),
+            is_email_confirmed=data.get("is_email_confirmed", False),
+            is_owner=data.get("is_owner", False),
+            is_primary_owner=data.get("is_primary_owner", False),
+            is_restricted=data.get("is_restricted", False),
+            is_ultra_restricted=data.get("is_ultra_restricted", False),
         )
 
 
@@ -75,7 +75,7 @@ class UserProfile:
     status_text: str | None
     status_emoji: str | None
     status_expiration: int | None
-    title: str
+    title: str | None
 
     @classmethod
     def parse(cls, data: dict):
@@ -98,7 +98,7 @@ class UserProfile:
             status_text=data.get("status_text"),
             status_emoji=data.get("status_emoji"),
             status_expiration=data.get("status_expiration"),
-            title=data["title"],
+            title=data.get("title"),
         )
 
 @dataclass(frozen=True)

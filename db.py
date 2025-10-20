@@ -201,7 +201,6 @@ def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
 
         cursor = conn.cursor()
 
-        # First, get the details of the pending turn
         turn_details = cursor.execute(
             "SELECT * FROM game_turn WHERE game_id = ? AND user_id = ? AND status = 'PENDING'",
             (game_id, user_id)
@@ -210,7 +209,6 @@ def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
         if not turn_details:
             raise ValueError(f"No pending turn found for user {user_id} in game {game_id} to start.")
 
-        # Update the turn status and set start time
         cursor.execute(
             """
             UPDATE game_turn 
@@ -248,17 +246,15 @@ def update_turn_status(
         client_secret, server_secret = secrets
 
         cursor = conn.cursor()
-        # Update the turn status itself
-        # A turn can be skipped from PENDING or IN_PROGRESS, or completed/failed from IN_PROGRESS/ACCEPTED
+
         cursor.execute(
             "UPDATE game_turn SET status = ? WHERE game_id = ? AND user_id = ? AND status IN ('PENDING', 'IN_PROGRESS', 'ACCEPTED')",
             (new_status, game_id, user_id)
         )
 
-        # Update participant stats based on the outcome
         if new_status == 'COMPLETED':
             cursor.execute("UPDATE game_participant SET successful_rounds = successful_rounds + 1, consecutive_skips = 0 WHERE game_id = ? AND user_id = ?", (game_id, user_id))
-        elif new_status in ('SKIPPED', 'REJECTED'):
+        elif new_status == 'SKIPPED':
             cursor.execute("UPDATE game_participant SET consecutive_skips = consecutive_skips + 1 WHERE game_id = ? AND user_id = ?", (game_id, user_id))
 
         event_type = f"TURN_{new_status.upper()}"
@@ -320,24 +316,24 @@ def update_server_secret(
             conn,
             game_id=game_id,
             event_type="SERVER_SECRET_UPDATE",
-            # The client secret is passed through unchanged, as per the rules.
             client_secret=client_secret,
-            # The new server secret is recorded.
             server_secret=new_server_secret,
-            details={"new_server_secret": new_server_secret}, # Log the new secret for audit purposes
+            details={"new_server_secret": new_server_secret},
         )
         conn.commit()
         return new_hash
 
 
 def upsert_user(user_id: str, name: str):
-    """Adds a new user or updates their name if they already exist."""
+    """Adds a new user or updates their name. It avoids overwriting a real name with 'UNKNOWN'."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO user (slack_id, name) VALUES (?, ?)
-            ON CONFLICT(slack_id) DO UPDATE SET name = excluded.name
+            ON CONFLICT(slack_id) DO UPDATE SET 
+                name = excluded.name 
+            WHERE excluded.name != 'UNKNOWN' OR user.name = 'UNKNOWN'
             """,
             (user_id, name)
         )
@@ -571,26 +567,28 @@ def huddle_exists(huddle_id: str) -> bool:
 def get_eligible_participants(game_id: int) -> list[str]:
     """
     Gets a list of user IDs who are eligible to be selected for a turn.
-    This includes users currently in the huddle, excluding those who have opted out of the game,
-    skipped twice, or were the last participant.
+    This includes users in the huddle, excluding those who have opted out, skipped twice,
+    or were part of the recent turn sequence since the last completed/rejected turn.
     """
     with get_db_connection() as conn:
-        # Get the last user to have a turn in this game
         cursor = conn.cursor()
-
-        last_participant_row = cursor.execute(
-            "SELECT user_id FROM game_turn WHERE game_id = ? ORDER BY selection_time DESC, id DESC LIMIT 1",
+        all_turns = cursor.execute(
+            "SELECT user_id, status FROM game_turn WHERE game_id = ? ORDER BY selection_time DESC, id DESC",
             (game_id,)
-        ).fetchone()
-        last_participant_id = last_participant_row['user_id'] if last_participant_row else None
+        ).fetchall()
 
-        # Get all users in the huddle who are eligible for this specific game
+        users_to_exclude = set()
+        for turn in all_turns:
+            users_to_exclude.add(turn['user_id'])
+            if turn['status'] in ('COMPLETED', 'FAILED'):
+                break
+
         rows = cursor.execute(
             """
             SELECT hp.user_id FROM huddle_participant AS hp
-            JOIN game g ON hp.huddle_id = g.huddle_id
-            LEFT JOIN game_participant gp ON hp.user_id = gp.user_id AND g.id = gp.game_id
-            WHERE g.id = ?
+            JOIN game AS g ON hp.huddle_id = g.huddle_id
+            LEFT JOIN game_participant AS gp ON hp.user_id = gp.user_id AND g.id = gp.game_id
+            WHERE g.id = ? 
               AND (gp.is_opted_out IS NULL OR gp.is_opted_out = FALSE)
               AND (gp.consecutive_skips IS NULL OR gp.consecutive_skips < 2)
             """,
@@ -598,9 +596,7 @@ def get_eligible_participants(game_id: int) -> list[str]:
         ).fetchall()
         
         eligible_users = {row['user_id'] for row in rows}
-        # Exclude the last person who had a turn
-        if last_participant_id:
-            eligible_users.discard(last_participant_id)
+        eligible_users.difference_update(users_to_exclude)
         
         return list(eligible_users)
 
@@ -609,10 +605,8 @@ def get_huddle_participants(game_id: int) -> list[str]:
     Gets a list of user IDs who are in the huddle, even if currently not eligiable.
     """
     with get_db_connection() as conn:
-        # Get the last user to have a turn in this game
         cursor = conn.cursor()
 
-        # Get all users in the huddle who are eligible for this specific game
         rows = cursor.execute(
             """
             SELECT hp.user_id FROM huddle_participant AS hp
@@ -781,7 +775,6 @@ def get_user_names(user_ids: list[str]) -> dict[str, str]:
         return {}
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        # Using parameter substitution to prevent SQL injection
         placeholders = ','.join('?' for _ in user_ids)
         query = f"SELECT slack_id, name FROM user WHERE slack_id IN ({placeholders})"
         rows = cursor.execute(query, user_ids).fetchall()
@@ -799,5 +792,3 @@ def has_user(user_id: str) -> bool:
 
 if __name__ == "__main__":
     init_db()
-    # Example usage:
-    # print(get_user_names(['U092BGL0UUQ']))
