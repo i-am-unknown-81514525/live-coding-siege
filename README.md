@@ -2,7 +2,7 @@
 
 ---
 
-LiveCoding huddle event bot for Siege & Siege W6(and 7?) project
+LiveCoding huddle event bot for Siege & Siege W6(and 7) project
 
 ### What does it do?
 
@@ -48,18 +48,31 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 ### Public command list
 
 `live.init` - Start a game show \[Only allowlist user or authorised user\]
+
 `live.pick` - Bot pick a user to do a new turn, or show status if started 
+
 `live.rnd` - Pick a different server secret
+
 `live.turn` - Get turn information
+
 `live.eligible` - List of user for the next turn
+
 `live.members` - List of all user in the huddle
+
 `live.optout` - Optout from the event
+
 `live.reject` - Reject a turn
+
 `live.add_mgr` - Add a game manager 
+
 `live.leave` - Remove yourself as a game manager
+
 `live.force_leave` - Remove yourself as a game manager, and also end the event if you are the only manager
+
 `live.summary` - Generate a summary for the game
+
 `live.export` - Export the status to Olive (for dispatching coins)
+
 `live.end` - End the event
 
 
@@ -71,3 +84,8 @@ I prefer you test on Slack instead, it would take same amount of time to a demo 
 If you are lazy like me, check the image below:
 
 <img width="558" height="806" alt="w6" src="https://github.com/user-attachments/assets/4cde9022-2973-4cba-9344-bdf8dc0c3a56" />
+
+<img width="686" height="530" alt="5a37783ff5996b718d1a51313156194800138354bcad4a3aff476d9eba41c3c2" src="https://github.com/user-attachments/assets/c1cd0e96-7316-47c9-955f-97d004ac2c48" />
+
+(Idk why the background got significantly whiter than it actually is)
+
