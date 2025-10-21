@@ -35,7 +35,7 @@ class SiegePartialUser:
     display_name: str
     
 @dataclass(frozen=True, eq=True)
-class SiegePartialUser2(SiegePartialUser):
+class SiegePartialUser2(SiegePartialUser): # -> lb 
     slack_id: str
     coins: int
     rank: SiegeUserRank
