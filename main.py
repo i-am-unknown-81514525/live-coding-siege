@@ -27,6 +27,8 @@ from server import start_server
 from ws_mgr import controller, signals
 import jwt
 
+import siege_cmd # cmd import
+
 def int_handler(bits: int) -> Handler[int]:
     """A handler for DeterRnd that returns an integer of a specified bit length."""
     return (bits, lambda x: x)

@@ -1,4 +1,4 @@
-from reg import message_dispatch, msg_listen, action_dispatch, action_listen, huddle_dispatch, huddle_listen, smart_msg_listen, MessageContext
+from reg import action_listen, action_prefix_listen, smart_msg_listen, MessageContext
 import blockkit
 from api import get_project, get_user
 import re
@@ -12,7 +12,7 @@ def get_siege_user_info(ctx: MessageContext):
     left_over = ctx.event.message.text.removeprefix("siege.user").strip()
     if left_over:
         if re.match(r"<@(U\w+)>", left_over):
-            user_id = user_id.removeprefix("<@").removesuffix(">")
+            user_id = left_over.removeprefix("<@").removesuffix(">")
         else:
             user_id = left_over
 
@@ -21,24 +21,25 @@ def get_siege_user_info(ctx: MessageContext):
     proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
 
     message = blockkit.Message().add_block(
+        blockkit.Section(f"""*User info:*
+*Slack ID:* `{user.slack_id}`
+*User ID:* `{user.id}`
+*Name:* {user.name}
+*Display Name:* {user.display_name}
+*Coins:* {user.coins}
+*Rank:* {user.rank.readable}
+*Status:* {user.status.readable}""")
+    ).add_block(
         blockkit.Actions([
-            blockkit.Button(f"W{item[0]} - {item[2]}").value(str(item[1])).action_id("siege_proj_view") for item in proj_list
+            blockkit.Button(f"W{item[0]} - {item[2]}").value(str(item[1])).action_id(f"siege_proj_view_{item[0]}") for item in sorted(proj_list, key=lambda x: x[0])
         ])
     )
 
     ctx.public_send(
-        text=f"""*User info:*
-Slack ID: `{user.slack_id}`
-User ID:`{user.id}`
-Name: {user.name}
-Display Name: {user.display_name}
-Coins: {user.coins}
-Rank: {user.rank.readable}
-Status: {user.status.readable}""",
         **message.build()
     )
 
-@action_listen("siege_proj_view")
+@action_prefix_listen("siege_proj_view")
 def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     v = event.actions[0].value
     if not v:
@@ -52,16 +53,26 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
 
     client.chat_postMessage(
         channel=channel, 
-        thread_ts=thread_ts, 
-        text=f"""Week {proj.week} - {proj.name}
-ID: `{proj.id}`
-Status: {proj.status.readable}
-Created At: {proj.created_at.format('YYYY-MM-DD HH:mm:ss')}
-Description: {proj.description}
-Repo URL: {proj.repo_url}
-Demo URL: {proj.demo_url}
-Coin Value: {proj.coin_value or "N/A"}
-Stonemason Review URL: {proj.stonemason_review_url}
-Reviewer URL: {proj.reviewer_url}
-"""
+        thread_ts=thread_ts,
+        **blockkit.Message()
+        .add_block(
+            blockkit.Section(f"""*Week {proj.week} - {proj.name}*
+*ID:* `{proj.id}`
+*Status:* {proj.status.readable}
+*Created At:* {proj.created_at.format('YYYY-MM-DD HH:mm:ss')}
+*Description:* {proj.description}
+*Coin Value:* {proj.coin_value or "N/A"}
+"""         )
+        )
+        .add_block(
+            blockkit.Actions(
+                [
+                    blockkit.Button("Project Page").url(proj.project_url),
+                    blockkit.Button("Repo").url(proj.repo_url),
+                    blockkit.Button("Demo").url(proj.demo_url),
+                    blockkit.Button("Stonemason Page").url(proj.stonemason_review_url),
+                    blockkit.Button("Reviewer Page").url(proj.reviewer_url),
+                ]
+            )
+        ).build()
     )

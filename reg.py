@@ -12,6 +12,7 @@ from slack_sdk.models.attachments import Attachment
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
 ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
+ACTION_PREFIX_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
 HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, WebClient], Any]]] = {}
 
 def msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Callable[[A], A]:
@@ -131,6 +132,26 @@ def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
         return func
     return decorator
 
+def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]:
+    """
+    A decorator factory that registers a function to handle block actions
+    where the action_id starts with a specific prefix.
+
+    Args:
+        action_id_prefix: The prefix for the action_id that this function will handle.
+    """
+    if not isinstance(action_id_prefix, str):
+        raise TypeError("The action_id_prefix for @action_prefix_listen must be a string.")
+
+    def decorator[F: Callable[[BlockActionEvent, WebClient], Any]](func: F) -> F:
+        """The actual decorator that performs the registration."""
+        if ACTION_PREFIX_HANDLERS.get(action_id_prefix) is None:
+            ACTION_PREFIX_HANDLERS[action_id_prefix] = []
+        ACTION_PREFIX_HANDLERS[action_id_prefix].append(func)
+        return func
+    return decorator
+
+
 def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a user's huddle state change.
@@ -182,6 +203,13 @@ def action_dispatch(event: BlockActionEvent, client: WebClient) -> None:
                 # Pass the entire event to the handler
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()
+        
+        for prefix, handlers in ACTION_PREFIX_HANDLERS.items():
+            if action_id.startswith(prefix):
+                for handler in handlers:
+                    thread = threading.Thread(target=handler, args=(event, client))
+                    thread.start()
+
 
 def huddle_dispatch(event: HuddleChange, client: WebClient) -> None:
     """
