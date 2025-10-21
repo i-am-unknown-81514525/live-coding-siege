@@ -20,6 +20,10 @@ def get_siege_user_info(ctx: MessageContext):
     
     proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
 
+    buttons : list = [
+            blockkit.Button(f"W{item[0]} - {item[2]}").value(str(item[1])).action_id(f"siege_proj_view_{item[0]}") for item in sorted(proj_list, key=lambda x: x[0])
+        ]
+
     message = blockkit.Message().add_block(
         blockkit.Section(f"""*User info:*
 *Slack ID:* `{user.slack_id}`
@@ -29,11 +33,11 @@ def get_siege_user_info(ctx: MessageContext):
 *Coins:* {user.coins}
 *Rank:* {user.rank.readable}
 *Status:* {user.status.readable}""")
-    ).add_block(
-        blockkit.Actions([
-            blockkit.Button(f"W{item[0]} - {item[2]}").value(str(item[1])).action_id(f"siege_proj_view_{item[0]}") for item in sorted(proj_list, key=lambda x: x[0])
-        ])
     )
+
+    if buttons:
+        message.add_block(blockkit.Actions(buttons))
+
 
     ctx.public_send(
         **message.build()
