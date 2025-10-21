@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS "game_participant" (
     "successful_rounds" INTEGER NOT NULL DEFAULT 0,
     "consecutive_skips" INTEGER NOT NULL DEFAULT 0,
     "h_start" REAL,
+    "h_curr" REAL,
     PRIMARY KEY ("game_id", "user_id"),
     FOREIGN KEY("game_id") REFERENCES "game"("id"),
     FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
