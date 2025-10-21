@@ -44,5 +44,17 @@ class SiegeProject(SiegePartialProject):
     user: SiegePartialUser
     coin_value: float
     is_update: bool
+
+    @property
+    def project_url(self) -> URL:
+        return f"https://siege.hackclub.com/armory/{self.id}"
+
+    @property
+    def stonemason_review_url(self) -> URL:
+        return f"https://siege.hackclub.com/review/projects/{self.id}"
+    
+    @property
+    def reviewer_url(self) -> URL:
+        return f"https://siege.hackclub.com/ysws-review/{self.week}/{self.user.id}"
     
 
