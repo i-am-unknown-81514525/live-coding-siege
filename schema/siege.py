@@ -35,6 +35,12 @@ class SiegePartialUser:
     display_name: str
     
 @dataclass(frozen=True, eq=True)
+class SiegePartialUser2(SiegePartialUser):
+    slack_id: str
+    coins: int
+    rank: SiegeUserRank
+
+@dataclass(frozen=True, eq=True)
 class SiegePartialProject:
     id: int 
     name: str
@@ -59,10 +65,7 @@ class SiegePartialProject:
 
 
 @dataclass(frozen=True, eq=True)
-class SiegeUser(SiegePartialUser):
-    slack_id: str
-    coins: int
-    rank: SiegeUserRank
+class SiegeUser(SiegePartialUser2):
     status: SiegeUserStatus
     created_at: Arrow
     projects: frozenset[SiegePartialProject]
