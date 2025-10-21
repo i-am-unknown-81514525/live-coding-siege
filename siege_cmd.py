@@ -51,6 +51,9 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     channel = event.container.channel_id
     thread_ts = event.message.thread_ts if event.message else None
 
+
+    kv = [("Project Page", proj.project_url), ("Repo", proj.repo_url), ("Demo", proj.demo_url), ("Stonemason Page", proj.stonemason_review_url), ("Reviewer Page", proj.reviewer_url)]
+
     client.chat_postMessage(
         channel=channel, 
         thread_ts=thread_ts,
@@ -67,11 +70,9 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
         .add_block(
             blockkit.Actions(
                 [
-                    blockkit.Button("Project Page").url(proj.project_url),
-                    blockkit.Button("Repo").url(proj.repo_url),
-                    blockkit.Button("Demo").url(proj.demo_url),
-                    blockkit.Button("Stonemason Page").url(proj.stonemason_review_url),
-                    blockkit.Button("Reviewer Page").url(proj.reviewer_url),
+                    blockkit.Button(k).url(v)
+                    for k, v in kv
+                    if v
                 ]
             )
         ).build()
