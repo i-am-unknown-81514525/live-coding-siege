@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from enum import StrEnum
 from arrow import Arrow
+import arrow
 import re
+from typing import Self
 
 class ProjectStatus(StrEnum):
     BUILDING = "building"
@@ -33,12 +35,32 @@ class SiegePartialUser:
     id: int
     name: str
     display_name: str
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            display_name=data["display_name"]
+        )
+
     
 @dataclass(frozen=True, eq=True)
 class SiegePartialUser2(SiegePartialUser): # -> lb 
     slack_id: str
     coins: int
     rank: SiegeUserRank
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            display_name=data["display_name"],
+            slack_id=data["slack_id"],
+            coins=data["coins"],
+            rank=SiegeUserRank(data["rank"])
+        )
 
 @dataclass(frozen=True, eq=True)
 class SiegePartialProject:
@@ -62,6 +84,16 @@ class SiegePartialProject:
     @property
     def stonemason_review_url(self) -> URL:
         return f"https://siege.hackclub.com/review/projects/{self.id}"
+    
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            status=ProjectStatus(data["status"]),
+            created_at=arrow.get(data["created_at"]),
+            week_badge_text=data["week_badge_text"]
+        )
 
 
 @dataclass(frozen=True, eq=True)
@@ -69,6 +101,20 @@ class SiegeUser(SiegePartialUser2):
     status: SiegeUserStatus
     created_at: Arrow
     projects: frozenset[SiegePartialProject]
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            display_name=data["display_name"],
+            slack_id=data["slack_id"],
+            coins=data["coins"],
+            rank=SiegeUserRank(data["rank"]),
+            status=SiegeUserStatus(data["status"]),
+            created_at=arrow.get(data["created_at"]),
+            projects=frozenset(map(SiegePartialProject.parse, data["projects"])),
+        )
 
 
 @dataclass(frozen=True, eq=True)
@@ -86,3 +132,19 @@ class SiegeProject(SiegePartialProject):
         return f"https://siege.hackclub.com/ysws-review/{self.week}/{self.user.id}"
     
 
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            status=ProjectStatus(data["status"]),
+            created_at=arrow.get(data["created_at"]),
+            week_badge_text=data["week_badge_text"],
+            description=data["description"],
+            repo_url=data["repo_url"],
+            demo_url=data["demo_url"],
+            updated_at=arrow.get(data["updated_at"]),
+            user=SiegePartialUser.parse(data["user"]),
+            coin_value=data["coin_value"],
+            is_update=data["is_update"],
+        )
