@@ -57,11 +57,43 @@ class SiegeUserRank(StrEnum):
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 
+    @property
+    def readable(self) -> str:
+        match self:
+            case SiegeUserRank.USER:
+                return "User"
+            case SiegeUserRank.VIEWER:
+                return "Stonemason"
+            case SiegeUserRank.REVIEWER:
+                return "Reviewer"
+            case SiegeUserRank.ADMIN:
+                return "Admin"
+            case SiegeUserRank.SUPER_ADMIN:
+                return "Super Admin (Basically Olive)"
+            case _:
+                return "Unknown"
+
+
 class SiegeUserStatus(StrEnum):
     WORKING = "working"
     OUT = "out"
     NEW = "new"
     BANNED = "banned"
+
+    @property
+    def readable(self) -> str:
+        match self:
+            case SiegeUserStatus.WORKING:
+                return "Working"
+            case SiegeUserStatus.OUT:
+                return "Out"
+            case SiegeUserStatus.NEW:
+                return "New"
+            case SiegeUserStatus.BANNED:
+                return "Banned"
+            case _:
+                return "Unknown"
+
 
 @dataclass(frozen=True, eq=True)
 class SiegePartialUser:
