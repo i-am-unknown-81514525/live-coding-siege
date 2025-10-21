@@ -17,7 +17,7 @@ type URL = str
 class SiegePartialUser:
     id: int
     name: str
-    display_name: SystemError
+    display_name: str
     
 @dataclass(frozen=True, eq=True)
 class SiegePartialProject:
