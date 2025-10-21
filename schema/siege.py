@@ -12,6 +12,8 @@ class ProjectStatus(StrEnum):
 
 type URL = str
 
+# For future reference
+# https://github.com/hackclub/siege/blob/2c186ae9f863a73be8dc43b53cdd25127a383b80/app/models/user.rb#L5
 
 class SiegeUserRank(StrEnum):
     USER = "user"
@@ -20,6 +22,11 @@ class SiegeUserRank(StrEnum):
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 
+class SiegeUserStatus(StrEnum):
+    WORKING = "working"
+    OUT = "out"
+    NEW = "new"
+    BANNED = "banned"
 
 @dataclass(frozen=True, eq=True)
 class SiegePartialUser:
