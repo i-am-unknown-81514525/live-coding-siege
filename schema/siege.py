@@ -63,6 +63,9 @@ class SiegeUser(SiegePartialUser):
     slack_id: str
     coins: int
     rank: SiegeUserRank
+    status: SiegeUserStatus
+    created_at: Arrow
+    projects: frozenset[SiegePartialProject]
 
 
 @dataclass(frozen=True, eq=True)
