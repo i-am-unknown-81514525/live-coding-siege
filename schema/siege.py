@@ -12,6 +12,39 @@ class ProjectStatus(StrEnum):
     PENDING_VOTING = "pending_voting"
     WAITING_FOR_REVIEW = "waiting_for_review"
 
+    @property
+    def readable(self) -> str:
+        match self:
+            case ProjectStatus.BUILDING:
+                return "Building"
+            case ProjectStatus.SUMMITED:
+                return "Submitted for review"
+            case ProjectStatus.FINISHED:
+                return "Finished"
+            case ProjectStatus.PENDING_VOTING:
+                return "Pending Voting"
+            case ProjectStatus.WAITING_FOR_REVIEW:
+                return "Waiting for Finalization"
+            case _:
+                return "Unknown"
+
+    @property
+    def readable_long(self) -> str:
+        match self:
+            case ProjectStatus.BUILDING:
+                return "Building - Project is not submitted"
+            case ProjectStatus.SUMMITED:
+                return "Submitted for review - Please wait patiently for the stonemason to review this!"
+            case ProjectStatus.FINISHED:
+                return "Finished - Your coin have been awarded for the project"
+            case ProjectStatus.PENDING_VOTING:
+                return "Pending Voting - Your project will be in waiting until end of Friday EDT"
+            case ProjectStatus.WAITING_FOR_REVIEW:
+                return "Waiting for Finalization - Please wait patiently for the reviewer to set you the reviewer bonus!"
+            case _:
+                return "Unknown"
+
+
 type URL = str
 
 # For future reference
