@@ -13,6 +13,14 @@ class ProjectStatus(StrEnum):
 type URL = str
 
 
+class SiegeUserRank(StrEnum):
+    USER = "user"
+    VIEWER = "viewer" # Stonemason
+    REVIEWER = "reviewer" # Reviewer
+    ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
+
+
 @dataclass(frozen=True, eq=True)
 class SiegePartialUser:
     id: int
@@ -41,6 +49,13 @@ class SiegePartialProject:
     @property
     def stonemason_review_url(self) -> URL:
         return f"https://siege.hackclub.com/review/projects/{self.id}"
+
+
+@dataclass(frozen=True, eq=True)
+class SiegeUser(SiegePartialUser):
+    slack_id: str
+    coins: int
+    rank: SiegeUserRank
 
 
 @dataclass(frozen=True, eq=True)
