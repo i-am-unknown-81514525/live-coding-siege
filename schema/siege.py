@@ -34,6 +34,14 @@ class SiegePartialProject:
             return int(match.group(1))
         raise ValueError(f"Invalid week_badge_text for project {self.name} ({self.id}) with {self.week_badge_text}")
 
+    @property
+    def project_url(self) -> URL:
+        return f"https://siege.hackclub.com/armory/{self.id}"
+
+    @property
+    def stonemason_review_url(self) -> URL:
+        return f"https://siege.hackclub.com/review/projects/{self.id}"
+
 
 @dataclass(frozen=True, eq=True)
 class SiegeProject(SiegePartialProject):
@@ -44,14 +52,6 @@ class SiegeProject(SiegePartialProject):
     user: SiegePartialUser
     coin_value: float
     is_update: bool
-
-    @property
-    def project_url(self) -> URL:
-        return f"https://siege.hackclub.com/armory/{self.id}"
-
-    @property
-    def stonemason_review_url(self) -> URL:
-        return f"https://siege.hackclub.com/review/projects/{self.id}"
     
     @property
     def reviewer_url(self) -> URL:
