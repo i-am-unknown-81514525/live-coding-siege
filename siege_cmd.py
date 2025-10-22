@@ -1,12 +1,13 @@
 from reg import action_listen, action_prefix_listen, smart_msg_listen, MessageContext
 import blockkit
-from api import get_project, get_user
+from api import get_project, get_user, get_all_projs, get_project_time
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
 import logging
 import os
 from arrow import Arrow
+import time
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 BANNED = []
@@ -106,3 +107,24 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
         client.chat_postEphemeral(
             channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
         )
+
+@smart_msg_listen("siege.global")
+def get_total_proj_time(ctx: MessageContext):
+    if ctx.event.message.user in BANNED or ctx.event.message.user not in ALLOWED:
+        return
+
+    proj_list = get_all_projs()
+
+    week = max(proj_list, key=lambda x: x.week).week
+
+    curr_week_proj = [proj for proj in proj_list if proj.week == week]
+
+    ctx.public_send(text=f"Analysing {len(curr_week_proj)} current week projects time out of {len(proj_list)} total projects.")
+
+    proj_time = 0
+
+    for proj in curr_week_proj:
+        proj_time += get_project_time(proj)
+        time.sleep(0.5)
+    
+    ctx.public_send(text=f"Total global tracked time this week: {proj_time} hours.")
