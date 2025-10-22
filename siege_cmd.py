@@ -103,12 +103,15 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
         )
         .add_block(blockkit.Actions([blockkit.Button(k).url(v) for k, v in kv if v]))
     )
-    if user_id in ALLOWED:
-        client.chat_postMessage(channel=channel, thread_ts=thread_ts, **message.build())
-    else:
-        client.chat_postEphemeral(
-            channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
-        )
+    # if user_id in ALLOWED:
+    #     client.chat_postMessage(channel=channel, thread_ts=thread_ts, **message.build())
+    # else:
+    #     client.chat_postEphemeral(
+    #         channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
+    #     )
+    client.chat_postEphemeral(
+        channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
+    )
 
 @smart_msg_listen("siege.global")
 def get_total_proj_time(ctx: MessageContext):
