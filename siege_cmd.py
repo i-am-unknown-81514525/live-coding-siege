@@ -7,6 +7,8 @@ from slack_sdk.web import WebClient
 import logging
 import os
 
+ALLOWED = os.environ["ALLOWLIST"].split(",")
+
 @smart_msg_listen("siege.user")
 def get_siege_user_info(ctx: MessageContext):
     user_id = ctx.event.message.user
@@ -26,20 +28,22 @@ def get_siege_user_info(ctx: MessageContext):
         ]
 
     message = blockkit.Message().add_block(
-        blockkit.Section(f"""*User info:*
-*Slack ID:* `{user.slack_id}`
-*User ID:* `{user.id}`
-*Name:* {user.name}
-*Display Name:* {user.display_name}
-*Coins:* {user.coins}
-*Rank:* {user.rank.readable}
-*Status:* {user.status.readable}""")
+        blockkit.Section(
+            f"*User info:*\n"
+            f"*Slack ID:* `{user.slack_id}`\n"
+            f"*User ID:* `{user.id}`\n"
+            f"*Name:* {user.name}\n"
+            f"*Display Name:* {user.display_name}\n"
+            f"*Coins:* {user.coins}\n"
+            f"*Rank:* {user.rank.readable}\n"
+            f"*Status:* {user.status.readable}"
+        )
     )
 
     if buttons:
         message.add_block(blockkit.Actions(buttons))
 
-    if ctx.event.message.user in os.environ["ALLOWLIST"].split(","):
+    if ctx.event.message.user in ALLOWED:
         ctx.public_send(
             **message.build()
         )
@@ -63,23 +67,24 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     kv = [("Project Page", proj.project_url), ("Repo", proj.repo_url), ("Demo", proj.demo_url), ("Stonemason Page", proj.stonemason_review_url), ("Reviewer Page", proj.reviewer_url)]
 
     message = blockkit.Message().add_block(
-            blockkit.Section(f"""*Week {proj.week} - {proj.name}*
-*ID:* `{proj.id}`
-*Status:* {proj.status.readable}
-*Created At:* {proj.created_at.format('YYYY-MM-DD HH:mm:ss')}
-*Description:* {proj.description}
-*Coin Value:* {proj.coin_value or "N/A"}
-"""         )
-       ).add_block(
-            blockkit.Actions(
-                [
-                    blockkit.Button(k).url(v)
-                    for k, v in kv
-                    if v
-                ]
-            )
+        blockkit.Section(
+            f"*Week {proj.week} - {proj.name}*\n"
+            f"*ID:* `{proj.id}`\n"
+            f"*Status:* {proj.status.readable}\n"
+            f"*Created At:* {proj.created_at.format('YYYY-MM-DD HH:mm:ss')}\n"
+            f"*Description:* {proj.description}\n"
+            f"*Coin Value:* {proj.coin_value or "N/A"}"
         )
-    if user_id in os.environ["ALLOWLIST"].split(","):
+    ).add_block(
+        blockkit.Actions(
+            [
+                blockkit.Button(k).url(v)
+                for k, v in kv
+                if v
+            ]
+        )
+    )
+    if user_id in ALLOWED:
         client.chat_postMessage(
         channel=channel, 
         thread_ts=thread_ts,
