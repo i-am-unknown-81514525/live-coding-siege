@@ -6,12 +6,22 @@ from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
 import logging
 import os
+from arrow import Arrow
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
+BANNED = []
+
+def _time_to_slack(time: Arrow) -> str:
+    t1 = "{date_num}"
+    t2 = "{time_secs}"
+    utc = Arrow.utcfromtimestamp(time.timestamp())
+    return f"<!date^{int(utc.timestamp())}^{t1}|{utc.date().strftime('%Y-%m-%d')}> <!date^{int(utc.timestamp())}^{t2}|{utc.time().strftime('%H:%M:%S')} UTC>"
 
 
 @smart_msg_listen("siege.user")
 def get_siege_user_info(ctx: MessageContext):
+    if ctx.event.message.user in BANNED:
+        return
     user_id = ctx.event.message.user
     left_over = ctx.event.message.text.removeprefix("siege.user").strip()
     if left_over:
@@ -57,6 +67,8 @@ def get_siege_user_info(ctx: MessageContext):
 def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     v = event.actions[0].value
     user_id = event.user.id
+    if user_id in BANNED:
+        return
     if not v:
         logging.warning("siege_proj_view missing project id")
         return
@@ -81,7 +93,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Week {proj.week} - {proj.name}*\n"
                 f"*ID:* `{proj.id}`\n"
                 f"*Status:* {proj.status.readable}\n"
-                f"*Created At:* {proj.created_at.format('YYYY-MM-DD HH:mm:ss')}\n"
+                f"*Created At:* {_time_to_slack(proj.created_at)}\n"
                 f"*Description:* {proj.description}\n"
                 f"*Coin Value:* {proj.coin_value or 'N/A'}"
             )
