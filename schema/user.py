@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class UserFieldEntry:
     value: str
@@ -11,6 +12,7 @@ class UserFieldEntry:
             value=data["value"],
             alt=data["alt"],
         )
+
 
 @dataclass(frozen=True)
 class UserAvatar:
@@ -31,6 +33,7 @@ class UserAvatar:
             image_512=data["image_512"],
             image_72=data["image_72"],
         )
+
 
 @dataclass(frozen=True)
 class UserFlag:
@@ -85,9 +88,9 @@ class UserProfile:
             display_name_normalized=data["display_name_normalized"],
             first_name=data["first_name"],
             last_name=data["last_name"],
-            fields={
-                k: UserFieldEntry.parse(v) for k, v in data["fields"].items()
-            } if "fields" in data else {},
+            fields={k: UserFieldEntry.parse(v) for k, v in data["fields"].items()}
+            if "fields" in data
+            else {},
             avatars=UserAvatar.parse(data),
             pronouns=data.get("pronouns"),
             phone=data.get("phone"),
@@ -100,6 +103,7 @@ class UserProfile:
             status_expiration=data.get("status_expiration"),
             title=data.get("title"),
         )
+
 
 @dataclass(frozen=True)
 class User:
@@ -126,6 +130,5 @@ class User:
             tz_offset=data.get("tz_offset"),
             updated=data["updated"],
             profile=UserProfile.parse(data["profile"]),
-            flags=UserFlag.parse(data)
+            flags=UserFlag.parse(data),
         )
-    

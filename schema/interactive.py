@@ -4,6 +4,7 @@ from arrow import Arrow
 from .base import Recv, SlackID
 from .message import MessageData
 
+
 @dataclass(frozen=True)
 class InteractionUser:
     id: SlackID
@@ -20,11 +21,12 @@ class InteractionUser:
             team_id=data["team_id"],
         )
 
+
 @dataclass(frozen=True)
 class Container:
     type: str
     channel_id: SlackID
-    message_ts: str # Keep as string for API compatibility
+    message_ts: str  # Keep as string for API compatibility
 
     @classmethod
     def parse(cls, data: dict) -> Self:
@@ -33,6 +35,7 @@ class Container:
             channel_id=data["channel_id"],
             message_ts=data["message_ts"],
         )
+
 
 @dataclass(frozen=True)
 class Action:
@@ -51,6 +54,7 @@ class Action:
             action_ts=Arrow.fromtimestamp(float(data["action_ts"])),
             value=data.get("value"),
         )
+
 
 @dataclass(frozen=True)
 class BlockActionEvent(Recv):

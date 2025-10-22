@@ -10,9 +10,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "live_coding.db"
 SCHEMA_FILE = os.path.join(BASE_DIR, "schema.sql")
 
+
 @contextmanager
 def get_db_connection():
-
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -21,23 +21,26 @@ def get_db_connection():
     finally:
         conn.close()
 
+
 def init_db():
     if not os.path.exists(SCHEMA_FILE):
         raise FileNotFoundError(f"Schema file not found at {SCHEMA_FILE}")
 
     with get_db_connection() as conn:
-        with open(SCHEMA_FILE, 'r') as f:
+        with open(SCHEMA_FILE, "r") as f:
             schema_sql = f.read()
-        
+
         cursor = conn.cursor()
         cursor.executescript(schema_sql)
         conn.commit()
     print("Database initialized successfully.")
 
+
 def _sha3(text: str) -> str:
     hash_obj = Hash(SHA3_512())
-    hash_obj.update(text.encode('utf-8'))
+    hash_obj.update(text.encode("utf-8"))
     return hash_obj.finalize().hex()
+
 
 def get_latest_transaction_hash(conn: sqlite3.Connection, game_id: int) -> str | None:
     """Retrieves the hash of the most recent transaction for a given game."""
@@ -49,9 +52,10 @@ def get_latest_transaction_hash(conn: sqlite3.Connection, game_id: int) -> str |
         ORDER BY timestamp DESC, id DESC
         LIMIT 1
         """,
-        (game_id,)
+        (game_id,),
     ).fetchone()
-    return row['transaction_hash'] if row else None
+    return row["transaction_hash"] if row else None
+
 
 def _add_transaction(
     conn: sqlite3.Connection,
@@ -84,31 +88,47 @@ def _add_transaction(
         INSERT INTO event_transaction (transaction_hash, previous_transaction_hash, timestamp, event_type, game_id, user_id, details, client_secret, server_secret)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (new_hash, prev_hash, timestamp, event_type, game_id, user_id, details_json, client_secret, server_secret)
+        (
+            new_hash,
+            prev_hash,
+            timestamp,
+            event_type,
+            game_id,
+            user_id,
+            details_json,
+            client_secret,
+            server_secret,
+        ),
     )
     return new_hash
 
-def start_game(huddle_id: str, channel_id: str, thread_ts: str, start_time: datetime, client_secret: str, server_secret: str) -> int:
+
+def start_game(
+    huddle_id: str,
+    channel_id: str,
+    thread_ts: str,
+    start_time: datetime,
+    client_secret: str,
+    server_secret: str,
+) -> int:
     """Creates a new game and its initial 'GAME_START' transaction."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
             "INSERT INTO game (huddle_id, channel_id, thread_ts, start_time, status) VALUES (?, ?, ?, ?, 'ACTIVE') RETURNING id",
-            (huddle_id, channel_id, thread_ts, start_time.isoformat())
+            (huddle_id, channel_id, thread_ts, start_time.isoformat()),
         ).fetchone()
         if not row:
             # This case should not be reached if the insert is successful and RETURNING is supported.
             raise RuntimeError("Failed to create a new game record.")
-        game_id = row['id']
+        game_id = row["id"]
         _add_transaction(conn, game_id, "GAME_START", client_secret, server_secret)
         conn.commit()
         return game_id
 
+
 def add_message_transaction(
-    game_id: int,
-    user_id: str,
-    message_text: str,
-    message_id: str
+    game_id: int, user_id: str, message_text: str, message_id: str
 ) -> str:
     """
     Adds a 'MSG_SENT' transaction.
@@ -116,7 +136,9 @@ def add_message_transaction(
     with get_db_connection() as conn:
         secrets = get_latest_secrets(game_id)
         if not secrets:
-            raise ValueError(f"Cannot add message to game {game_id} with no existing transactions.")
+            raise ValueError(
+                f"Cannot add message to game {game_id} with no existing transactions."
+            )
         old_client_secret, server_secret = secrets
         new_client_secret = _sha3(f"{old_client_secret}:{message_text}:{message_id}")
         new_hash = _add_transaction(
@@ -131,6 +153,7 @@ def add_message_transaction(
         conn.commit()
         return new_hash
 
+
 def add_user_selection_transaction(
     game_id: int,
     user_id: str,
@@ -140,16 +163,24 @@ def add_user_selection_transaction(
     with get_db_connection() as conn:
         secrets = get_latest_secrets(game_id)
         if not secrets:
-            raise ValueError(f"Cannot select user for game {game_id} with no existing transactions.")
+            raise ValueError(
+                f"Cannot select user for game {game_id} with no existing transactions."
+            )
         client_secret, server_secret = secrets
 
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT OR IGNORE INTO game_participant (game_id, user_id) VALUES (?, ?)", (game_id, user_id)
+            "INSERT OR IGNORE INTO game_participant (game_id, user_id) VALUES (?, ?)",
+            (game_id, user_id),
         )
         cursor.execute(
             "INSERT INTO game_turn (game_id, user_id, selection_time, assigned_duration_seconds, status) VALUES (?, ?, ?, ?, 'PENDING')",
-            (game_id, user_id, datetime.now(timezone.utc).isoformat(), duration_seconds)
+            (
+                game_id,
+                user_id,
+                datetime.now(timezone.utc).isoformat(),
+                duration_seconds,
+            ),
         )
         new_hash = _add_transaction(
             conn,
@@ -163,23 +194,26 @@ def add_user_selection_transaction(
         conn.commit()
         return new_hash
 
+
 def update_game_status(
     game_id: int,
-    status: str, # Should be 'COMPLETED' or 'CANCELLED'
+    status: str,  # Should be 'COMPLETED' or 'CANCELLED'
 ) -> str:
     """Updates a game's status and logs the event as a transaction."""
     with get_db_connection() as conn:
         secrets = get_latest_secrets(game_id)
         if not secrets:
-            raise ValueError(f"Cannot update status for game {game_id} with no existing transactions.")
+            raise ValueError(
+                f"Cannot update status for game {game_id} with no existing transactions."
+            )
         client_secret, server_secret = secrets
 
         cursor = conn.cursor()
         cursor.execute(
             "UPDATE game SET status = ?, end_time = ? WHERE id = ?",
-            (status, datetime.now(timezone.utc).isoformat(), game_id)
+            (status, datetime.now(timezone.utc).isoformat(), game_id),
         )
-        event_type = f"GAME_{status.upper()}" # e.g., GAME_COMPLETED
+        event_type = f"GAME_{status.upper()}"  # e.g., GAME_COMPLETED
         new_hash = _add_transaction(
             conn,
             game_id=game_id,
@@ -191,23 +225,28 @@ def update_game_status(
         conn.commit()
         return new_hash
 
+
 def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
     """Updates a pending turn to 'IN_PROGRESS' and sets its start time, logging the transaction."""
     with get_db_connection() as conn:
         secrets = get_latest_secrets(game_id)
         if not secrets:
-            raise ValueError(f"Cannot start turn for game {game_id} with no existing transactions.")
+            raise ValueError(
+                f"Cannot start turn for game {game_id} with no existing transactions."
+            )
         client_secret, server_secret = secrets
 
         cursor = conn.cursor()
 
         turn_details = cursor.execute(
             "SELECT * FROM game_turn WHERE game_id = ? AND user_id = ? AND status = 'PENDING'",
-            (game_id, user_id)
+            (game_id, user_id),
         ).fetchone()
 
         if not turn_details:
-            raise ValueError(f"No pending turn found for user {user_id} in game {game_id} to start.")
+            raise ValueError(
+                f"No pending turn found for user {user_id} in game {game_id} to start."
+            )
 
         cursor.execute(
             """
@@ -215,11 +254,13 @@ def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
             SET status = 'IN_PROGRESS', start_time = ? 
             WHERE id = ?
             """,
-            (datetime.now(timezone.utc).isoformat(), turn_details['id'])
+            (datetime.now(timezone.utc).isoformat(), turn_details["id"]),
         )
 
         if cursor.rowcount == 0:
-            raise ValueError(f"No pending turn found for user {user_id} in game {game_id} to start.")
+            raise ValueError(
+                f"No pending turn found for user {user_id} in game {game_id} to start."
+            )
 
         new_hash = _add_transaction(
             conn,
@@ -233,29 +274,38 @@ def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
         conn.commit()
         return turn_details
 
+
 def update_turn_status(
     game_id: int,
     user_id: str,
-    new_status: str, # 'COMPLETED', 'SKIPPED', or 'FAILED'
+    new_status: str,  # 'COMPLETED', 'SKIPPED', or 'FAILED'
 ) -> str:
     """Updates a turn's status and participant stats, logging the transaction."""
     with get_db_connection() as conn:
         secrets = get_latest_secrets(game_id)
         if not secrets:
-            raise ValueError(f"Cannot update turn for game {game_id} with no existing transactions.")
+            raise ValueError(
+                f"Cannot update turn for game {game_id} with no existing transactions."
+            )
         client_secret, server_secret = secrets
 
         cursor = conn.cursor()
 
         cursor.execute(
             "UPDATE game_turn SET status = ? WHERE game_id = ? AND user_id = ? AND status IN ('PENDING', 'IN_PROGRESS', 'ACCEPTED')",
-            (new_status, game_id, user_id)
+            (new_status, game_id, user_id),
         )
 
-        if new_status == 'COMPLETED':
-            cursor.execute("UPDATE game_participant SET successful_rounds = successful_rounds + 1, consecutive_skips = 0 WHERE game_id = ? AND user_id = ?", (game_id, user_id))
-        elif new_status == 'SKIPPED':
-            cursor.execute("UPDATE game_participant SET consecutive_skips = consecutive_skips + 1 WHERE game_id = ? AND user_id = ?", (game_id, user_id))
+        if new_status == "COMPLETED":
+            cursor.execute(
+                "UPDATE game_participant SET successful_rounds = successful_rounds + 1, consecutive_skips = 0 WHERE game_id = ? AND user_id = ?",
+                (game_id, user_id),
+            )
+        elif new_status == "SKIPPED":
+            cursor.execute(
+                "UPDATE game_participant SET consecutive_skips = consecutive_skips + 1 WHERE game_id = ? AND user_id = ?",
+                (game_id, user_id),
+            )
 
         event_type = f"TURN_{new_status.upper()}"
         new_hash = _add_transaction(
@@ -270,6 +320,7 @@ def update_turn_status(
         conn.commit()
         return new_hash
 
+
 def set_turn_timeout_notified(game_id: int, user_id: str):
     """
     Sets the timeout_notified flag to TRUE for the most recent turn for a user in a game.
@@ -279,7 +330,7 @@ def set_turn_timeout_notified(game_id: int, user_id: str):
         cursor = conn.cursor()
         cursor.execute(
             "UPDATE game_turn SET timeout_notified = TRUE WHERE id = (SELECT id FROM game_turn WHERE game_id = ? AND user_id = ? ORDER BY selection_time DESC, id DESC LIMIT 1)",
-            (game_id, user_id)
+            (game_id, user_id),
         )
         conn.commit()
 
@@ -295,11 +346,12 @@ def get_latest_secrets(game_id: int) -> tuple[str, str] | None:
             ORDER BY timestamp DESC, id DESC
             LIMIT 1
             """,
-            (game_id,)
+            (game_id,),
         ).fetchone()
         if not row:
             return None
-        return (row['client_secret'], row['server_secret'])
+        return (row["client_secret"], row["server_secret"])
+
 
 def update_server_secret(
     game_id: int,
@@ -309,7 +361,9 @@ def update_server_secret(
     with get_db_connection() as conn:
         secrets = get_latest_secrets(game_id)
         if not secrets:
-            raise ValueError(f"Cannot update server secret for game {game_id} with no existing transactions.")
+            raise ValueError(
+                f"Cannot update server secret for game {game_id} with no existing transactions."
+            )
         client_secret, _old_server_secret = secrets
 
         new_hash = _add_transaction(
@@ -335,9 +389,10 @@ def upsert_user(user_id: str, name: str):
                 name = excluded.name 
             WHERE excluded.name != 'UNKNOWN' OR user.name = 'UNKNOWN'
             """,
-            (user_id, name)
+            (user_id, name),
         )
         conn.commit()
+
 
 def add_game_participant(game_id: int, user_id: str):
     """Adds a user to a game's participant list. Does nothing if they already exist."""
@@ -345,9 +400,10 @@ def add_game_participant(game_id: int, user_id: str):
         cursor = conn.cursor()
         cursor.execute(
             "INSERT OR IGNORE INTO game_participant (game_id, user_id) VALUES (?, ?)",
-            (game_id, user_id)
+            (game_id, user_id),
         )
         conn.commit()
+
 
 def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
     """Updates a participant's opt-out status for a specific game."""
@@ -355,9 +411,10 @@ def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
         cursor = conn.cursor()
         cursor.execute(
             "UPDATE game_participant SET is_opted_out = ? WHERE game_id = ? AND user_id = ?",
-            (is_opted_out, game_id, user_id)
+            (is_opted_out, game_id, user_id),
         )
         conn.commit()
+
 
 def add_game_manager(game_id: int, user_id: str):
     """Assigns a user as a manager for a game."""
@@ -365,9 +422,10 @@ def add_game_manager(game_id: int, user_id: str):
         cursor = conn.cursor()
         cursor.execute(
             "INSERT OR IGNORE INTO game_manager (game_id, user_id) VALUES (?, ?)",
-            (game_id, user_id)
+            (game_id, user_id),
         )
         conn.commit()
+
 
 def remove_game_manager(game_id: int, user_id: str):
     """Removes a user as a manager for a game."""
@@ -375,31 +433,33 @@ def remove_game_manager(game_id: int, user_id: str):
         cursor = conn.cursor()
         cursor.execute(
             "DELETE FROM game_manager WHERE game_id = ? AND user_id = ?",
-            (game_id, user_id)
+            (game_id, user_id),
         )
         conn.commit()
+
 
 def list_game_manager(game_id: int):
     """Lists all managers for a game."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         rows = cursor.execute(
-            "SELECT user_id FROM game_manager WHERE game_id = ?",
-            (game_id, )
+            "SELECT user_id FROM game_manager WHERE game_id = ?", (game_id,)
         ).fetchall()
-        return [row['user_id'] for row in rows]
+        return [row["user_id"] for row in rows]
+
 
 def get_game_mgr_active_game(user_id: str) -> int | None:
     """Get the active game the game manager is manging, if exists"""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
-            "SELECT game_id FROM game_manager gm " \
-            "LEFT JOIN game ON gm.game_id = game.id " \
+            "SELECT game_id FROM game_manager gm "
+            "LEFT JOIN game ON gm.game_id = game.id "
             "WHERE gm.user_id = ? AND (game.status IS NULL OR game.status = 'ACTIVE' OR game.status = 'PENDING')",
-            (user_id,)
+            (user_id,),
         ).fetchone()
-        return row['game_id'] if row else None
+        return row["game_id"] if row else None
+
 
 def game_exists_in_thread(channel_id: str, thread_ts: str) -> bool:
     """Checks if there are any game in the thread regardless of status"""
@@ -407,9 +467,10 @@ def game_exists_in_thread(channel_id: str, thread_ts: str) -> bool:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT 1 FROM game WHERE channel_id = ? AND thread_ts = ? LIMIT 1",
-            (channel_id, thread_ts)
+            (channel_id, thread_ts),
         ).fetchone()
         return row is not None
+
 
 def add_huddle_participant(huddle_id: str, user_id: str):
     """Adds a user to the list of current participants in a huddle."""
@@ -417,9 +478,10 @@ def add_huddle_participant(huddle_id: str, user_id: str):
         cursor = conn.cursor()
         cursor.execute(
             "INSERT OR IGNORE INTO huddle_participant (huddle_id, user_id) VALUES (?, ?)",
-            (huddle_id, user_id)
+            (huddle_id, user_id),
         )
         conn.commit()
+
 
 def remove_huddle_participant(huddle_id: str, user_id: str):
     """Removes a user from the list of current participants in a huddle."""
@@ -427,19 +489,20 @@ def remove_huddle_participant(huddle_id: str, user_id: str):
         cursor = conn.cursor()
         cursor.execute(
             "DELETE FROM huddle_participant WHERE huddle_id = ? AND user_id = ?",
-            (huddle_id, user_id)
+            (huddle_id, user_id),
         )
         conn.commit()
+
 
 def get_user_huddles(user_id: str) -> list[str]:
     """Gets a list of huddle IDs that a user is currently a participant in."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         rows = cursor.execute(
-            "SELECT huddle_id FROM huddle_participant WHERE user_id = ?",
-            (user_id,)
+            "SELECT huddle_id FROM huddle_participant WHERE user_id = ?", (user_id,)
         ).fetchall()
-        return [row['huddle_id'] for row in rows]
+        return [row["huddle_id"] for row in rows]
+
 
 def upsert_huddle(huddle_id: str, channel_id: str, start_time: datetime):
     """
@@ -456,11 +519,13 @@ def upsert_huddle(huddle_id: str, channel_id: str, start_time: datetime):
                 channel_id = ?
             WHERE huddle.channel_id = 'UNKNOWN'
             """,
-            (huddle_id, channel_id, start_time.isoformat(), channel_id)
+            (huddle_id, channel_id, start_time.isoformat(), channel_id),
         )
         conn.commit()
 
+
 # === State Querying Functions ===
+
 
 def has_game_manager(user_id: str) -> bool:
     """Check if a user is a manager for any active game."""
@@ -469,9 +534,10 @@ def has_game_manager(user_id: str) -> bool:
         row = cursor.execute(
             """SELECT 1 FROM game_manager gm LEFT JOIN game ON gm.game_id = game.id
             WHERE gm.user_id = ? AND (game.status IS NULL OR game.status = 'ACTIVE' OR game.status = 'PENDING')""",
-            (user_id,)
+            (user_id,),
         ).fetchone()
         return row is not None
+
 
 def is_game_manager(game_id: int, user_id: str) -> bool:
     """Checks if a user is a manager for the given game."""
@@ -479,9 +545,10 @@ def is_game_manager(game_id: int, user_id: str) -> bool:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT 1 FROM game_manager WHERE game_id = ? AND user_id = ?",
-            (game_id, user_id)
+            (game_id, user_id),
         ).fetchone()
         return row is not None
+
 
 def get_active_game_in_huddle(huddle_id: str) -> int | None:
     """Finds the ID of the currently active game in a given huddle."""
@@ -489,9 +556,10 @@ def get_active_game_in_huddle(huddle_id: str) -> int | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT id FROM game WHERE huddle_id = ? AND status = 'ACTIVE' LIMIT 1",
-            (huddle_id,)
+            (huddle_id,),
         ).fetchone()
-        return row['id'] if row else None
+        return row["id"] if row else None
+
 
 def get_active_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
     """Finds the ID of the currently active game in a given thread."""
@@ -499,29 +567,31 @@ def get_active_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT id FROM game WHERE channel_id = ? AND thread_ts = ? AND status = 'ACTIVE' LIMIT 1",
-            (channel_id, thread_ts)
+            (channel_id, thread_ts),
         ).fetchone()
-        return row['id'] if row else None
-    
+        return row["id"] if row else None
+
+
 def get_active_game_by_only_thread(thread_ts: str) -> int | None:
     """Finds the ID of the currently active game in a given thread."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT id FROM game WHERE thread_ts = ? AND status = 'ACTIVE' LIMIT 1",
-            (thread_ts)
+            (thread_ts),
         ).fetchone()
-        return row['id'] if row else None
-    
+        return row["id"] if row else None
+
+
 def get_channel_id_by_thread(thread_ts: str) -> str | None:
     """Finds the channel ID for a given thread."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
-            "SELECT channel_id FROM game WHERE thread_ts = ? LIMIT 1",
-            (thread_ts)
+            "SELECT channel_id FROM game WHERE thread_ts = ? LIMIT 1", (thread_ts)
         ).fetchone()
-        return row['channel_id'] if row else None
+        return row["channel_id"] if row else None
+
 
 def get_any_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
     """Finds the ID of the game in a given thread."""
@@ -529,19 +599,19 @@ def get_any_game_by_thread(channel_id: str, thread_ts: str) -> int | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT id FROM game WHERE channel_id = ? AND thread_ts = ? LIMIT 1",
-            (channel_id, thread_ts)
+            (channel_id, thread_ts),
         ).fetchone()
-        return row['id'] if row else None
+        return row["id"] if row else None
+
 
 def get_huddle_id_by_game_id(game_id: int) -> str | None:
     """Finds the huddle ID for a given game ID."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
-            "SELECT huddle_id FROM game WHERE id = ? LIMIT 1",
-            (game_id,)
+            "SELECT huddle_id FROM game WHERE id = ? LIMIT 1", (game_id,)
         ).fetchone()
-        return row['huddle_id'] if row else None
+        return row["huddle_id"] if row else None
 
 
 def get_huddle_id_by_channel(channel_id: str) -> str | None:
@@ -550,19 +620,20 @@ def get_huddle_id_by_channel(channel_id: str) -> str | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT id FROM huddle WHERE channel_id = ? ORDER BY start_time DESC LIMIT 1",
-            (channel_id,)
+            (channel_id,),
         ).fetchone()
-        return row['id'] if row else None
+        return row["id"] if row else None
+
 
 def huddle_exists(huddle_id: str) -> bool:
     """Checks if a huddle with the given ID exists in the database."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
-            "SELECT 1 FROM huddle WHERE id = ?",
-            (huddle_id,)
+            "SELECT 1 FROM huddle WHERE id = ?", (huddle_id,)
         ).fetchone()
         return row is not None
+
 
 def get_eligible_participants(game_id: int) -> list[str]:
     """
@@ -574,13 +645,13 @@ def get_eligible_participants(game_id: int) -> list[str]:
         cursor = conn.cursor()
         all_turns = cursor.execute(
             "SELECT user_id, status FROM game_turn WHERE game_id = ? ORDER BY selection_time DESC, id DESC",
-            (game_id,)
+            (game_id,),
         ).fetchall()
 
         users_to_exclude = set()
         for turn in all_turns:
-            users_to_exclude.add(turn['user_id'])
-            if turn['status'] in ('COMPLETED', 'FAILED'):
+            users_to_exclude.add(turn["user_id"])
+            if turn["status"] in ("COMPLETED", "FAILED"):
                 break
 
         rows = cursor.execute(
@@ -592,13 +663,14 @@ def get_eligible_participants(game_id: int) -> list[str]:
               AND (gp.is_opted_out IS NULL OR gp.is_opted_out = FALSE)
               AND (gp.consecutive_skips IS NULL OR gp.consecutive_skips < 2)
             """,
-            (game_id,)
+            (game_id,),
         ).fetchall()
-        
-        eligible_users = {row['user_id'] for row in rows}
+
+        eligible_users = {row["user_id"] for row in rows}
         eligible_users.difference_update(users_to_exclude)
-        
+
         return list(eligible_users)
+
 
 def get_huddle_participants(game_id: int) -> list[str]:
     """
@@ -614,12 +686,13 @@ def get_huddle_participants(game_id: int) -> list[str]:
             LEFT JOIN game_participant gp ON hp.user_id = gp.user_id AND g.id = gp.game_id
             WHERE g.id = ?
             """,
-            (game_id,)
+            (game_id,),
         ).fetchall()
-        
-        eligible_users = {row['user_id'] for row in rows}
-        
+
+        eligible_users = {row["user_id"] for row in rows}
+
         return list(eligible_users)
+
 
 def get_pending_turn_user(game_id: int) -> str | None:
     """Gets the user ID for the current pending turn in a game."""
@@ -627,11 +700,12 @@ def get_pending_turn_user(game_id: int) -> str | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT user_id FROM game_turn WHERE game_id = ? AND status = 'PENDING' ORDER BY selection_time DESC, id DESC LIMIT 1",
-            (game_id,)
+            (game_id,),
         ).fetchone()
         if not row:
             return None
-        return row['user_id']
+        return row["user_id"]
+
 
 def get_in_progress_turn_user(game_id: int) -> str | None:
     """Gets the user ID for the current in-progress turn in a game."""
@@ -639,20 +713,21 @@ def get_in_progress_turn_user(game_id: int) -> str | None:
         cursor = conn.cursor()
         row = cursor.execute(
             "SELECT user_id FROM game_turn WHERE game_id = ? AND status = 'IN_PROGRESS' ORDER BY start_time DESC, id DESC LIMIT 1",
-            (game_id,)
+            (game_id,),
         ).fetchone()
         if not row:
             return None
-        return row['user_id']
+        return row["user_id"]
+
 
 def get_turn_by_status(game_id: int, statuses: list[str]) -> sqlite3.Row | None:
     """Gets the details for the current turn if it matches one of the given statuses."""
     if not statuses:
         return None
-    
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        placeholders = ','.join('?' for _ in statuses)
+        placeholders = ",".join("?" for _ in statuses)
         query = f"""
             SELECT user_id, status, start_time, assigned_duration_seconds, timeout_notified
             FROM game_turn
@@ -662,6 +737,7 @@ def get_turn_by_status(game_id: int, statuses: list[str]) -> sqlite3.Row | None:
         """
         row = cursor.execute(query, (game_id, *statuses)).fetchone()
         return row
+
 
 def get_active_turn_details(game_id: int) -> sqlite3.Row | None:
     """Gets the full details for the current active turn (PENDING or IN_PROGRESS)."""
@@ -675,9 +751,10 @@ def get_active_turn_details(game_id: int) -> sqlite3.Row | None:
             ORDER BY selection_time DESC, id DESC 
             LIMIT 1
             """,
-            (game_id,)
+            (game_id,),
         ).fetchone()
         return row
+
 
 def get_all_turns_by_status(statuses: list[str]) -> list[sqlite3.Row]:
     """Gets all turns that are currently in one of the given states."""
@@ -685,7 +762,7 @@ def get_all_turns_by_status(statuses: list[str]) -> list[sqlite3.Row]:
         return []
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        placeholders = ','.join('?' for _ in statuses)
+        placeholders = ",".join("?" for _ in statuses)
         rows = cursor.execute(
             f"""
             SELECT
@@ -701,9 +778,10 @@ def get_all_turns_by_status(statuses: list[str]) -> list[sqlite3.Row]:
             JOIN game AS g ON t.game_id = g.id
             WHERE t.status IN ({placeholders})
             """,
-            statuses
+            statuses,
         ).fetchall()
         return rows
+
 
 def get_game_summary_stats(game_id: int) -> list[sqlite3.Row]:
     """
@@ -723,9 +801,10 @@ def get_game_summary_stats(game_id: int) -> list[sqlite3.Row]:
             WHERE p.game_id = ?
             ORDER BY p.successful_rounds DESC, p.consecutive_skips ASC
             """,
-            (game_id,)
+            (game_id,),
         ).fetchall()
         return rows
+
 
 def get_all_turns_for_game(game_id: int) -> list[sqlite3.Row]:
     """Gets all turns for a specific game, ordered by selection time."""
@@ -745,9 +824,10 @@ def get_all_turns_for_game(game_id: int) -> list[sqlite3.Row]:
             WHERE t.game_id = ?
             ORDER BY t.selection_time ASC, t.id ASC
             """,
-            (game_id,)
+            (game_id,),
         ).fetchall()
         return rows
+
 
 def get_game_participants_by_status(game_id: int) -> dict[str, list[str]]:
     """
@@ -758,16 +838,17 @@ def get_game_participants_by_status(game_id: int) -> dict[str, list[str]]:
         cursor = conn.cursor()
         rows = cursor.execute(
             "SELECT user_id, is_opted_out FROM game_participant WHERE game_id = ?",
-            (game_id,)
+            (game_id,),
         ).fetchall()
 
-        participants = {'opted_in': [], 'opted_out': []}
+        participants = {"opted_in": [], "opted_out": []}
         for row in rows:
-            if row['is_opted_out']:
-                participants['opted_out'].append(row['user_id'])
+            if row["is_opted_out"]:
+                participants["opted_out"].append(row["user_id"])
             else:
-                participants['opted_in'].append(row['user_id'])
+                participants["opted_in"].append(row["user_id"])
         return participants
+
 
 def get_user_names(user_ids: list[str]) -> dict[str, str]:
     """Gets a mapping of user IDs to names for a given list of IDs."""
@@ -775,20 +856,21 @@ def get_user_names(user_ids: list[str]) -> dict[str, str]:
         return {}
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        placeholders = ','.join('?' for _ in user_ids)
+        placeholders = ",".join("?" for _ in user_ids)
         query = f"SELECT slack_id, name FROM user WHERE slack_id IN ({placeholders})"
         rows = cursor.execute(query, user_ids).fetchall()
-        return {row['slack_id']: row['name'] for row in rows}
+        return {row["slack_id"]: row["name"] for row in rows}
+
 
 def has_user(user_id: str) -> bool:
     """Checks if a user exists in the database."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
-            "SELECT 1 FROM user WHERE slack_id = ?",
-            (user_id,)
+            "SELECT 1 FROM user WHERE slack_id = ?", (user_id,)
         ).fetchone()
         return row is not None
+
 
 if __name__ == "__main__":
     init_db()

@@ -7,6 +7,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from .const import ws_mgr_broadcast
 from .exceptions import WebsocketDisconnected
 
+
 @dataclass
 class WebsocketMessage:
     message: bytes
@@ -21,7 +22,7 @@ class MessageHistory(list[WebsocketMessage]):
         if len(self) > self.LIMIT:
             self.pop()
 
-    def pop(self, __index: SupportsIndex=0) -> WebsocketMessage:
+    def pop(self, __index: SupportsIndex = 0) -> WebsocketMessage:
         return super().pop(__index)
 
 
@@ -46,7 +47,9 @@ class Connection:
             while True:
                 message = await self._ws.receive_bytes()
                 self._history.add(WebsocketMessage(message))
-                await self._ws.send_bytes(b"ACK") # keep-alive by responding ACK to whatever client sends
+                await self._ws.send_bytes(
+                    b"ACK"
+                )  # keep-alive by responding ACK to whatever client sends
                 # Client send content doesn't matter and all data should be send via HTTP(S) API instead
         except WebSocketDisconnect:
             self._is_connected = False
@@ -60,6 +63,7 @@ class UserConnection(Connection):
     def __init__(self, meta: str, ws: WebSocket):
         self.meta = meta
         super().__init__(ws)
+
 
 class VerifyResponse(TypedDict):
     resp: str

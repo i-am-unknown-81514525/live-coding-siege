@@ -5,6 +5,7 @@ import arrow
 import re
 from typing import Self
 
+
 class ProjectStatus(StrEnum):
     BUILDING = "building"
     SUMMITED = "submitted"
@@ -50,10 +51,11 @@ type URL = str
 # For future reference
 # https://github.com/hackclub/siege/blob/2c186ae9f863a73be8dc43b53cdd25127a383b80/app/models/user.rb#L5
 
+
 class SiegeUserRank(StrEnum):
     USER = "user"
-    VIEWER = "viewer" # Stonemason
-    REVIEWER = "reviewer" # Reviewer
+    VIEWER = "viewer"  # Stonemason
+    REVIEWER = "reviewer"  # Reviewer
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 
@@ -103,15 +105,11 @@ class SiegePartialUser:
 
     @classmethod
     def parse(cls, data: dict) -> Self:
-        return cls(
-            id=data["id"],
-            name=data["name"],
-            display_name=data["display_name"]
-        )
+        return cls(id=data["id"], name=data["name"], display_name=data["display_name"])
 
-    
+
 @dataclass(frozen=True, eq=True)
-class SiegePartialUser2(SiegePartialUser): # -> lb 
+class SiegePartialUser2(SiegePartialUser):  # -> lb
     slack_id: str
     coins: int
     rank: SiegeUserRank
@@ -124,12 +122,13 @@ class SiegePartialUser2(SiegePartialUser): # -> lb
             display_name=data["display_name"],
             slack_id=data["slack_id"],
             coins=data["coins"],
-            rank=SiegeUserRank(data["rank"])
+            rank=SiegeUserRank(data["rank"]),
         )
+
 
 @dataclass(frozen=True, eq=True)
 class SiegePartialProject:
-    id: int 
+    id: int
     name: str
     status: ProjectStatus
     created_at: Arrow
@@ -140,7 +139,9 @@ class SiegePartialProject:
         match = re.match(r"^Week (\d+)$", self.week_badge_text)
         if match:
             return int(match.group(1))
-        raise ValueError(f"Invalid week_badge_text for project {self.name} ({self.id}) with {self.week_badge_text}")
+        raise ValueError(
+            f"Invalid week_badge_text for project {self.name} ({self.id}) with {self.week_badge_text}"
+        )
 
     @property
     def project_url(self) -> URL:
@@ -149,7 +150,7 @@ class SiegePartialProject:
     @property
     def stonemason_review_url(self) -> URL:
         return f"https://siege.hackclub.com/review/projects/{self.id}"
-    
+
     @classmethod
     def parse(cls, data: dict) -> Self:
         return cls(
@@ -157,7 +158,7 @@ class SiegePartialProject:
             name=data["name"],
             status=ProjectStatus(data["status"]),
             created_at=arrow.get(data["created_at"]),
-            week_badge_text=data["week_badge_text"]
+            week_badge_text=data["week_badge_text"],
         )
 
 
@@ -184,18 +185,17 @@ class SiegeUser(SiegePartialUser2):
 
 @dataclass(frozen=True, eq=True)
 class SiegeProject(SiegePartialProject):
-    description: str 
+    description: str
     repo_url: URL
     demo_url: URL
     updated_at: Arrow
     user: SiegePartialUser
     coin_value: float
     is_update: bool
-    
+
     @property
     def reviewer_url(self) -> URL:
         return f"https://siege.hackclub.com/ysws-review/{self.week}/{self.user.id}"
-    
 
     @classmethod
     def parse(cls, data: dict) -> Self:

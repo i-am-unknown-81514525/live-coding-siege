@@ -21,10 +21,12 @@ class ConnectionManagerCls:
         if conn in self._connection_pool[conn.meta]:
             self._connection_pool[conn.meta].remove(conn)
 
+
 async def disconnect_handler(conn: UserConnection) -> None:
     if not isinstance(conn, UserConnection):
         raise ValueError(f"UserConnection expected, {type(conn)} given")
     connection_manager.remove(conn)
+
 
 ws_mgr_broadcast.subscribe(disconnect_handler, "ws_disconnect")
 

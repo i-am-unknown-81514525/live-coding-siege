@@ -12,10 +12,15 @@ from slack_sdk.models.attachments import Attachment
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
 ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
-ACTION_PREFIX_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
+ACTION_PREFIX_HANDLERS: dict[
+    str, list[Callable[[BlockActionEvent, WebClient], Any]]
+] = {}
 HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, WebClient], Any]]] = {}
 
-def msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Callable[[A], A]:
+
+def msg_listen[A: Callable](
+    message_key: str, is_subtype: bool = False
+) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a specific message key.
 
@@ -30,9 +35,11 @@ def msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Calla
         """The actual decorator that performs the registration."""
         handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
         handlers.append(func)
-        setattr(func, '_is_subtype_handler', is_subtype)
-        return func # type: ignore
+        setattr(func, "_is_subtype_handler", is_subtype)
+        return func  # type: ignore
+
     return decorator
+
 
 @dataclass
 class MessageContext:
@@ -40,58 +47,69 @@ class MessageContext:
     client: WebClient
 
     @overload
-    def private_send(self, always_thread: bool = False, *, text: str | None = None, # pyright: ignore[reportInconsistentOverload]
-    as_user: bool | None = None,
-    attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
-    blocks: str | Sequence[dict[str, Any] | Block] | None = None,
-    thread_ts: str | None = None,
-    icon_emoji: str | None = None,
-    icon_url: str | None = None,
-    link_names: bool | None = None,
-    username: str | None = None,
-    parse: str | None = None, **kwargs) -> Any: ...
+    def private_send(   # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
 
-    def private_send[**P](self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs):
+    def private_send[**P](
+        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+    ):
         thread_ts = self.event.message.thread_ts
         if thread_ts is None and always_thread and self.event.message.ts:
             thread_ts = self.event.message.ts
         return self.client.chat_postEphemeral(
-            user=self.event.message.user, 
-            channel=self.event.channel, 
-            thread_ts=thread_ts, 
-            *args, 
-            **kwargs
+            user=self.event.message.user,
+            channel=self.event.channel,
+            thread_ts=thread_ts,
+            *args,
+            **kwargs,
         )
 
     @overload
-    def public_send(self, always_thread: bool = False, *, text: str | None = None, # pyright: ignore[reportInconsistentOverload]
-    as_user: bool | None = None,
-    attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
-    blocks: str | Sequence[dict[str, Any] | Block] | None = None,
-    thread_ts: str | None = None,
-    icon_emoji: str | None = None,
-    icon_url: str | None = None,
-    link_names: bool | None = None,
-    username: str | None = None,
-    parse: str | None = None, **kwargs) -> Any: ...
+    def public_send(   # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
 
-    
-    def public_send[**P](self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs):
+    def public_send[**P](
+        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+    ):
         thread_ts = self.event.message.thread_ts
         if thread_ts is None and always_thread and self.event.message.ts:
             thread_ts = self.event.message.ts
         return self.client.chat_postMessage(
-            channel=self.event.channel, 
-            thread_ts=thread_ts, 
-            *args, 
-            **kwargs
+            channel=self.event.channel, thread_ts=thread_ts, *args, **kwargs
         )
 
 
-
-
-
-def smart_msg_listen[A: Callable](message_key: str, is_subtype: bool = False) -> Callable[[A], A]:
+def smart_msg_listen[A: Callable](
+    message_key: str, is_subtype: bool = False
+) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a specific message key.
 
@@ -105,14 +123,16 @@ def smart_msg_listen[A: Callable](message_key: str, is_subtype: bool = False) ->
     def decorator[F: Callable[[MessageContext], Any]](func: F) -> F:
         """The actual decorator that performs the registration."""
         handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
+
         def inner(event: MessageEvent, client: WebClient):
             return func(MessageContext(event, client))
+
         handlers.append(inner)
-        setattr(func, '_is_subtype_handler', is_subtype)
-        return func # type: ignore
+        setattr(func, "_is_subtype_handler", is_subtype)
+        return func  # type: ignore
+
     return decorator
 
-    
 
 def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
     """
@@ -130,7 +150,9 @@ def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
             ACTION_HANDLERS[action_id] = []
         ACTION_HANDLERS[action_id].append(func)
         return func
+
     return decorator
+
 
 def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]:
     """
@@ -141,7 +163,9 @@ def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]
         action_id_prefix: The prefix for the action_id that this function will handle.
     """
     if not isinstance(action_id_prefix, str):
-        raise TypeError("The action_id_prefix for @action_prefix_listen must be a string.")
+        raise TypeError(
+            "The action_id_prefix for @action_prefix_listen must be a string."
+        )
 
     def decorator[F: Callable[[BlockActionEvent, WebClient], Any]](func: F) -> F:
         """The actual decorator that performs the registration."""
@@ -149,6 +173,7 @@ def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]
             ACTION_PREFIX_HANDLERS[action_id_prefix] = []
         ACTION_PREFIX_HANDLERS[action_id_prefix].append(func)
         return func
+
     return decorator
 
 
@@ -168,7 +193,9 @@ def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
             HUDDLE_HANDLERS[state] = []
         HUDDLE_HANDLERS[state].append(func)
         return func
+
     return decorator
+
 
 def message_dispatch(event: MessageEvent, client: WebClient) -> None:
     """
@@ -177,7 +204,7 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
     """
     for key, handlers in MESSAGE_HANDLERS.items():
         for handler in handlers:
-            is_subtype_handler = getattr(handler, '_is_subtype_handler', False)
+            is_subtype_handler = getattr(handler, "_is_subtype_handler", False)
 
             # Dispatch to subtype handlers
             if is_subtype_handler and event.subtype == key:
@@ -186,9 +213,15 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
                 continue
 
             # Dispatch to text-based command handlers
-            if not is_subtype_handler and event.message and event.message.text and event.message.text.startswith(key):
+            if (
+                not is_subtype_handler
+                and event.message
+                and event.message.text
+                and event.message.text.startswith(key)
+            ):
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()
+
 
 def action_dispatch(event: BlockActionEvent, client: WebClient) -> None:
     """
@@ -203,7 +236,7 @@ def action_dispatch(event: BlockActionEvent, client: WebClient) -> None:
                 # Pass the entire event to the handler
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()
-        
+
         for prefix, handlers in ACTION_PREFIX_HANDLERS.items():
             if action_id.startswith(prefix):
                 for handler in handlers:
