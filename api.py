@@ -7,6 +7,7 @@ from schema.siege import (
     SiegePartialProject,
     SiegePartialUser,
 )
+import bs4, re, os
 
 type UserId = int | str
 type UserAlike = UserId | SiegeProject | SiegePartialUser
@@ -59,6 +60,23 @@ def get_project_time(project: ProjAlike) -> float:
     response = requests.get(url)
     data = response.json()
     return data.get("hours", 0.0)
+
+def get_project_time_prec(project: ProjAlike) -> float:
+    project_id = _as_project(project)
+    url = f"https://siege.hackclub.com/armory/{project_id}"
+    response = requests.get(url, cookies={"_siege_session": os.environ["SIEGE_SESSION"]})
+    if not response.ok:
+        raise ValueError(f"Armory link return error with status {response.status_code}, proj_id={project_id}")
+    soup = bs4.BeautifulSoup(response.text, "html.parser")
+    ele = soup.find("div", {"class": "project-week-time"})
+    if ele is None:
+        raise ValueError(f"Cannot find project-week-time class, proj_id={project_id}")
+    raw_text = ele.get_text().strip().removeprefix("Time spent: ").strip()
+    result = re.match(r"(?:(\d*)h)? (?:(\d*)m)?", raw_text)
+    if result is None:
+        raise ValueError(f"Cannot find project time infomation, content=\"{raw_text}\"")
+    return int(result.group(1)) + int(result.group(2)) / 60
+
 
 def get_all_projs() -> list[SiegeProject]:
     url = "https://siege.hackclub.com/api/public-beta/projects"
