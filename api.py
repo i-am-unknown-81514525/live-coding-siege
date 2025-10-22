@@ -54,12 +54,12 @@ def get_coin_leaderboard() -> list[SiegePartialUser2]:
     return list(map(SiegePartialUser2.parse, data.get("leaderboard", [])))
 
 
-def get_project_time(project: ProjAlike) -> float:
-    project_id = _as_project(project)
-    url = f"https://siege.hackclub.com/api/project_hours/{project_id}"  # https://siege.hackclub.com/api/project_hours/1262
-    response = requests.get(url)
-    data = response.json()
-    return data.get("hours", 0.0)
+# def get_project_time(project: ProjAlike) -> float: # Useless 
+#     project_id = _as_project(project)
+#     url = f"https://siege.hackclub.com/api/project_hours/{project_id}"  # https://siege.hackclub.com/api/project_hours/1262
+#     response = requests.get(url)
+#     data = response.json()
+#     return data.get("hours", 0.0)
 
 def get_project_time_prec(project: ProjAlike) -> float:
     project_id = _as_project(project)

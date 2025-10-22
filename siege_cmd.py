@@ -1,6 +1,6 @@
 from reg import action_listen, action_prefix_listen, smart_msg_listen, MessageContext
 import blockkit
-from api import get_project, get_user, get_all_projs, get_project_time
+from api import get_project, get_user, get_all_projs
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
@@ -96,7 +96,9 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Status:* {proj.status.readable}\n"
                 f"*Created At:* {_time_to_slack(proj.created_at)}\n"
                 f"*Description:* {proj.description}\n"
-                f"*Coin Value:* {proj.coin_value or 'N/A'}"
+                f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
+                f"*Is Updated:* {proj.is_update}\n"
+                f"*Hours:* {proj.hours} hours"
             )
         )
         .add_block(blockkit.Actions([blockkit.Button(k).url(v) for k, v in kv if v]))
@@ -110,7 +112,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
 
 @smart_msg_listen("siege.global")
 def get_total_proj_time(ctx: MessageContext):
-    if ctx.event.message.user in BANNED or ctx.event.message.user not in ALLOWED:
+    if ctx.event.message.user in BANNED:
         return
 
     proj_list = get_all_projs()
@@ -118,13 +120,5 @@ def get_total_proj_time(ctx: MessageContext):
     week = max(proj_list, key=lambda x: x.week).week
 
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
-
-    ctx.public_send(text=f"Analysing {len(curr_week_proj)} current week projects time out of {len(proj_list)} total projects.")
-
-    proj_time = 0
-
-    for proj in curr_week_proj:
-        proj_time += get_project_time(proj)
-        time.sleep(0.5)
     
-    ctx.public_send(text=f"Total global tracked time this week: {proj_time} hours.")
+    ctx.public_send(text=f"Total global tracked time this week: {sum(map(lambda x:x.hours, curr_week_proj))} hours.")

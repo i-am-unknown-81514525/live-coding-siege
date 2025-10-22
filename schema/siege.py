@@ -192,6 +192,7 @@ class SiegeProject(SiegePartialProject):
     user: SiegePartialUser
     coin_value: float
     is_update: bool
+    hours: float
 
     @property
     def reviewer_url(self) -> URL:
@@ -212,4 +213,5 @@ class SiegeProject(SiegePartialProject):
             user=SiegePartialUser.parse(data["user"]),
             coin_value=data["coin_value"],
             is_update=data["is_update"],
+            hours=data["hours"],
         )
