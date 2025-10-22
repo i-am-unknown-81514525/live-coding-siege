@@ -5,6 +5,7 @@ import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
 import logging
+import os
 
 @smart_msg_listen("siege.user")
 def get_siege_user_info(ctx: MessageContext):
@@ -38,14 +39,17 @@ def get_siege_user_info(ctx: MessageContext):
     if buttons:
         message.add_block(blockkit.Actions(buttons))
 
-
-    ctx.public_send(
-        **message.build()
-    )
+    if ctx.event.message.user in os.environ["ALLOWLIST"].split(","):
+        ctx.public_send(
+            **message.build()
+        )
+    else:
+        ctx.private_send(**message.build())
 
 @action_prefix_listen("siege_proj_view")
 def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     v = event.actions[0].value
+    user_id = event.user.id
     if not v:
         logging.warning("siege_proj_view missing project id")
         return
@@ -58,11 +62,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
 
     kv = [("Project Page", proj.project_url), ("Repo", proj.repo_url), ("Demo", proj.demo_url), ("Stonemason Page", proj.stonemason_review_url), ("Reviewer Page", proj.reviewer_url)]
 
-    client.chat_postMessage(
-        channel=channel, 
-        thread_ts=thread_ts,
-        **blockkit.Message()
-        .add_block(
+    message = blockkit.Message().add_block(
             blockkit.Section(f"""*Week {proj.week} - {proj.name}*
 *ID:* `{proj.id}`
 *Status:* {proj.status.readable}
@@ -70,8 +70,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
 *Description:* {proj.description}
 *Coin Value:* {proj.coin_value or "N/A"}
 """         )
-        )
-        .add_block(
+       ).add_block(
             blockkit.Actions(
                 [
                     blockkit.Button(k).url(v)
@@ -79,5 +78,12 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                     if v
                 ]
             )
-        ).build()
+        )
+    if user_id in os.environ["ALLOWLIST"].split(","):
+        client.chat_postMessage(
+        channel=channel, 
+        thread_ts=thread_ts,
+        **message.build()
     )
+    else:
+        client.chat_postEphemeral(channel=channel, thread_ts=thread_ts, user=user_id, **message.build())
