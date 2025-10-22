@@ -59,3 +59,9 @@ def get_project_time(project: ProjAlike) -> float:
     response = requests.get(url)
     data = response.json()
     return data.get("hours", 0.0)
+
+def get_all_projs() -> list[SiegeProject]:
+    url = "https://siege.hackclub.com/api/public-beta/projects"
+    response = requests.get(url)
+    data = response.json().get("projects", [])
+    return list(map(SiegeProject.parse, data))
