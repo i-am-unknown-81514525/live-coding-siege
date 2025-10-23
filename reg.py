@@ -45,6 +45,7 @@ def msg_listen[A: Callable](
 class MessageContext:
     event: MessageEvent
     client: WebClient
+    no_prefix: str | None = None
 
     @overload
     def private_send(   # pyright: ignore[reportInconsistentOverload]
@@ -125,7 +126,11 @@ def smart_msg_listen[A: Callable](
         handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
 
         def inner(event: MessageEvent, client: WebClient):
-            return func(MessageContext(event, client))
+            no_prefix = None
+            if event.message.text.startswith(message_key):
+                no_prefix = event.message.text.removeprefix(message_key).strip()
+            ctx = MessageContext(event, client, no_prefix=no_prefix)
+            return func(ctx)
 
         handlers.append(inner)
         setattr(func, "_is_subtype_handler", is_subtype)

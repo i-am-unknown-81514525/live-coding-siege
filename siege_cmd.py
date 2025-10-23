@@ -1,6 +1,6 @@
 from reg import action_listen, action_prefix_listen, smart_msg_listen, MessageContext
 import blockkit
-from api import get_project, get_user, get_all_projs
+from api import get_project, get_user, get_all_projs, get_coin_leaderboard
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
@@ -8,6 +8,8 @@ import logging
 import os
 from arrow import Arrow
 import time
+import logging
+from schema.siege import ProjectStatus
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 BANNED = []
@@ -118,10 +120,89 @@ def get_total_proj_time(ctx: MessageContext):
     if ctx.event.message.user in BANNED:
         return
 
+    p1 = time.perf_counter()
+
     proj_list = get_all_projs()
+
+    p2 = time.perf_counter()
 
     week = max(proj_list, key=lambda x: x.week).week
 
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
+
+    p3 = time.perf_counter()
+
+    total_time = sum(map(lambda x:x.hours, curr_week_proj))
+
+    logging.info(f"Request time: {p2-p1}s, Sorting time: {p3-p2}s")
+
+
     
-    ctx.public_send(text=f"Total global tracked time this week: {sum(map(lambda x:x.hours, curr_week_proj))} hours.")
+    ctx.public_send(text=f"Total global tracked time this week: {total_time} hours.")
+
+
+@smart_msg_listen("siege.leaderboard")
+@smart_msg_listen("siege.lb")
+def get_leaderboard(ctx: MessageContext):
+    opt = ctx.no_prefix or ""
+    message: blockkit.Message | None = None
+    force_ephemeral: bool = False
+    match opt:
+        case "coin":
+            leaderboard = get_coin_leaderboard()
+            user_id = ctx.event.message.user
+            idx = [(i, user) for i, user in enumerate(leaderboard) if user.slack_id == user_id]
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [f"*{index}*: {user.slack_mention} - {user.coins} coins" for index, user in enumerate(leaderboard[:10], start=1)] + ([
+                            f"...\n*{idx[0][0]+1}*: {idx[0][1].slack_mention} - {idx[0][1].coins} coins" if len(idx) > 0 else "You are not even in top 50... Start coding!"
+                        ] if len(idx) > 0 and idx[0][0] >= 10 else [""])
+                    )
+                )
+            )
+            force_ephemeral = True
+        case "proj_hours":
+            proj_list = get_all_projs()
+            week_proj = [proj for proj in proj_list if proj.status == ProjectStatus.FINISHED]
+            sorted_order = sorted(week_proj, key=lambda x: x.hours, reverse=True)
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout" for index, proj in enumerate(sorted_order[:10], start=1)]
+                    )
+                )
+            )
+        case "week_hours":
+            proj_list = get_all_projs()
+            curr_week = max(proj_list, key=lambda x: x.week).week
+            week_proj = [proj for proj in proj_list if proj.week == curr_week]
+            sorted_order = sorted(week_proj, key=lambda x: x.hours, reverse=True)
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name}" for index, proj in enumerate(sorted_order[:10], start=1)]
+                    )
+                )
+            )
+        case "proj_coins":
+            proj_list = get_all_projs()
+            week_proj = [proj for proj in proj_list if proj.status == ProjectStatus.FINISHED]
+            sorted_order = sorted(week_proj, key=lambda x: float(x.coin_value), reverse=True)
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout" for index, proj in enumerate(sorted_order[:10], start=1)]
+                    )
+                )
+            )
+        case _:
+            message = blockkit.Message("Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`")
+    
+    if ctx.event.message.user in ALLOWED and not force_ephemeral:
+        ctx.public_send(**message.build())
+    else:
+        ctx.private_send(**message.build())
+
+
+

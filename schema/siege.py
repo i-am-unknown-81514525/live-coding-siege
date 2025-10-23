@@ -124,6 +124,10 @@ class SiegePartialUser2(SiegePartialUser):  # -> lb
             coins=data["coins"],
             rank=SiegeUserRank(data["rank"]),
         )
+    
+    @property
+    def slack_mention(self) -> str:
+        return f"<@{self.slack_id}>"
 
 
 @dataclass(frozen=True, eq=True)
