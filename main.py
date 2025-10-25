@@ -184,6 +184,15 @@ def init_game(event: MessageEvent, client: WebClient):
         server_secret,
     )
     db.add_game_manager(game_id, user_id)
+    week_num = guess_week()
+    for user_id in db.get_huddle_participants(game_id):
+        user = get_user(user_id)
+        projs = [proj for proj in user.projects if proj.week == week_num]
+        if len(projs) == 0:
+            db.add_game_participant(game_id, user_id, None, None)
+        else:
+            full = get_project(projs[0].id)
+            db.add_game_participant(game_id, user_id, full.hours, full.id)
 
     client.chat_postMessage(
         channel=channel_id,
