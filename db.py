@@ -394,13 +394,18 @@ def upsert_user(user_id: str, name: str):
         conn.commit()
 
 
-def add_game_participant(game_id: int, user_id: str):
-    """Adds a user to a game's participant list. Does nothing if they already exist."""
+def add_game_participant(game_id: int, user_id: str, h_now: float):
+    """Adds a user to a game's participant list. Update h_curr if they already exist and lower than the current value."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT OR IGNORE INTO game_participant (game_id, user_id) VALUES (?, ?)",
-            (game_id, user_id),
+            """
+            INSERT INTO game_participant (game_id, user_id, h_start, h_curr) VALUES (?, ?, ?, ?)"
+            ON CONFLICT(game_id, user_id) DO UPDATE SET
+                h_curr = excluded.h_curr
+            WHERE excluded.h_curr > game_participant.h_curr
+            """,
+            (game_id, user_id, h_now, h_now),
         )
         conn.commit()
 
