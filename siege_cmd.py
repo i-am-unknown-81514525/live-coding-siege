@@ -20,6 +20,36 @@ def _time_to_slack(time: Arrow) -> str:
     utc = Arrow.utcfromtimestamp(time.timestamp())
     return f"<!date^{int(utc.timestamp())}^{t1}|{utc.date().strftime('%Y-%m-%d')}> <!date^{int(utc.timestamp())}^{t2}|{utc.time().strftime('%H:%M:%S')} UTC>"
 
+def _parse_repo(repo: str) -> str:
+    match = re.search(
+        r"https?://(?:(?:(?:www\.?)?(github\.com|gitlab\.com|codeberg\.org|bitbucket\.org))|(git\.hackclub\.app|dev\.azure\.com))/([^/\"\n ]+)/([^/\"\n ]+)", 
+        repo
+    )
+
+    if match is None:
+        raise ValueError(f"Invalid repo: {repo}")
+
+    match match.group(1) or match.group(2):
+        case "github.com":
+            return f"github:{match.group(3)}/{match.group(4)}"
+        case "gitlab.com":
+            return f"gitlab:{match.group(3)}/{match.group(4)}"
+        case "codeberg.org":
+            return f"codeberg:{match.group(3)}/{match.group(4)}"
+        case "bitbucket.org":
+            return f"bitbucket:{match.group(3)}/{match.group(4)}"
+        case "dev.azure.com":
+            return f"azure_dev:{match.group(3)}/{match.group(4)}"
+        case "git.hackclub.app":
+            return f"hc_git:{match.group(3)}/{match.group(4)}"
+        case _:
+            raise ValueError(f"Unknown repo: {repo}")
+
+def _parse_repo_user_from_shorthand(repo_shorthand: str) -> str:
+    return repo_shorthand.split("/")[1]
+
+def _parse_repo_user(repo: str) -> str:
+    return _parse_repo_user_from_shorthand(_parse_repo(repo))
 
 @smart_msg_listen("siege.user")
 def get_siege_user_info(ctx: MessageContext):
@@ -102,16 +132,17 @@ def get_siege_proj_info(ctx: MessageContext):
                 f"*Description:* {proj.description}\n"
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
-                f"*Hours:* {proj.hours} hours"
+                f"*Hours:* {proj.hours} hours\n"
+                f"*Repo user:* <{proj.repo_url}|{_parse_repo_user(proj.repo_url)}>"
             )
         )
         .add_block(blockkit.Actions(buttons))
     )
 
     if ctx.event.message.user in ALLOWED:
-        ctx.public_send(**message.build())
+        ctx.public_send(**message.build(), unfurl_links=False)
     else:
-        ctx.private_send(**message.build())
+        ctx.private_send(**message.build(), unfurl_links=False)
 
 @action_prefix_listen("siege_proj_view")
 def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
@@ -149,7 +180,8 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Description:* {proj.description}\n"
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
-                f"*Hours:* {proj.hours} hours"
+                f"*Hours:* {proj.hours} hours\n"
+                f"*Repo user:* <{proj.repo_url}|{_parse_repo_user(proj.repo_url)}>"
             )
         )
         .add_block(blockkit.Actions(buttons))
@@ -161,7 +193,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     #         channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
     #     )
     client.chat_postEphemeral(
-        channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
+        channel=channel, thread_ts=thread_ts, user=user_id, **message.build(), unfurl_links=False
     )
 
 @action_listen("siege_user_view")
@@ -220,17 +252,12 @@ def get_total_proj_time(ctx: MessageContext):
     p2 = time.perf_counter()
 
     week = max(proj_list, key=lambda x: x.week).week
-
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
 
     p3 = time.perf_counter()
 
     total_time = sum(map(lambda x:x.hours, curr_week_proj))
-
     logging.info(f"Request time: {p2-p1}s, Sorting time: {p3-p2}s")
-
-
-
     ctx.public_send(text=f"Total global tracked time this week: {total_time} hours.")
 
 
