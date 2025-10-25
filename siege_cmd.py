@@ -146,7 +146,7 @@ def get_siege_proj_info(ctx: MessageContext):
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
                 f"*Hours:* {proj.hours} hours\n"
-                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
+                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>" if proj.repo_url else ""
             )
         )
         .add_block(blockkit.Actions(buttons))
@@ -194,7 +194,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
                 f"*Hours:* {proj.hours} hours\n"
-                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
+                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>" if proj.repo_url else ""
             )
         )
         .add_block(blockkit.Actions(buttons))
