@@ -129,6 +129,7 @@ def smart_msg_listen[A: Callable](
             no_prefix = None
             if event.message.text.startswith(message_key):
                 no_prefix = event.message.text.removeprefix(message_key).strip()
+            # TODO: Handle <http://siege.lb|siege.lb>
             ctx = MessageContext(event, client, no_prefix=no_prefix)
             return func(ctx)
 
@@ -226,6 +227,8 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
             ):
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()
+            
+            # TODO: Handle <http://siege.lb|siege.lb>
 
 
 def action_dispatch(event: BlockActionEvent, client: WebClient) -> None:
