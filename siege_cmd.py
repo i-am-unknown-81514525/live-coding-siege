@@ -10,6 +10,7 @@ from arrow import Arrow
 import time
 import logging
 from schema.siege import ProjectStatus
+from collections import Counter
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 BANNED = []
@@ -77,8 +78,11 @@ def get_siege_user_info(ctx: MessageContext):
             user_id = left_over
 
     user = get_user(user_id)
-
     proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
+    known_repo = [get_project(proj.id).repo_url for proj in user.projects]
+    known_identity = [_parse_repo_user(repo) for repo in known_repo if repo]
+    id_count = Counter(known_identity)
+    id_string = ", ".join(f"<{construct_from_short(id)}|{id}> `{count}/{len(known_identity)}`" for id, count in id_count.most_common())
 
     buttons: list = [
         blockkit.Button(f"W{item[0]} - {item[2]}")
@@ -96,7 +100,8 @@ def get_siege_user_info(ctx: MessageContext):
             f"*Display Name:* {user.display_name}\n"
             f"*Coins:* {user.coins}\n"
             f"*Rank:* {user.rank.readable}\n"
-            f"*Status:* {user.status.readable}"
+            f"*Status:* {user.status.readable}\n"
+            f"*Common identity:* {id_string}" if id_string else ""
         )
     )
 
@@ -225,6 +230,11 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
     thread_ts = event.message.thread_ts if event.message else None
 
     proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
+    known_repo = [get_project(proj.id).repo_url for proj in user.projects]
+    known_identity = [_parse_repo_user(repo) for repo in known_repo if repo]
+    id_count = Counter(known_identity)
+    id_string = ", ".join(f"<{construct_from_short(id)}|{id}> `{count}/{len(known_identity)}`" for id, count in id_count.most_common())
+
 
     buttons: list = [
         blockkit.Button(f"W{item[0]} - {item[2]}")
@@ -242,7 +252,8 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
             f"*Display Name:* {user.display_name}\n"
             f"*Coins:* {user.coins}\n"
             f"*Rank:* {user.rank.readable}\n"
-            f"*Status:* {user.status.readable}"
+            f"*Status:* {user.status.readable}\n"
+            f"*Common identity:* {id_string}" if id_string else ""
         )
     )
 
