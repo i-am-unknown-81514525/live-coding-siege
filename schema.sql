@@ -1,7 +1,8 @@
 
 CREATE TABLE IF NOT EXISTS "user" (
     "slack_id" TEXT PRIMARY KEY NOT NULL,
-    "name" TEXT NOT NULL
+    "name" TEXT NOT NULL,
+    "avatar_url" TEXT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "huddle" (
@@ -60,6 +61,7 @@ CREATE TABLE IF NOT EXISTS "game_participant" (
     "is_opted_out" BOOLEAN NOT NULL DEFAULT FALSE,
     "successful_rounds" INTEGER NOT NULL DEFAULT 0,
     "consecutive_skips" INTEGER NOT NULL DEFAULT 0,
+    "proj_id" INT NULL,
     "h_start" REAL,
     "h_curr" REAL,
     PRIMARY KEY ("game_id", "user_id"),
