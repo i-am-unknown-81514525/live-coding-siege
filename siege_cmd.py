@@ -46,10 +46,23 @@ def _parse_repo(repo: str) -> str:
             raise ValueError(f"Unknown repo: {repo}")
 
 def _parse_repo_user_from_shorthand(repo_shorthand: str) -> str:
-    return repo_shorthand.split("/")[1]
+    return repo_shorthand.split("/")[0]
 
 def _parse_repo_user(repo: str) -> str:
     return _parse_repo_user_from_shorthand(_parse_repo(repo))
+
+def construct_from_short(shorthand: str) -> str:
+    mapping = {
+        "github": "https://github.com/{user}/{repo}",
+        "gitlab": "https://gitlab.com/{user}/{repo}",
+        "codeberg": "https://codeberg.org/{user}/{repo}",
+        "bitbucket": "https://bitbucket.org/{user}/{repo}",
+        "azure_dev": "https://dev.azure.com/{user}/{repo}",
+        "hc_git": "https://git.hackclub.app/{user}/{repo}",
+    }
+
+    (init, user, repo, *_) = shorthand.split(":")[0], *shorthand.split(":")[1].split("/"), None
+    return mapping[init].format(user=user, repo=repo or "")
 
 @smart_msg_listen("siege.user")
 def get_siege_user_info(ctx: MessageContext):
@@ -133,7 +146,7 @@ def get_siege_proj_info(ctx: MessageContext):
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
                 f"*Hours:* {proj.hours} hours\n"
-                f"*Repo user:* <{proj.repo_url}|{_parse_repo_user(proj.repo_url)}>"
+                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
             )
         )
         .add_block(blockkit.Actions(buttons))
@@ -181,7 +194,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
                 f"*Hours:* {proj.hours} hours\n"
-                f"*Repo user:* <{proj.repo_url}|{_parse_repo_user(proj.repo_url)}>"
+                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
             )
         )
         .add_block(blockkit.Actions(buttons))
