@@ -169,10 +169,11 @@ def add_user_selection_transaction(
         client_secret, server_secret = secrets
 
         cursor = conn.cursor()
-        cursor.execute(
-            "INSERT OR IGNORE INTO game_participant (game_id, user_id) VALUES (?, ?)",
-            (game_id, user_id),
-        )
+        # # The following should never happen and now the required additional parameter make it not possible to have this fallback
+        # cursor.execute(
+        #     "INSERT OR IGNORE INTO game_participant (game_id, user_id) VALUES (?, ?)",
+        #     (game_id, user_id),
+        # )
         cursor.execute(
             "INSERT INTO game_turn (game_id, user_id, selection_time, assigned_duration_seconds, status) VALUES (?, ?, ?, ?, 'PENDING')",
             (
