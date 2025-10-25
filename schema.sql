@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS "game_participant" (
     "h_start" REAL NULL,
     "h_curr" REAL NULL,
     "h_penalty" REAL DEFAULT 0 NOT REAL, 
+    "h_lastcheck" DATETIME DEFAULT CURRENT_TIMESTAMP,
     -- Hour penalty from adding additional hackatime project causing spike of change
     -- those annomally time will be discarded as they are not consider as part of the project
     PRIMARY KEY ("game_id", "user_id"),

@@ -401,11 +401,12 @@ def add_game_participant(game_id: int, user_id: str, h_now: float, proj_id: int)
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id) VALUES (?, ?, ?, ?, ?)"
+            INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(game_id, user_id) DO UPDATE SET
-                h_curr = CASE WHEN game_participant.h_curr IS NULL OR excluded.h_curr > game_participant.h_curr THEN excluded.h_curr ELSE game_participant.h_curr END
-                h_start = CASE WHEN excluded.h_start IS NOT NULL AND game_participant.h_start IS NULL THEN excluded.h_start ELSE game_participant.h_start END
-                proj_id = CASE WHEN excluded.proj_id IS NOT NULL AND game_participant.proj_id IS NULL THEN excluded.proj_id ELSE game_participant.proj_id END
+                h_curr = CASE WHEN game_participant.h_curr IS NULL OR excluded.h_curr > game_participant.h_curr THEN excluded.h_curr ELSE game_participant.h_curr END,
+                h_start = CASE WHEN excluded.h_start IS NOT NULL AND game_participant.h_start IS NULL THEN excluded.h_start ELSE game_participant.h_start END,
+                proj_id = CASE WHEN excluded.proj_id IS NOT NULL AND game_participant.proj_id IS NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
+                h_lastcheck = CURRENT_TIMESTAMP
             """,
             (game_id, user_id, h_now, h_now, proj_id),
         )
