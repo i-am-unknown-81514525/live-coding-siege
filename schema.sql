@@ -64,6 +64,9 @@ CREATE TABLE IF NOT EXISTS "game_participant" (
     "proj_id" INT NULL,
     "h_start" REAL NULL,
     "h_curr" REAL NULL,
+    "h_penalty" REAL DEFAULT 0 NOT REAL, 
+    -- Hour penalty from adding additional hackatime project causing spike of change
+    -- those annomally time will be discarded as they are not consider as part of the project
     PRIMARY KEY ("game_id", "user_id"),
     FOREIGN KEY("game_id") REFERENCES "game"("id"),
     FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
