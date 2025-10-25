@@ -378,18 +378,19 @@ def update_server_secret(
         return new_hash
 
 
-def upsert_user(user_id: str, name: str):
+def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
     """Adds a new user or updates their name. It avoids overwriting a real name with 'UNKNOWN'."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO user (slack_id, name) VALUES (?, ?)
+            INSERT INTO user (slack_id, name, avatar_url) VALUES (?, ?, ?)
             ON CONFLICT(slack_id) DO UPDATE SET 
                 name = excluded.name 
+                avatar_url = excluded.avatar_url
             WHERE excluded.name != 'UNKNOWN' OR user.name = 'UNKNOWN'
             """,
-            (user_id, name),
+            (user_id, name, avatar_url),
         )
         conn.commit()
 
