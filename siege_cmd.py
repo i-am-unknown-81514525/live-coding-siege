@@ -66,6 +66,51 @@ def get_siege_user_info(ctx: MessageContext):
         ctx.private_send(**message.build())
 
 
+@smart_msg_listen("siege.proj")
+def get_siege_proj_info(ctx: MessageContext):
+    if ctx.event.message.user in BANNED:
+        return
+    left_over = ctx.event.message.text.removeprefix("siege.user").strip()
+    if left_over:
+        try:
+            proj_id = int(left_over)
+        except ValueError:
+            return ctx.private_send(text="Invalid project id.")
+    else:
+        return ctx.private_send(text="Missing project id.")
+
+    proj = get_project(proj_id)
+    
+    kv = [
+        ("Project Page", proj.project_url),
+        ("Repo", proj.repo_url),
+        ("Demo", proj.demo_url),
+        ("Stonemason Page", proj.stonemason_review_url),
+        ("Reviewer Page", proj.reviewer_url),
+    ]
+
+    message = (
+        blockkit.Message()
+        .add_block(
+            blockkit.Section(
+                f"*Week {proj.week} - {proj.name}*\n"
+                f"*ID:* `{proj.id}`\n"
+                f"*Status:* {proj.status.readable}\n"
+                f"*Created At:* {_time_to_slack(proj.created_at)}\n"
+                f"*Description:* {proj.description}\n"
+                f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
+                f"*Is Updated:* {proj.is_update}\n"
+                f"*Hours:* {proj.hours} hours"
+            )
+        )
+        .add_block(blockkit.Actions([blockkit.Button(k).url(v) for k, v in kv if v]))
+    )
+
+    if ctx.event.message.user in ALLOWED:
+        ctx.public_send(**message.build())
+    else:
+        ctx.private_send(**message.build())
+
 @action_prefix_listen("siege_proj_view")
 def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     v = event.actions[0].value
@@ -137,7 +182,7 @@ def get_total_proj_time(ctx: MessageContext):
     logging.info(f"Request time: {p2-p1}s, Sorting time: {p3-p2}s")
 
 
-    
+
     ctx.public_send(text=f"Total global tracked time this week: {total_time} hours.")
 
 
