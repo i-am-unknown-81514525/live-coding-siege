@@ -70,7 +70,7 @@ def get_siege_user_info(ctx: MessageContext):
 def get_siege_proj_info(ctx: MessageContext):
     if ctx.event.message.user in BANNED:
         return
-    left_over = ctx.event.message.text.removeprefix("siege.user").strip()
+    left_over = ctx.event.message.text.removeprefix("siege.proj").strip()
     if left_over:
         try:
             proj_id = int(left_over)
@@ -80,7 +80,7 @@ def get_siege_proj_info(ctx: MessageContext):
         return ctx.private_send(text="Missing project id.")
 
     proj = get_project(proj_id)
-    
+
     kv = [
         ("Project Page", proj.project_url),
         ("Repo", proj.repo_url),
@@ -88,6 +88,8 @@ def get_siege_proj_info(ctx: MessageContext):
         ("Stonemason Page", proj.stonemason_review_url),
         ("Reviewer Page", proj.reviewer_url),
     ]
+
+    buttons: list = [blockkit.Button(k).url(v) for k, v in kv if v] + [blockkit.Button("View User").action_id("siege_user_view").value(str(proj.user.id))]
 
     message = (
         blockkit.Message()
@@ -103,7 +105,7 @@ def get_siege_proj_info(ctx: MessageContext):
                 f"*Hours:* {proj.hours} hours"
             )
         )
-        .add_block(blockkit.Actions([blockkit.Button(k).url(v) for k, v in kv if v]))
+        .add_block(blockkit.Actions(buttons))
     )
 
     if ctx.event.message.user in ALLOWED:
@@ -134,6 +136,8 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
         ("Reviewer Page", proj.reviewer_url),
     ]
 
+    buttons: list = [blockkit.Button(k).url(v) for k, v in kv if v] + [blockkit.Button("View User").action_id("siege_user_view").value(str(proj.user.id))]
+
     message = (
         blockkit.Message()
         .add_block(
@@ -148,7 +152,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Hours:* {proj.hours} hours"
             )
         )
-        .add_block(blockkit.Actions([blockkit.Button(k).url(v) for k, v in kv if v]))
+        .add_block(blockkit.Actions(buttons))
     )
     # if user_id in ALLOWED:
     #     client.chat_postMessage(channel=channel, thread_ts=thread_ts, **message.build())
@@ -158,6 +162,50 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     #     )
     client.chat_postEphemeral(
         channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
+    )
+
+@action_listen("siege_user_view")
+def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
+    v = event.actions[0].value
+    ori_uid = event.user.id
+    if ori_uid in BANNED:
+        return
+    if not v:
+        logging.warning("siege_proj_view missing project id")
+        return
+    user_id = int(v)
+    user = get_user(user_id)
+
+    channel = event.container.channel_id
+    thread_ts = event.message.thread_ts if event.message else None
+
+    proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
+
+    buttons: list = [
+        blockkit.Button(f"W{item[0]} - {item[2]}")
+        .value(str(item[1]))
+        .action_id(f"siege_proj_view_{item[0]}")
+        for item in sorted(proj_list, key=lambda x: x[0])
+    ]
+
+    message = blockkit.Message().add_block(
+        blockkit.Section(
+            f"*User info:*\n"
+            f"*Slack ID:* `{user.slack_id}`\n"
+            f"*User ID:* `{user.id}`\n"
+            f"*Name:* {user.name}\n"
+            f"*Display Name:* {user.display_name}\n"
+            f"*Coins:* {user.coins}\n"
+            f"*Rank:* {user.rank.readable}\n"
+            f"*Status:* {user.status.readable}"
+        )
+    )
+
+    if buttons:
+        message.add_block(blockkit.Actions(buttons))
+    
+    client.chat_postEphemeral(
+        channel=channel, thread_ts=thread_ts, user=ori_uid, **message.build()
     )
 
 @smart_msg_listen("siege.global")
