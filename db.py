@@ -395,18 +395,19 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
         conn.commit()
 
 
-def add_game_participant(game_id: int, user_id: str, h_now: float):
-    """Adds a user to a game's participant list. Update h_curr if they already exist and lower than the current value."""
+def add_game_participant(game_id: int, user_id: str, h_now: float, proj_id: int):
+    """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO game_participant (game_id, user_id, h_start, h_curr) VALUES (?, ?, ?, ?)"
+            INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id) VALUES (?, ?, ?, ?, ?)"
             ON CONFLICT(game_id, user_id) DO UPDATE SET
-                h_curr = excluded.h_curr
-            WHERE excluded.h_curr > game_participant.h_curr
+                h_curr = CASE WHEN game_participant.h_curr IS NULL OR excluded.h_curr > game_participant.h_curr THEN excluded.h_curr ELSE game_participant.h_curr END
+                h_start = CASE WHEN excluded.h_start IS NOT NULL AND game_participant.h_start IS NULL THEN excluded.h_start ELSE game_participant.h_start END
+                proj_id = CASE WHEN excluded.proj_id IS NOT NULL AND game_participant.proj_id IS NULL THEN excluded.proj_id ELSE game_participant.proj_id END
             """,
-            (game_id, user_id, h_now, h_now),
+            (game_id, user_id, h_now, h_now, proj_id),
         )
         conn.commit()
 
