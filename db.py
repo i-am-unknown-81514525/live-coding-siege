@@ -396,8 +396,9 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
         conn.commit()
 
 
-def add_game_participant(game_id: int, user_id: str, h_now: float, proj_id: int):
+def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_id: int | None):
     """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
+    # TODO: the h_penalty thing, I hope I remember and also don't have to make 2 function for it
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(

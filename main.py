@@ -35,6 +35,9 @@ from blockkit import Message, Section, Button
 from server import start_server
 from ws_mgr import controller, signals
 import jwt
+import api
+from api import get_user, get_project
+from utils import guess_week
 
 import siege_cmd  # cmd import
 
@@ -1813,12 +1816,19 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
     user_name = event.user.name
     huddle_id = event.call_id
     db.upsert_huddle(huddle_id, "UNKNOWN", datetime.now(timezone.utc))
-    db.upsert_user(user_id, user_name)
+    db.upsert_user(user_id, user_name, event.user.profile.avatars.image_512)
     db.add_huddle_participant(huddle_id, user_id)
     print(f"ℹ️ User {user_name} ({user_id}) joined huddle {huddle_id}.")
     game_id = db.get_active_game_in_huddle(huddle_id)
     if game_id is not None:
-        db.add_game_participant(game_id, user_id)
+        user = get_user(user_id)
+        week_num = guess_week()
+        projs = [proj for proj in user.projects if proj.week == week_num]
+        if len(projs) == 0:
+            db.add_game_participant(game_id, user_id, None, None)
+        else:
+            full = get_project(projs[0].id)
+            db.add_game_participant(game_id, user_id, full.hours, full.id)
 
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)
