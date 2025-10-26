@@ -1099,8 +1099,8 @@ def pick_user(event: MessageEvent, client: WebClient):
                 f"Client secret: `{client_secret}`\n"
                 f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
                 f"New Server secret hash: `{_sha3(server_secret)}` \n"
-                f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}"
-                f"Selected ticket: #{selected_index} (0-index)"
+                f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}\n"
+                f"Selected ticket: \\#{selected_index} (0-index)"
             )
         )
     ).build()
