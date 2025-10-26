@@ -893,6 +893,7 @@ def show_game_info(event: MessageEvent, client: WebClient):
 @smart_msg_listen("live.ticket")
 @smart_msg_listen("live.tickets")
 def get_ticket_count(ctx: MessageContext):
+    if ctx.no_prefix: return 
     if not ctx.event.message.thread_ts:
         return ctx.private_send(text="This command must be used within a game show's thread.")
 
