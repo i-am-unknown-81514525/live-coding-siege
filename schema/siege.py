@@ -215,7 +215,7 @@ class SiegeProject(SiegePartialProject):
             demo_url=data["demo_url"],
             updated_at=arrow.get(data["updated_at"]),
             user=SiegePartialUser.parse(data["user"]),
-            coin_value=data["coin_value"],
+            coin_value=float(data["coin_value"]),
             is_update=data["is_update"],
             hours=data["hours"],
         )

@@ -5,6 +5,9 @@ import json
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
+import arrow
+from api import get_project, get_user
+from utils import guess_week
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "live_coding.db"
@@ -387,13 +390,23 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
             """
             INSERT INTO user (slack_id, name, avatar_url) VALUES (?, ?, ?)
             ON CONFLICT(slack_id) DO UPDATE SET 
-                name = excluded.name 
+                name = excluded.name,
                 avatar_url = excluded.avatar_url
             WHERE excluded.name != 'UNKNOWN' OR user.name = 'UNKNOWN'
             """,
             (user_id, name, avatar_url),
         )
         conn.commit()
+
+def auto_add(game_id: int, user_id: str):
+    week_num = guess_week()
+    projs = get_user(user_id).projects
+    proj = [proj for proj in projs if proj.week == week_num]
+    if proj:
+        full_proj = get_project(proj[0].id)
+        add_game_participant(game_id, user_id, h_now=full_proj.hours, proj_id=proj[0].id)
+    else:
+        add_game_participant(game_id, user_id, h_now=0, proj_id=None)
 
 
 def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_id: int | None):
@@ -405,7 +418,6 @@ def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_i
             """
             INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(game_id, user_id) DO UPDATE SET
-                h_curr = CASE WHEN game_participant.h_curr IS NULL OR excluded.h_curr > game_participant.h_curr THEN excluded.h_curr ELSE game_participant.h_curr END,
                 h_start = CASE WHEN excluded.h_start IS NOT NULL AND game_participant.h_start IS NULL THEN excluded.h_start ELSE game_participant.h_start END,
                 proj_id = CASE WHEN excluded.proj_id IS NOT NULL AND game_participant.proj_id IS NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
                 h_lastcheck = CURRENT_TIMESTAMP
@@ -413,7 +425,26 @@ def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_i
             (game_id, user_id, h_now, h_now, proj_id),
         )
         conn.commit()
+    if proj_id is not None:
+        update_time(game_id, user_id)
 
+def update_time(game_id: int, user_id: str):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""SELECT proj_id, h_lastcheck, h_now FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
+        proj_id, last_check_time, last_h_now = cursor.fetchone()
+        h_now = get_project(proj_id).hours
+        last_check_time = arrow.get(last_check_time)
+        curr = arrow.now()
+        dt = curr - last_check_time
+        h_diff = h_now - last_h_now
+        c_diff = dt.total_seconds() / 3600
+        ALLOWED_LEEWAY = 0.15
+        penalty_addition = 0
+        if c_diff + ALLOWED_LEEWAY < h_diff:
+            penalty_addition = h_diff - c_diff
+        cursor.execute("""UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""", (h_now, penalty_addition, game_id, user_id))
+        conn.commit()
 
 def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
     """Updates a participant's opt-out status for a specific game."""

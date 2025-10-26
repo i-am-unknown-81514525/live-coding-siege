@@ -9,7 +9,7 @@ import os
 from arrow import Arrow
 import time
 import logging
-from schema.siege import ProjectStatus
+from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
@@ -64,6 +64,17 @@ def construct_from_short(shorthand: str) -> str:
 
     (init, user, repo, *_) = shorthand.split(":")[0], *shorthand.split(":")[1].split("/"), None
     return mapping[init].format(user=user, repo=repo or "")
+
+def _calc_base(week: int, hours: float) -> float:
+    if week <= 4:
+        return hours * 2
+    if hours < 10:
+        return float("inf") # discard
+    week_base = 10
+    if week == 5:
+        week_base = 9
+    return 5 + (hours - week_base) * 2
+
 
 @smart_msg_listen("siege.user")
 def get_siege_user_info(ctx: MessageContext):
@@ -340,8 +351,35 @@ def get_leaderboard(ctx: MessageContext):
                     )
                 )
             )
+        case "efficiency":
+            proj_list = get_all_projs()
+            week_proj = [proj for proj in proj_list if proj.status == ProjectStatus.FINISHED and proj.hours > 0 and proj.coin_value > 0]
+            sorted_order = list(sorted(week_proj, key=lambda x: x.coin_value/_calc_base(x.week, x.hours), reverse=True))
+            selected: list[SiegeProject] = []
+            for proj in sorted_order:
+                if len(selected) >= 10:
+                    break
+                if proj.hours < 10:
+                    continue
+                if proj.coin_value/_calc_base(proj.week, proj.hours) > 15:
+                    continue
+                user_id = proj.user.id
+                status = get_user(user_id).status
+                if status == SiegeUserStatus.WORKING:
+                    selected.append(proj)
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours}h,{proj.coin_value}c, {proj.coin_value/_calc_base(proj.week, proj.hours):.2f}x" for index, proj in enumerate(selected, start=1)]
+                    )
+                )
+            ).add_block(
+                blockkit.Section(
+                    "Note for the underlying assumption/filter used for this leaderboard:\n- Any result with >15 multiplier is discarded as it is not possible\n- Only user who have status `working` is consider\n- Project with < 10 hours is discarded\n- Assumption is made that no project have used mercenary, as such information cannot be collected over API"
+                )
+            )
         case _:
-            message = blockkit.Message("Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`")
+            message = blockkit.Message("Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`, `efficiency`")
     
     if ctx.event.message.user in ALLOWED and not force_ephemeral:
         ctx.public_send(**message.build())
