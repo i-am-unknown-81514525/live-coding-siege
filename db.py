@@ -232,6 +232,16 @@ def update_game_status(
         return new_hash
 
 
+def get_slack_user(user_id: str) -> tuple[str, str | None] | None:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute(
+            "SELECT name, avatar_url FROM user WHERE slack_id = ?", (user_id,)
+        ).fetchone()
+        if not row:
+            return None
+        return row["name"], row["avatar_url"]
+
 def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
     """Updates a pending turn to 'IN_PROGRESS' and sets its start time, logging the transaction."""
     with get_db_connection() as conn:
