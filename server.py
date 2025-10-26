@@ -152,6 +152,34 @@ async def get_turn_status(user_id: typing.Annotated[str, Depends(check_jwt)]):
 
     return response
 
+@app.get("/tickets")
+async def get_tickets(user_id: typing.Annotated[str, Depends(check_jwt)]) -> dict[str, int]:
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        raise HTTPException(404, "Cannot find a game that you are actively managing.")
+
+    users = await get_result(db.get_huddle_participants, game_id)
+
+    result: dict[str, int] = {}
+    for user in users:
+        time_v = await get_result(db.update_time, game_id, user)
+        result[user] = await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty)
+    return result
+
+@app.get("/tickets-no-update")
+async def get_tickets_no_update(user_id: typing.Annotated[str, Depends(check_jwt)]) -> dict[str, int]:
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        raise HTTPException(404, "Cannot find a game that you are actively managing.")
+
+    users = await get_result(db.get_huddle_participants, game_id)
+
+    result: dict[str, int] = {}
+    for user in users:
+        time_v = await get_result(db.get_time, game_id, user) # Although they look almost identical, it use `get_time` instead of `update_time`
+        # They are in fact not the same, for future me :) - current me
+        result[user] = await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty)
+    return result
 
 @app.websocket("/client-secret-ws")
 async def client_ws(

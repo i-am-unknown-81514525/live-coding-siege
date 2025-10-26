@@ -436,6 +436,12 @@ class HourStatus:
     h_curr: Final[float]
     h_penalty: Final[float]
 
+def get_time(game_id: int, user_id: str) -> HourStatus:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""SELECT  h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
+        last_h_now, h_start, h_penalty = cursor.fetchone()
+        return HourStatus(h_start, last_h_now, h_penalty)
 
 def update_time(game_id: int, user_id: str) -> HourStatus:
     with get_db_connection() as conn:
