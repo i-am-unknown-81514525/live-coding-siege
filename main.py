@@ -960,10 +960,14 @@ def pick_user(event: MessageEvent, client: WebClient):
         except:
             logging.warning(f"Error failed to update time and get ticket amount", exc_info=True)
 
+    tickets = []
+    for user in eligible_users:
+        tickets += [user]*user_ticket.get(user, 0)
+
     selected_index, duration_seconds = (
-        DeterRnd(randint(0, len(eligible_users) - 1), t).with_seed(seed).retrieve()
+        DeterRnd(randint(0, len(tickets) - 1), t).with_seed(seed).retrieve()
     )
-    target_user_id = eligible_users[selected_index]
+    target_user_id = tickets[selected_index]
 
     duration_minutes = duration_seconds // 60
     remaining_seconds = duration_seconds % 60
@@ -1043,7 +1047,8 @@ def pick_user(event: MessageEvent, client: WebClient):
                 f"Client secret: `{client_secret}`\n"
                 f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
                 f"New Server secret hash: `{_sha3(server_secret)}` \n"
-                f"Eligiable list: {', '.join(f'`{user_id}`' for user_id in eligible_users)}"
+                f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}"
+                f"Selected ticket: #{selected_index} (0-index)"
             )
         )
     ).build()
