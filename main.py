@@ -905,6 +905,12 @@ def get_ticket_count(ctx: MessageContext):
     hour_info = db.update_time(game_id, user)
     tickt_count = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
 
+    coro = controller.connection_manager.send(
+        f"ticket/{game_id}",
+        b"UPDATE"
+    )
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
     ctx.private_send(text=f"You have {tickt_count} tickets. (Start: {hour_info.h_start}h, Current: {hour_info.h_curr}h, Penalty: {hour_info.h_penalty}")
 
 @smart_msg_listen("live.ticket_list")
@@ -927,6 +933,11 @@ def get_ticket_list(ctx: MessageContext):
             ticket_dt[user] = username, db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
         except:
             ticket_dt[user] = username, None
+    coro = controller.connection_manager.send(
+        f"ticket/{game_id}",
+        b"UPDATE"
+    )
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     structured = "Ticket List\n" + "\n".join(f"{username} {ticket_count or "N/A"}" for username, ticket_count in ticket_dt.values())
 
@@ -1012,6 +1023,12 @@ def pick_user(event: MessageEvent, client: WebClient):
             user_ticket[user] = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
         except:
             logging.warning(f"Error failed to update time and get ticket amount", exc_info=True)
+
+    coro = controller.connection_manager.send(
+        f"ticket/{game_id}",
+        b"UPDATE"
+    )
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     tickets = []
     for user in eligible_users:
@@ -1899,6 +1916,11 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
         else:
             full = get_project(projs[0].id)
             db.add_game_participant(game_id, user_id, full.hours, full.id)
+    coro = controller.connection_manager.send(
+        f"ticket/{game_id}",
+        b"UPDATE"
+    )
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)

@@ -220,6 +220,25 @@ async def turn_ws(
     controller.connection_manager.add(conn)
     await conn.handler()
 
+@app.websocket("/ticket-ws")
+async def ticket_ws(
+    websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]
+):
+    # Note this won't actually provide the entire list, Please use /ticket-no-update endpoint - current me
+    await websocket.accept()
+    if user_id is None:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        await websocket.close(
+            code=4004, reason="Cannot find a game that you are actively managing."
+        )
+        return
+    conn = schema.UserConnection(meta=f"ticket/{game_id}", ws=websocket)
+    controller.connection_manager.add(conn)
+    await conn.handler()
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
