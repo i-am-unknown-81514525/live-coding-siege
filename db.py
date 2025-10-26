@@ -3,11 +3,13 @@ import os
 from contextlib import contextmanager
 import json
 from datetime import datetime, timezone
+from typing import Final
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
 from api import get_project, get_user
 from utils import guess_week
+from dataclasses import dataclass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "live_coding.db"
@@ -428,11 +430,18 @@ def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_i
     if proj_id is not None:
         update_time(game_id, user_id)
 
-def update_time(game_id: int, user_id: str):
+@dataclass
+class HourStatus:
+    h_start: Final[float]
+    h_curr: Final[float]
+    h_penalty: Final[float]
+
+
+def update_time(game_id: int, user_id: str) -> HourStatus:
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""SELECT proj_id, h_lastcheck, h_now FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
-        proj_id, last_check_time, last_h_now = cursor.fetchone()
+        cursor.execute("""SELECT proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
+        proj_id, last_check_time, last_h_now, h_start, h_penalty = cursor.fetchone()
         h_now = get_project(proj_id).hours
         last_check_time = arrow.get(last_check_time)
         curr = arrow.now()
@@ -445,6 +454,11 @@ def update_time(game_id: int, user_id: str):
             penalty_addition = h_diff - c_diff
         cursor.execute("""UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""", (h_now, penalty_addition, game_id, user_id))
         conn.commit()
+        return HourStatus(h_start, h_now, h_penalty+penalty_addition)
+
+
+def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
+    return base + max(0, addition*int(hour/h_per_addition))
 
 def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
     """Updates a participant's opt-out status for a specific game."""

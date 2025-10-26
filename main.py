@@ -38,6 +38,7 @@ import jwt
 import api
 from api import get_user, get_project
 from utils import guess_week
+from db import auto_add
 
 import siege_cmd  # cmd import
 
@@ -186,13 +187,7 @@ def init_game(event: MessageEvent, client: WebClient):
     db.add_game_manager(game_id, user_id)
     week_num = guess_week()
     for user_id in db.get_huddle_participants(game_id):
-        user = get_user(user_id)
-        projs = [proj for proj in user.projects if proj.week == week_num]
-        if len(projs) == 0:
-            db.add_game_participant(game_id, user_id, None, None)
-        else:
-            full = get_project(projs[0].id)
-            db.add_game_participant(game_id, user_id, full.hours, full.id)
+        auto_add(game_id, user_id, week_num)
 
     client.chat_postMessage(
         channel=channel_id,
@@ -956,6 +951,14 @@ def pick_user(event: MessageEvent, client: WebClient):
     t = randint(300, 1200)
     if os.getenv("RIG"):
         t = randint(180, 180)
+    
+    user_ticket: dict[str, int] = {}
+    for user in eligible_users:
+        try:
+            hour_info = db.update_time(game_id, user)
+            user_ticket[user] = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
+        except:
+            logging.warning(f"Error failed to update time and get ticket amount", exc_info=True)
 
     selected_index, duration_seconds = (
         DeterRnd(randint(0, len(eligible_users) - 1), t).with_seed(seed).retrieve()
