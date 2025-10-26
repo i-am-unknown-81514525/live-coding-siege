@@ -398,8 +398,8 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
         )
         conn.commit()
 
-def auto_add(game_id: int, user_id: str):
-    week_num = guess_week()
+def auto_add(game_id: int, user_id: str, week: int | None = None):
+    week_num = week or guess_week()
     projs = get_user(user_id).projects
     proj = [proj for proj in projs if proj.week == week_num]
     if proj:
