@@ -70,6 +70,12 @@ def _technical_not_reveal(client_secret: str, server_secret: str) -> Message:
             f"Technical data:\nClient secret: `{client_secret}`\nServer secret hash: `{_sha3(server_secret)}`"
         )
     )
+def _technical_not_reveal_from_msg(message: Message, client_secret: str, server_secret: str) -> Message:
+    return message.add_block(
+        Section(
+            f"Technical data:\nClient secret: `{client_secret}`\nServer secret hash: `{_sha3(server_secret)}`"
+        )
+    )
 
 
 @msg_listen("live.init")
@@ -193,7 +199,7 @@ def init_game(event: MessageEvent, client: WebClient):
         channel=channel_id,
         text=f"✨ A new show has started! (ID: {game_id})",
         thread_ts=thread_ts,
-        **_technical_not_reveal(client_secret, server_secret).build(),
+        **_technical_not_reveal_from_msg(Message().add_block(Section(f"✨ A new show has started! (ID: {game_id})")),client_secret, server_secret).build(),
     )
 
 
@@ -882,6 +888,52 @@ def show_game_info(event: MessageEvent, client: WebClient):
             text="No performance is currently active.",
             thread_ts=thread_ts,
         )
+
+
+@smart_msg_listen("live.ticket")
+@smart_msg_listen("live.tickets")
+def get_ticket_count(ctx: MessageContext):
+    if not ctx.event.message.thread_ts:
+        return ctx.private_send(text="This command must be used within a game show's thread.")
+
+    game_id = db.get_active_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+    if not game_id:
+        return ctx.private_send(text="No active show found in this thread.")
+
+    user = ctx.event.message.user
+    hour_info = db.update_time(game_id, user)
+    tickt_count = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
+
+    ctx.private_send(text=f"You have {tickt_count} tickets. (Start: {hour_info.h_start}h, Current: {hour_info.h_curr}h, Penalty: {hour_info.h_penalty}")
+
+@smart_msg_listen("live.ticket_list")
+def get_ticket_list(ctx: MessageContext):
+    if not ctx.event.message.thread_ts:
+        return ctx.private_send(text="This command must be used within a game show's thread.")
+    game_id = db.get_active_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+    if not game_id:
+        return ctx.private_send(text="No active show found in this thread.")
+
+    ticket_dt: dict[str, tuple[str, int | None]] = {}
+    huddle_participant = db.get_huddle_participants(game_id)
+    usernames = db.get_user_names(huddle_participant)
+    for user in huddle_participant:
+        username = usernames.get(user, f"`{user}`")
+        if username == "UNKNOWN":
+            username = f"`{user}`"
+        try:
+            hour_info = db.update_time(game_id, user)
+            ticket_dt[user] = username, db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
+        except:
+            ticket_dt[user] = username, None
+
+    structured = "Ticket List\n" + "\n".join(f"{username} {ticket_count or "N/A"}" for username, ticket_count in ticket_dt.values())
+
+    if db.is_game_manager(game_id, ctx.event.message.user):
+        ctx.public_send(True, text=structured)
+    else:
+        ctx.private_send(True, text=structured)
+
 
 
 @msg_listen("live.pick")

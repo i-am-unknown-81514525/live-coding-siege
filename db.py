@@ -458,7 +458,7 @@ def update_time(game_id: int, user_id: str) -> HourStatus:
 
 
 def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
-    return base + max(0, addition*int(hour/h_per_addition))
+    return base + max(0, addition*int(round(hour/h_per_addition)))
 
 def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
     """Updates a participant's opt-out status for a specific game."""
