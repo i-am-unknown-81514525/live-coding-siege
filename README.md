@@ -48,6 +48,8 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 
 ### Public command list
 
+### Live coding command
+
 `live.init` - Start a game show \[Only allowlist user or authorised user\]
 
 `live.pick` - Bot pick a user to do a new turn, or show status if started 
@@ -76,9 +78,22 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 
 `live.end` - End the event
 
+`live.ticket` - Get your ticket count
 
-### How does it follow the signal theme
-Websocket, Slack Bot, *Live*Coding
+`live.ticket_list` - Get the ticket list for each person in the huddle
+
+### Siege command
+
+`siege.user <user_id>` - Get info of user
+
+`siege.proj <proj_id>` - Get info of the projects
+
+`siege.global` - Global gambling info
+
+`siege.leaderboard` - Leaderboard, everyone love this, aside from gambling
+
+### How does it follow the fall theme
+If you stop coding you fall (the decrease of chance you get selected -> less coin and falling off the leaderboard)
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
