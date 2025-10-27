@@ -168,7 +168,8 @@ async def get_tickets(user_id: typing.Annotated[str, Depends(check_jwt)]) -> dic
             continue
         try:
             time_v = await get_result(db.update_time, game_id, user)
-            result[user] = (user_info[0], await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty), (user_info[1] or "empty.png"))
+            if time_v:
+                result[user] = (user_info[0], await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty), (user_info[1] or "empty.png"))
         except:
             ...
     return result
@@ -188,7 +189,8 @@ async def get_tickets_no_update(user_id: typing.Annotated[str, Depends(check_jwt
             continue
         time_v = await get_result(db.get_time, game_id, user) # Although they look almost identical, it use `get_time` instead of `update_time`
         # They are in fact not the same, for future me :) - current me
-        result[user] = (user_info[0], await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty), (user_info[1] or "empty.png"))
+        if time_v:
+            result[user] = (user_info[0], await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty), (user_info[1] or "empty.png"))
     return result
 
 @app.websocket("/client-secret-ws")

@@ -447,18 +447,24 @@ class HourStatus:
     h_curr: Final[float]
     h_penalty: Final[float]
 
-def get_time(game_id: int, user_id: str) -> HourStatus:
+def get_time(game_id: int, user_id: str) -> HourStatus | None:
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""SELECT  h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
-        last_h_now, h_start, h_penalty = cursor.fetchone()
+        result = cursor.fetchone()
+        if not result:
+            return None
+        last_h_now, h_start, h_penalty = result
         return HourStatus(h_start, last_h_now, h_penalty)
 
-def update_time(game_id: int, user_id: str) -> HourStatus:
+def update_time(game_id: int, user_id: str) -> HourStatus | None:
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""SELECT proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
-        proj_id, last_check_time, last_h_now, h_start, h_penalty = cursor.fetchone()
+        result = cursor.fetchone()
+        if not result:
+            return None
+        proj_id, last_check_time, last_h_now, h_start, h_penalty = result
         h_now = get_project(proj_id).hours
         last_check_time = arrow.get(last_check_time)
         curr = arrow.now()
