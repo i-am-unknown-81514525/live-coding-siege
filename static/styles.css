@@ -118,3 +118,44 @@ button:hover, .button_alike:hover {
     0%, 100% { color: #e94b3c; }
     50% { color: white; }
 }
+
+#leaderboard {
+    list-style: none;
+    padding-left: 0;
+    position: relative;
+}
+
+.leaderboard-item {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    box-sizing: border-box;
+    transition: top 0.5s ease-in-out;
+    border-bottom: 1px solid #ccc;
+    align-items: center;
+}
+
+.leaderboard-rank {
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.leaderboard-name {
+    flex-grow: 1;
+    margin-left: 10px;
+    text-align: left;
+}
+
+.leaderboard-score {
+    font-weight: bold;
+}
+
+.leaderboard-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-left: 10px;
+    object-fit: cover;
+}

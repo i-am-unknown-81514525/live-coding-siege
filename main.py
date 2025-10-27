@@ -902,6 +902,7 @@ def get_ticket_count(ctx: MessageContext):
         return ctx.private_send(text="No active show found in this thread.")
 
     user = ctx.event.message.user
+    db.auto_add(game_id, user)
     hour_info = db.update_time(game_id, user)
     tickt_count = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
 
@@ -925,6 +926,7 @@ def get_ticket_list(ctx: MessageContext):
     huddle_participant = db.get_huddle_participants(game_id)
     usernames = db.get_user_names(huddle_participant)
     for user in huddle_participant:
+        db.auto_add(game_id, user)
         username = usernames.get(user, f"`{user}`")
         if username == "UNKNOWN":
             username = f"`{user}`"
@@ -1019,6 +1021,7 @@ def pick_user(event: MessageEvent, client: WebClient):
     user_ticket: dict[str, int] = {}
     for user in eligible_users:
         try:
+            db.auto_add(game_id, user)
             hour_info = db.update_time(game_id, user)
             user_ticket[user] = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
         except:
@@ -1118,7 +1121,7 @@ def pick_user(event: MessageEvent, client: WebClient):
                 f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
                 f"New Server secret hash: `{_sha3(server_secret)}` \n"
                 f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}\n"
-                f"Selected ticket: \\#{selected_index} (0-index)"
+                f"Selected ticket: `{selected_index}` (0-index)"
             )
         )
     ).build()

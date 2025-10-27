@@ -430,6 +430,7 @@ def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_i
             """
             INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(game_id, user_id) DO UPDATE SET
+                h_curr = CASE WHEN excluded.h_curr IS NULL AND game_participant.h_curr IS NOT NULL THEN game_participant.h_curr ELSE excluded.h_curr END,
                 h_start = CASE WHEN excluded.h_start IS NOT NULL AND game_participant.h_start IS NULL THEN excluded.h_start ELSE game_participant.h_start END,
                 proj_id = CASE WHEN excluded.proj_id IS NOT NULL AND game_participant.proj_id IS NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
                 h_lastcheck = CURRENT_TIMESTAMP

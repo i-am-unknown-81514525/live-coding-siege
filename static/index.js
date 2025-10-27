@@ -29,6 +29,7 @@ async function login() {
             updateClientSecret(await get_client_secret());
             updateTurnStatus(turnStatus);
             connect_ws();
+            fetchLeaderboard().then(updateLeaderboard);
         }
     }
 }
@@ -208,7 +209,91 @@ function connect_ws() {
         updateTurnStatus({ status: "Websocket disconnected. Retrying..." });
         scheduleLoginAttempt();
     };
+
+    const ticket_ws_url = `${wsProtocol}//${wsHost}/ticket-ws`;
+    const ticket_ws = new WebSocket(ticket_ws_url);
+
+    ticket_ws.onmessage = async function(event) {
+        let rawData = event.data;
+        if (rawData instanceof Blob) {
+            rawData = await rawData.text();
+        }
+        console.log("Received notification for ticket update");
+        fetchLeaderboard().then(updateLeaderboard);
+    };
+
+    ticket_ws.onclose = async function() {
+        console.log("Ticket websocket disconnected. Retrying...");
+        scheduleLoginAttempt();
+    };
 }
+
+async function fetchLeaderboard() {
+    try {
+        const resp = await fetch("/tickets-no-update");
+        if (!resp.ok) {
+            console.error("Failed to fetch leaderboard data:", resp.statusText);
+            return [];
+        }
+        const data = await resp.json();
+        const leaderboardData = Object.entries(data).map(([userId, [name, tickets, avatar]]) => ({
+            id: userId,
+            name: name,
+            tickets: tickets,
+            avatar: avatar
+        }));
+
+        leaderboardData.forEach(user => {
+            user.hours = (user.tickets - 10) / 10.0;
+        });
+
+        return leaderboardData.sort((a, b) => b.hours - a.hours);
+
+    } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+        return [];
+    }
+}
+
+function updateLeaderboard(leaderboardData) {
+    const leaderboardList = document.getElementById('leaderboard');
+    if (!leaderboardList) return;
+
+    const itemHeight = 50;
+    const existingItems = new Set();
+
+    leaderboardData.slice(0, 10).forEach((user, index) => {
+        const userId = user.id;
+        const elementId = `leaderboard-item-${userId}`;
+        existingItems.add(elementId);
+
+        let userElement = document.getElementById(elementId);
+        if (!userElement) {
+            userElement = document.createElement('li');
+            userElement.id = elementId;
+            userElement.className = 'leaderboard-item';
+            leaderboardList.appendChild(userElement);
+        }
+
+        userElement.innerHTML = `
+            <span class="leaderboard-rank">${index + 1}</span>
+            <img class="leaderboard-avatar" src="${user.avatar || 'empty.png'}" alt="${user.name}" />
+            <span class="leaderboard-name">${user.name}</span>
+            <span class="leaderboard-score">${user.hours.toFixed(1)}h</span>
+        `;
+
+        userElement.style.top = `${index * itemHeight}px`;
+    });
+
+    Array.from(leaderboardList.children).forEach(child => {
+        if (!existingItems.has(child.id)) {
+            child.remove();
+        }
+    });
+
+    leaderboardList.style.height = `${Math.min(leaderboardData.length, 10) * itemHeight}px`;
+}
+
 
 window.save_jwt = save_jwt;
 window.updateClientSecret = updateClientSecret;
