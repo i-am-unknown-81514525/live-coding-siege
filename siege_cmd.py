@@ -111,8 +111,8 @@ def get_siege_user_info(ctx: MessageContext):
             f"*Display Name:* {user.display_name}\n"
             f"*Coins:* {user.coins}\n"
             f"*Rank:* {user.rank.readable}\n"
-            f"*Status:* {user.status.readable}\n"
-            f"*Common identity:* {id_string}" if id_string else ""
+            f"*Status:* {user.status.readable}\n" +
+            (f"*Common identity:* {id_string}" if id_string else "")
         )
     )
 
@@ -161,8 +161,8 @@ def get_siege_proj_info(ctx: MessageContext):
                 f"*Description:* {proj.description}\n"
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
-                f"*Hours:* {proj.hours} hours\n"
-                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>" if proj.repo_url else ""
+                f"*Hours:* {proj.hours} hours\n" + 
+                (f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>" if proj.repo_url else "")
             )
         )
         .add_block(blockkit.Actions(buttons))
@@ -186,7 +186,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     proj = get_project(proj_id)
 
     channel = event.container.channel_id
-    thread_ts = event.message.thread_ts if event.message else None
+    thread_ts = (event.message.thread_ts if event.message else None) or event.container.thread_ts
 
     kv = [
         ("Project Page", proj.project_url),
@@ -209,8 +209,8 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
                 f"*Description:* {proj.description}\n"
                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
                 f"*Is Updated:* {proj.is_update}\n"
-                f"*Hours:* {proj.hours} hours\n"
-                f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>" if proj.repo_url else ""
+                f"*Hours:* {proj.hours} hours\n" + 
+                (f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>" if proj.repo_url else "")
             )
         )
         .add_block(blockkit.Actions(buttons))
@@ -238,7 +238,7 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
     user = get_user(user_id)
 
     channel = event.container.channel_id
-    thread_ts = event.message.thread_ts if event.message else None
+    thread_ts = (event.message.thread_ts if event.message else None) or event.container.thread_ts
 
     proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
     known_repo = [get_project(proj.id).repo_url for proj in user.projects]
@@ -263,8 +263,8 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
             f"*Display Name:* {user.display_name}\n"
             f"*Coins:* {user.coins}\n"
             f"*Rank:* {user.rank.readable}\n"
-            f"*Status:* {user.status.readable}\n"
-            f"*Common identity:* {id_string}" if id_string else ""
+            f"*Status:* {user.status.readable}\n" +
+            (f"*Common identity:* {id_string}" if id_string else "")
         )
     )
 
@@ -386,5 +386,30 @@ def get_leaderboard(ctx: MessageContext):
     else:
         ctx.private_send(**message.build())
 
+@smart_msg_listen("siege.stats")
+def get_stats(ctx: MessageContext):
+    all_projs = get_all_projs()
+    week_proj : dict[int, list[SiegeProject]] = {}
+    for proj in all_projs:
+        week = proj.week
+        week_proj[week] = week_proj.get(week, [])
+        week_proj[week].append(proj)
+    total_msg = []
+    for week in sorted(week_proj):
+        projs = week_proj[week]
+        week_msg = [f"W{week} - {len(projs)} with {sum(map(lambda x: x.hours, projs))}h"]
+        status_dict: dict[str, tuple[int, float]] = {}
+        for proj in projs:
+            status = proj.status
+            status_dict[status] = status_dict.get(status, (0, 0))
+            status_dict[status] = (status_dict[status][0] + 1, status_dict[status][1] + proj.hours)
+        for status in sorted(status_dict):
+            week_msg.append(f"- {status} - {status_dict[status][0]} project with {status_dict[status][1]}h")
+        total_msg.append("\n".join(week_msg))
+    if ctx.event.message.user in ALLOWED:
+        ctx.public_send(True, text="\n".join(total_msg))
+    else:
+        ctx.private_send(False, text="\n".join(total_msg))
+    
 
 

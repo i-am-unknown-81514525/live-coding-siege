@@ -27,6 +27,7 @@ class Container:
     type: str
     channel_id: SlackID
     message_ts: str  # Keep as string for API compatibility
+    thread_ts: str | None
 
     @classmethod
     def parse(cls, data: dict) -> Self:
@@ -34,6 +35,7 @@ class Container:
             type=data["type"],
             channel_id=data["channel_id"],
             message_ts=data["message_ts"],
+            thread_ts=data.get("thread_ts", None)
         )
 
 

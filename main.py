@@ -70,7 +70,11 @@ def _technical_not_reveal(client_secret: str, server_secret: str) -> Message:
             f"Technical data:\nClient secret: `{client_secret}`\nServer secret hash: `{_sha3(server_secret)}`"
         )
     )
-def _technical_not_reveal_from_msg(message: Message, client_secret: str, server_secret: str) -> Message:
+
+
+def _technical_not_reveal_from_msg(
+    message: Message, client_secret: str, server_secret: str
+) -> Message:
     return message.add_block(
         Section(
             f"Technical data:\nClient secret: `{client_secret}`\nServer secret hash: `{_sha3(server_secret)}`"
@@ -199,7 +203,11 @@ def init_game(event: MessageEvent, client: WebClient):
         channel=channel_id,
         text=f"✨ A new show has started! (ID: {game_id})",
         thread_ts=thread_ts,
-        **_technical_not_reveal_from_msg(Message().add_block(Section(f"✨ A new show has started! (ID: {game_id})")),client_secret, server_secret).build(),
+        **_technical_not_reveal_from_msg(
+            Message().add_block(Section(f"✨ A new show has started! (ID: {game_id})")),
+            client_secret,
+            server_secret,
+        ).build(),
     )
 
 
@@ -569,19 +577,18 @@ def optout(ctx: MessageContext):
 @action_listen("confirm_optout")
 def confirm_optout(event: BlockActionEvent, client: WebClient):
     user_id = event.user.id
-    thread_ts = event.message and event.message.thread_ts
+    channel_id = event.container.channel_id
+    thread_ts = (event.message and event.message.thread_ts) or event.container.thread_ts
 
     if thread_ts is None:
         logging.warning("Cannot find thread.")
         return
 
-    channel_id = db.get_channel_id_by_thread(thread_ts)
-
     if channel_id is None:
         logging.warning("Cannot find channel")
         return
 
-    game_id = db.get_active_game_by_only_thread(thread_ts)
+    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if game_id is None:
         client.chat_postEphemeral(
             user=user_id,
@@ -655,6 +662,7 @@ def add_manager(event: MessageEvent, client: WebClient):
             text="You cannot overrule the magician.",
             thread_ts=thread_ts,
         )
+        return
 
     user_id = event.message.text.removeprefix("live.add_mgr").strip()
 
@@ -893,11 +901,16 @@ def show_game_info(event: MessageEvent, client: WebClient):
 @smart_msg_listen("live.ticket")
 @smart_msg_listen("live.tickets")
 def get_ticket_count(ctx: MessageContext):
-    if ctx.no_prefix: return 
+    if ctx.no_prefix:
+        return
     if not ctx.event.message.thread_ts:
-        return ctx.private_send(text="This command must be used within a game show's thread.")
+        return ctx.private_send(
+            text="This command must be used within a game show's thread."
+        )
 
-    game_id = db.get_active_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+    game_id = db.get_active_game_by_thread(
+        ctx.event.channel, ctx.event.message.thread_ts
+    )
     if not game_id:
         return ctx.private_send(text="No active show found in this thread.")
 
@@ -906,23 +919,29 @@ def get_ticket_count(ctx: MessageContext):
     hour_info = db.update_time(game_id, user)
     ticket_count = 0
     if hour_info:
-        ticket_count = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
+        ticket_count = db.get_ticket(
+            10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty
+        )
     else:
         hour_info = HourStatus(0, 0, 0)
 
-    coro = controller.connection_manager.send(
-        f"ticket/{game_id}",
-        b"UPDATE"
-    )
+    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
-    ctx.private_send(text=f"You have {ticket_count} tickets. (Start: {hour_info.h_start}h, Current: {hour_info.h_curr}h, Penalty: {hour_info.h_penalty}")
+    ctx.private_send(
+        text=f"You have {ticket_count} tickets. (Start: {hour_info.h_start}h, Current: {hour_info.h_curr}h, Penalty: {hour_info.h_penalty}"
+    )
+
 
 @smart_msg_listen("live.ticket_list")
 def get_ticket_list(ctx: MessageContext):
     if not ctx.event.message.thread_ts:
-        return ctx.private_send(text="This command must be used within a game show's thread.")
-    game_id = db.get_active_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+        return ctx.private_send(
+            text="This command must be used within a game show's thread."
+        )
+    game_id = db.get_active_game_by_thread(
+        ctx.event.channel, ctx.event.message.thread_ts
+    )
     if not game_id:
         return ctx.private_send(text="No active show found in this thread.")
 
@@ -937,22 +956,31 @@ def get_ticket_list(ctx: MessageContext):
         try:
             hour_info = db.update_time(game_id, user)
             if hour_info:
-                ticket_dt[user] = username, db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
+                ticket_dt[user] = (
+                    username,
+                    db.get_ticket(
+                        10,
+                        1,
+                        0.1,
+                        hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
+                    ),
+                )
+            else:
+                ticket_dt[user] = username, None
         except:
             ticket_dt[user] = username, None
-    coro = controller.connection_manager.send(
-        f"ticket/{game_id}",
-        b"UPDATE"
-    )
+    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
-    structured = "Ticket List\n" + "\n".join(f"{username} {ticket_count or "N/A"}" for username, ticket_count in ticket_dt.values())
+    structured = "Ticket List\n" + "\n".join(
+        f"{username} {ticket_count or 'N/A'}"
+        for username, ticket_count in ticket_dt.values()
+    )
 
     if db.is_game_manager(game_id, ctx.event.message.user):
         ctx.public_send(True, text=structured)
     else:
         ctx.private_send(True, text=structured)
-
 
 
 @msg_listen("live.pick")
@@ -1022,26 +1050,30 @@ def pick_user(event: MessageEvent, client: WebClient):
     t = randint(300, 1200)
     if os.getenv("RIG"):
         t = randint(180, 180)
-    
+
     user_ticket: dict[str, int] = {}
     for user in eligible_users:
         try:
             db.auto_add(game_id, user)
             hour_info = db.update_time(game_id, user)
             if hour_info:
-                user_ticket[user] = db.get_ticket(10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty)
+                user_ticket[user] = db.get_ticket(
+                    10,
+                    1,
+                    0.1,
+                    hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
+                )
         except:
-            logging.warning(f"Error failed to update time and get ticket amount", exc_info=True)
+            logging.warning(
+                f"Error failed to update time and get ticket amount", exc_info=True
+            )
 
-    coro = controller.connection_manager.send(
-        f"ticket/{game_id}",
-        b"UPDATE"
-    )
+    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     tickets = []
     for user in eligible_users:
-        tickets += [user]*user_ticket.get(user, 0)
+        tickets += [user] * user_ticket.get(user, 0)
 
     selected_index, duration_seconds = (
         DeterRnd(randint(0, len(tickets) - 1), t).with_seed(seed).retrieve()
@@ -1925,10 +1957,7 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
         else:
             full = get_project(projs[0].id)
             db.add_game_participant(game_id, user_id, full.hours, full.id)
-    coro = controller.connection_manager.send(
-        f"ticket/{game_id}",
-        b"UPDATE"
-    )
+    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
 
