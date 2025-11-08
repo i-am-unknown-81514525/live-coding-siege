@@ -190,6 +190,26 @@ class SlashContext(Context):
     @property
     def webhook_client(self) -> WebhookClient:
         return WebhookClient(self.event.response_url)
+    
+    @property
+    def author_id(self) -> str:
+        return self.event.user_id
+    
+    @property
+    def message_ts(self) -> str | None:
+        return None # Wait wtf
+
+    @property
+    def thread_ts(self) -> str | None:
+        return None
+    
+    @property
+    def channel_id(self) -> str:
+        return self.event.channel_id
+    
+    @property
+    def no_prefix(self) -> str:
+        return self.event.text
         
     @overload
     def private_send(   # pyright: ignore[reportInconsistentOverload]
