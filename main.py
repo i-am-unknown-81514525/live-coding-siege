@@ -18,6 +18,7 @@ import json
 from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
+from schema.slash_cmd import CommandEvent
 from reg import (
     message_dispatch,
     msg_listen,
@@ -26,7 +27,11 @@ from reg import (
     huddle_dispatch,
     huddle_listen,
     smart_msg_listen,
+    slash_listen,
+    slash_dispatch,
     MessageContext,
+    SlashContext,
+    Context
 )
 from crypto.core import DeterRnd, Handler, _sha3, randint
 import db
@@ -2085,6 +2090,11 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     elif req.type == "interactive" and req.payload.get("type") == "block_actions":
         event = BlockActionEvent.parse(req.payload)
         action_dispatch(event, client.web_client)
+    
+    elif req.type == "slash_commands":
+        event = CommandEvent.parse(req.payload)
+        ctx = SlashContext(event, client.web_client)
+        slash_dispatch(ctx)
 
 
 if __name__ == "__main__":
