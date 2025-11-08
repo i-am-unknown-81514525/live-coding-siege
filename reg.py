@@ -182,6 +182,73 @@ class MessageContext(Context):
             channel=self.event.channel, thread_ts=thread_ts, *args, **kwargs
         )
 
+@dataclass
+class SlashContext(Context):
+    event: CommandEvent
+    client: WebClient
+
+    @property
+    def webhook_client(self) -> WebhookClient:
+        return WebhookClient(self.event.response_url)
+        
+    @overload
+    def private_send(   # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
+
+    def private_send[**P](
+        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+    ):
+        thread_ts = self.thread_ts
+        if thread_ts is None and always_thread and self.message_ts:
+            thread_ts = self.message_ts
+        return self.webhook_client.send(
+            response_type="ephemeral",
+            *args,
+            **kwargs,
+        )
+
+    @overload
+    def public_send(   # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
+
+    def public_send[**P](
+        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+    ):
+        thread_ts = self.thread_ts
+        if thread_ts is None and always_thread and self.message_ts:
+            thread_ts = self.message_ts
+        return self.webhook_client.send(
+            response_type="in_channel", *args, **kwargs
+        )
+
 
 
 def smart_msg_listen[A: Callable](
