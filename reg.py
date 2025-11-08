@@ -6,9 +6,13 @@ from slack_sdk.web import WebClient
 import threading
 from typing import Any, Sequence, overload
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 from slack_sdk.models.blocks import Block
 from slack_sdk.models.attachments import Attachment
+from slack_sdk.webhook.client import WebhookClient
+
+from schema.slash_cmd import CommandEvent
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
 ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
@@ -41,11 +45,82 @@ def msg_listen[A: Callable](
     return decorator
 
 
+class Context(ABC):
+    @property
+    def no_prefix(self) -> str: ...
+
+    @property
+    def author_id(self) -> str: ...
+    @property
+    def message_ts(self) -> str | None: ...
+    @property
+    def thread_ts(self) -> str | None: ...
+    @property
+    def channel_id(self) -> str: ...
+
+
+    def private_send(   # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
+
+    def public_send(   # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
+
 @dataclass
-class MessageContext:
+class MessageContext(Context):
     event: MessageEvent
     client: WebClient
-    no_prefix: str | None = None
+
+    @property
+    def author_id(self) -> str:
+        return self.event.message.user
+    
+    @property
+    def message_ts(self) -> str | None:
+        return self.event.message.ts
+
+    @property
+    def thread_ts(self) -> str | None:
+        return self.event.message.thread_ts
+    
+    @property
+    def channel_id(self) -> str:
+        return self.event.channel
+    
+    @property
+    def no_prefix(self) -> str:
+        r = self.event.message.text.split(" ", 1)
+        if len(r) > 1:
+            return r[1]
+        return ""
+
 
     @overload
     def private_send(   # pyright: ignore[reportInconsistentOverload]
@@ -108,6 +183,7 @@ class MessageContext:
         )
 
 
+
 def smart_msg_listen[A: Callable](
     message_key: str, is_subtype: bool = False
 ) -> Callable[[A], A]:
@@ -126,11 +202,8 @@ def smart_msg_listen[A: Callable](
         handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
 
         def inner(event: MessageEvent, client: WebClient):
-            no_prefix = None
-            if event.message.text.startswith(message_key):
-                no_prefix = event.message.text.removeprefix(message_key).strip()
             # TODO: Handle <http://siege.lb|siege.lb>
-            ctx = MessageContext(event, client, no_prefix=no_prefix)
+            ctx = MessageContext(event, client)
             return func(ctx)
 
         handlers.append(inner)
