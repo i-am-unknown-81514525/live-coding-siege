@@ -143,12 +143,12 @@ class MessageContext(Context):
     def private_send[**P](
         self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
     ):
-        thread_ts = self.event.message.thread_ts
-        if thread_ts is None and always_thread and self.event.message.ts:
-            thread_ts = self.event.message.ts
+        thread_ts = self.thread_ts
+        if thread_ts is None and always_thread and self.message_ts:
+            thread_ts = self.message_ts
         return self.client.chat_postEphemeral(
-            user=self.event.message.user,
-            channel=self.event.channel,
+            user=self.author_id,
+            channel=self.channel_id,
             thread_ts=thread_ts,
             *args,
             **kwargs,
@@ -175,11 +175,11 @@ class MessageContext(Context):
     def public_send[**P](
         self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
     ):
-        thread_ts = self.event.message.thread_ts
-        if thread_ts is None and always_thread and self.event.message.ts:
-            thread_ts = self.event.message.ts
+        thread_ts = self.thread_ts
+        if thread_ts is None and always_thread and self.message_ts:
+            thread_ts = self.message_ts
         return self.client.chat_postMessage(
-            channel=self.event.channel, thread_ts=thread_ts, *args, **kwargs
+            channel=self.channel_id, thread_ts=thread_ts, *args, **kwargs
         )
 
 @dataclass
