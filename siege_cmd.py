@@ -1,4 +1,4 @@
-from reg import action_listen, action_prefix_listen, smart_msg_listen, MessageContext
+from reg import action_listen, action_prefix_listen, smart_msg_listen, MessageContext, Context, slash_listen
 import blockkit
 from api import get_project, get_user, get_all_projs, get_coin_leaderboard
 import re
@@ -76,12 +76,13 @@ def _calc_base(week: int, hours: float) -> float:
     return 5 + (hours - week_base) * 2
 
 
+@slash_listen("/user")
 @smart_msg_listen("siege.user")
-def get_siege_user_info(ctx: MessageContext):
-    if ctx.event.message.user in BANNED:
+def get_siege_user_info(ctx: Context):
+    if ctx.author_id in BANNED:
         return
-    user_id = ctx.event.message.user
-    left_over = ctx.event.message.text.removeprefix("siege.user").strip()
+    user_id = ctx.author_id
+    left_over = ctx.no_prefix
     if left_over:
         if re.match(r"<@(U\w+)>", left_over):
             user_id = left_over.removeprefix("<@").removesuffix(">")
@@ -119,7 +120,7 @@ def get_siege_user_info(ctx: MessageContext):
     if buttons:
         message.add_block(blockkit.Actions(buttons))
 
-    if ctx.event.message.user in ALLOWED:
+    if ctx.author_id in ALLOWED:
         ctx.public_send(**message.build())
     else:
         ctx.private_send(**message.build())

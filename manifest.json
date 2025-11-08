@@ -14,8 +14,8 @@
         },
         "slash_commands": [
             {
-                "command": "/panel",
-                "description": "Show control panel for running live coding event",
+                "command": "/user",
+                "description": "View siege user detail",
                 "should_escape": false
             }
         ]
