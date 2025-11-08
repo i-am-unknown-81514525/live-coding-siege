@@ -47,6 +47,8 @@ def msg_listen[A: Callable](
 
 
 class Context(ABC):
+    client: WebClient
+
     @property
     def no_prefix(self) -> str: ...
 
