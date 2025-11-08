@@ -210,7 +210,7 @@ class SlashContext(Context):
     
     @property
     def no_prefix(self) -> str:
-        return self.event.text
+        return self.event.text.strip()
         
     @overload
     def private_send(   # pyright: ignore[reportInconsistentOverload]
