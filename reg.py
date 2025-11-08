@@ -20,6 +20,7 @@ ACTION_PREFIX_HANDLERS: dict[
     str, list[Callable[[BlockActionEvent, WebClient], Any]]
 ] = {}
 HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, WebClient], Any]]] = {}
+SLASH_HANDLER: dict[str, list[Callable[["SlashContext"], Any]]] = {}
 
 
 def msg_listen[A: Callable](
@@ -423,3 +424,13 @@ def huddle_dispatch(event: HuddleChange, client: WebClient) -> None:
         for handler in handlers:
             thread = threading.Thread(target=handler, args=(event, client))
             thread.start()
+
+
+def slash_dispatch(event: SlashContext) -> None:
+    """
+    Dispatches the slash command event to handlers based on the command name.
+    Each handler is run in a separate thread.
+    """
+    for handler in SLASH_HANDLER.get(event.event.command, []):
+        thread = threading.Thread(target=handler, args=(event,))
+        thread.start()
