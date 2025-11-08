@@ -126,11 +126,13 @@ def get_siege_user_info(ctx: Context):
         ctx.private_send(**message.build())
 
 
+@slash_listen("/proj")
+@slash_listen("/project")
 @smart_msg_listen("siege.proj")
-def get_siege_proj_info(ctx: MessageContext):
-    if ctx.event.message.user in BANNED:
+def get_siege_proj_info(ctx: Context):
+    if ctx.author_id in BANNED:
         return
-    left_over = ctx.event.message.text.removeprefix("siege.proj").strip()
+    left_over = ctx.no_prefix.strip()
     if left_over:
         try:
             proj_id = int(left_over)
@@ -169,7 +171,7 @@ def get_siege_proj_info(ctx: MessageContext):
         .add_block(blockkit.Actions(buttons))
     )
 
-    if ctx.event.message.user in ALLOWED:
+    if ctx.author_id in ALLOWED:
         ctx.public_send(**message.build(), unfurl_links=False)
     else:
         ctx.private_send(**message.build(), unfurl_links=False)

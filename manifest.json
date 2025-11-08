@@ -17,6 +17,16 @@
                 "command": "/user",
                 "description": "View siege user detail",
                 "should_escape": true
+            },
+            {
+                "command": "/proj",
+                "description": "View siege project",
+                "should_escape": true
+            },
+            {
+                "command": "/project",
+                "description": "View siege project",
+                "should_escape": true
             }
         ]
     },
