@@ -28,7 +28,7 @@ class CommandEvent(Event):
             channel_id=data["channel_id"],
             channel_name=data["channel_name"],
             user_id=data["user_id"],
-            user_name=data["username"],
+            user_name=data["user_name"],
             command=data["command"],
             text=data["text"],
             api_app_id=data["api_app_id"],
