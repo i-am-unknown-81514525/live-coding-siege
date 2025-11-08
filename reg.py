@@ -363,6 +363,24 @@ def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
 
     return decorator
 
+def slash_listen[A: Callable](slash_cmd: str) -> Callable[[A], A]:
+    """
+    A decorator factory that registers a function to handle a slash command.
+    
+    Args:
+        slash_cmd: The slash command to listen for.
+    """
+    if not isinstance(slash_cmd, str):
+        raise TypeError("The slash_cmd for @slash_listen must be a string.")
+    
+    def decorator[F: Callable[[SlashContext], Any]](func: F) -> F:
+        if SLASH_HANDLER.get(slash_cmd) is None:
+            SLASH_HANDLER[slash_cmd] = []
+        SLASH_HANDLER[slash_cmd].append(func)
+        return func
+
+    return decorator
+
 
 def message_dispatch(event: MessageEvent, client: WebClient) -> None:
     """
