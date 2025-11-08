@@ -84,8 +84,8 @@ def get_siege_user_info(ctx: Context):
     user_id = ctx.author_id
     left_over = ctx.no_prefix
     if left_over:
-        if re.match(r"<@(U\w+)>", left_over):
-            user_id = left_over.removeprefix("<@").removesuffix(">")
+        if re.match(r"<@(U\w+)(\|([0-9a-zA-Z\-_\.]+)?)>", left_over):
+            user_id = left_over.removeprefix("<@").removesuffix(">").split("|")[0] # https://stackoverflow.com/questions/29392407/how-to-get-a-slack-user-by-email-using-users-info-api/51469610#51469610
         else:
             user_id = left_over
 

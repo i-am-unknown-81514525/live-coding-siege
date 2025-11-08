@@ -16,7 +16,7 @@
             {
                 "command": "/user",
                 "description": "View siege user detail",
-                "should_escape": false
+                "should_escape": true
             }
         ]
     },
