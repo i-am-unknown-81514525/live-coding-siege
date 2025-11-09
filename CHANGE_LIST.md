@@ -15,3 +15,4 @@
 [ ] - More informational update on long command
 [x] - Fix skip not display properly on summary
 [ ] - Refactor code to seperate live module out and keep only the command handling in main
+[x] - Refactor code
