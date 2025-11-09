@@ -19,4 +19,4 @@
 [x] - Rewrite command in the newer text command framework
 [x] - `live.reset` for project changes
 [x] - Request logging to siege API
-[ ] - Fix /tickets endpoint being slow
+[x] - Fix /tickets endpoint being slow

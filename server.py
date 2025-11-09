@@ -219,12 +219,13 @@ async def get_tickets(
 
     result: dict[str, tuple[str, int, str]] = {}
     for user in users:
-        db.auto_add(game_id, user)
+        await get_result(db.auto_add_no_siege, game_id, user)
+    for user, hour_info in (await get_result(db.update_time_multi, game_id, users)).items():
         user_info = await get_result(db.get_slack_user, user)
         if not user_info:
             continue
         try:
-            time_v = await get_result(db.update_time, game_id, user)
+            time_v = hour_info
             if time_v:
                 result[user] = (
                     user_info[0],
