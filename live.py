@@ -862,7 +862,7 @@ def show_members(ctx: MessageContext):
     user_names_map = db.get_user_names(user_ids)
     user_name_list = [user_names_map.get(uid, uid) for uid in user_ids]
 
-    message = f"All member in the huddle: \n{'\n'.join(map(lambda x: f'- {x}', user_name_list))}"
+    message = f"All member in the huddle: \n{'\n'.join(map(lambda x: f'- {x}', user_name_list))}\nIf you are in the huddle but not on this list, please re-join so the bot can register it. \nIf it still don't work, ping i-am-unknown-81514525 to investigate"
 
     if db.is_game_manager(game_id, ctx.event.message.user):
         ctx.public_send(True, text=message)
@@ -891,7 +891,7 @@ def show_eligiable(ctx: MessageContext):
     user_names_map = db.get_user_names(user_ids)
     user_name_list = [user_names_map.get(uid, uid) for uid in user_ids]
 
-    message = f"All eligiable participants for this round: \n{'\n'.join(map(lambda x: f'- {x}', user_name_list))}"
+    message = f"All eligiable participants for this round: \n{'\n'.join(map(lambda x: f'- {x}', user_name_list))}\nIf you are in `live.members` and not here, you might have\n- You participate the last turn(including skip/failed)\n- You have consecutive skipped twice"
 
     if db.is_game_manager(game_id, ctx.event.message.user):
         ctx.public_send(True, text=message)
