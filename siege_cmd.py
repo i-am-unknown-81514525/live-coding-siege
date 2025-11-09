@@ -280,8 +280,8 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
 
 @slash_listen("/global")
 @smart_msg_listen("siege.global")
-def get_total_proj_time(ctx: MessageContext):
-    if ctx.event.message.user in BANNED:
+def get_total_proj_time(ctx: Context):
+    if ctx.author_id in BANNED:
         return
 
     p1 = time.perf_counter()
@@ -300,16 +300,18 @@ def get_total_proj_time(ctx: MessageContext):
     ctx.public_send(text=f"Total global tracked time this week: {total_time} hours.")
 
 
+@slash_listen("/lb")
+@slash_listen("/leaderboard")
 @smart_msg_listen("siege.leaderboard")
 @smart_msg_listen("siege.lb")
-def get_leaderboard(ctx: MessageContext):
+def get_leaderboard(ctx: Context):
     opt = ctx.no_prefix or ""
     message: blockkit.Message | None = None
     force_ephemeral: bool = False
     match opt:
         case "coin":
             leaderboard = get_coin_leaderboard()
-            user_id = ctx.event.message.user
+            user_id = ctx.author_id
             idx = [(i, user) for i, user in enumerate(leaderboard) if user.slack_id == user_id]
             message = blockkit.Message().add_block(
                 blockkit.Section(
@@ -385,7 +387,7 @@ def get_leaderboard(ctx: MessageContext):
         case _:
             message = blockkit.Message("Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`, `efficiency`")
     
-    if ctx.event.message.user in ALLOWED and not force_ephemeral:
+    if ctx.author_id in ALLOWED and not force_ephemeral:
         ctx.public_send(**message.build())
     else:
         ctx.private_send(**message.build())

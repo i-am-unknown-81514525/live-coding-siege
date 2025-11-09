@@ -31,6 +31,14 @@
             {
                 "command": "/global",
                 "description": "View the total hours everyone have completed this week"
+            },
+            {
+                "command": "/lb",
+                "description": "View the total hours everyone have completed this week"
+            },
+            {
+                "command": "/leaderboard",
+                "description": "View the total hours everyone have completed this week"
             }
         ]
     },
