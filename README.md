@@ -31,7 +31,7 @@ Other
 JWT_SECRET= # for web dashboard
 AUTHORIZED_USERS= # comma seperated list of user id that have special ability
 ALLOWLIST= # comman seperated list of user id that can start a show
-SIEGE_MODE=1 # Soon - it would query the user on siege API. Only user with a existing project would be selected, checked on each pick. The hour coded since game started/join is also tracked, checked on each pick for ticket count.
+SIEGE_MODE=1 # It would query the user on siege API on live coding. Only user with a existing project would be selected, checked on each pick. The hour coded since game started/join is also tracked, checked on each pick for ticket count.
 ```
 
 Optionally
@@ -92,8 +92,10 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 
 `siege.leaderboard` - Leaderboard, everyone love this, aside from gambling
 
-### How does it follow the fall theme
-If you stop coding you fall (the decrease of chance you get selected -> less coin and falling off the leaderboard)
+For the full list, use `siege.help` or `/help`
+
+### How does it follow the grid theme
+Go to the web dashboard and click the leaderboard text (Yes, it is a button), and it will show a grid of ticket, which see more fun and more represetable for the ticket system
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
