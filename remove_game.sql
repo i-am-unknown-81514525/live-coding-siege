@@ -1,0 +1,1 @@
+UPDATE game SET huddle_id = "rm12", channel_id = "rm12", thread_ts = "rm12", end_time = start_time, status = "COMPLETED" WHERE id = 12;
