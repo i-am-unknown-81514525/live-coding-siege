@@ -81,31 +81,33 @@ def _technical_not_reveal_from_msg(
     )
 
 
-@msg_listen("live.init")
+@smart_msg_listen("live.init")
 @description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
-def init_game(event: MessageEvent, client: WebClient):
-    user_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts or event.message.ts
+def init_game(ctx: Context):
+    user_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts or ctx.message_ts
 
     if (
         user_id not in AUTHORIZED_USERS
         and user_id not in ALLOWLIST
         and not os.getenv("RIG")
     ):
-        client.chat_postMessage(
-            channel=user_id, text="You cannot overrule the magician."
+        ctx.public_send(
+            text="You cannot overrule the magician."
         )
+        return
+    
+    if not thread_ts:
+        ctx.public_send(text="Unable to locate the thread")
         return
 
     existing_game_id = db.get_any_game_by_thread(channel_id, thread_ts)
     if existing_game_id:
         game_is_active = db.get_active_game_by_thread(channel_id, thread_ts) is not None
         if game_is_active:
-            client.chat_postMessage(
-                channel=channel_id,
-                text="A magic show is already active in this thread.",
-                thread_ts=thread_ts,
+            ctx.public_send(
+                text="A magic show is already active in this thread."
             )
             return
 
@@ -125,10 +127,7 @@ def init_game(event: MessageEvent, client: WebClient):
                     can_restart = True
 
             if can_restart:
-                client.chat_postEphemeral(
-                    user=user_id,
-                    channel=channel_id,
-                    thread_ts=thread_ts,
+                ctx.private_send(
                     **Message(
                         "A previous show in this thread has ended. But currently you can restart the game."
                     )
@@ -142,44 +141,32 @@ def init_game(event: MessageEvent, client: WebClient):
                     )
                     .build(),
                 )
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=thread_ts,
+                ctx.public_send(
                     text="It is currently valid to restart the existing game, awaiting manager action.",
                 )
                 return
             else:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=thread_ts,
+                ctx.public_send(
                     text="A magic show has already concluded in this thread and the condition required to restart the show is not sastified.",
                 )
                 return
 
-        client.chat_postMessage(
-            channel=channel_id,
+        ctx.public_send(
             text="A magic show has already concluded in this thread.",
-            thread_ts=thread_ts,
         )
         return
 
     user_huddles = db.get_user_huddles(user_id)
     if not user_huddles:
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You don't seem to be in an active show.",
-            thread_ts=thread_ts,
         )
         return
     huddle_id = user_huddles[0]  # Assume the user is in one huddle at a time
 
     if db.get_active_game_in_huddle(huddle_id):
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="A magic show is already active in this huddle.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -202,10 +189,8 @@ def init_game(event: MessageEvent, client: WebClient):
     else:
         auto_add_no_siege(game_id, user_id)
 
-    client.chat_postMessage(
-        channel=channel_id,
+    ctx.public_send(
         text=f"✨ A new show has started! (ID: {game_id})",
-        thread_ts=thread_ts,
         **_technical_not_reveal_from_msg(
             Message().add_block(Section(f"✨ A new show has started! (ID: {game_id})")),
             client_secret,
