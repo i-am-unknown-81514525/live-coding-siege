@@ -39,6 +39,10 @@
             {
                 "command": "/leaderboard",
                 "description": "<lb_option>? | View the total hours everyone have completed this week"
+            },
+            {
+                "command": "/stats",
+                "description": "| View stats for each week"
             }
         ]
     },
