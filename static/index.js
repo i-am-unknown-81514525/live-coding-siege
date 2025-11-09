@@ -112,7 +112,7 @@ function updateTurnStatus(turnData) {
 
     const userName = turnData.user_name || turnData.user_id || 'N/A';
 
-    if (turnData.status === "COMPLETED") {
+    if (turnData.status === "IN_PROGRESS" && turnData.endTime && (turnData.endTime - (Date.now() / 1000)) < 0) {
         document.getElementById("approval_panel").classList.remove("hidden")
     } else {
         document.getElementById("approval_panel").classList.add("hidden")

@@ -6,7 +6,7 @@
 [x] - Update to longer leaderboard
 [x] - Fix stats rounding
 [x] - SIEGE_MODE env variable
-[ ] - Accept/Reject etc. interaction on UI
+[x] - Accept/Reject etc. interaction on UI
 [ ] - Refresh ticket list on UI
 [x] - Confirm on deny/skip (if previously not added)
 [x] - New section on website for just grid
