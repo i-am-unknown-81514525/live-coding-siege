@@ -472,7 +472,7 @@ def add_game_participant(
             """
             INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(game_id, user_id) DO UPDATE SET
-                h_curr = CASE WHEN excluded.h_curr IS NULL AND game_participant.h_curr IS NOT NULL THEN game_participant.h_curr ELSE excluded.h_curr END,
+                h_curr = CASE WHEN excluded.h_curr IS NOT NULL AND game_participant.h_curr IS NULL THEN excluded.h_curr ELSE game_participant.h_curr END,
                 h_start = CASE WHEN excluded.h_start IS NOT NULL AND game_participant.h_start IS NULL THEN excluded.h_start ELSE game_participant.h_start END,
                 proj_id = CASE WHEN excluded.proj_id IS NOT NULL AND game_participant.proj_id IS NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
                 h_lastcheck = CURRENT_TIMESTAMP
@@ -537,7 +537,7 @@ def update_time_multi(game_id: int, user_ids: list[str]) -> dict[str, HourStatus
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            f"""SELECT user_id, proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ({
+            f"""SELECT user_id, proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id IN ({
                 ",".join(["?" for v in range(len(user_ids))])
                 })""",
             (game_id, *user_ids)
@@ -551,6 +551,7 @@ def update_time_multi(game_id: int, user_ids: list[str]) -> dict[str, HourStatus
                 data[user_id] = (proj_id, arrow.get(last_check_time), last_h_now, h_start, h_penalty)
                 thread = execotor.submit(get_project, proj_id)
                 threads.append((user_id, thread))
+            # logging.info(data)
             for user_id, thread in threads:
                 try:
                     proj_id, last_check_time, last_h_now, h_start, h_penalty = data[user_id]
