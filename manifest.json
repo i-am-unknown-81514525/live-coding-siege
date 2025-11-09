@@ -15,7 +15,7 @@
         "slash_commands": [
             {
                 "command": "/user",
-                "description": "user_mention|<user_id|slack_user_id>? | View siege user detail",
+                "description": "<user_mention|user_id|slack_user_id>? | View siege user detail",
                 "should_escape": true
             },
             {
