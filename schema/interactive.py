@@ -35,7 +35,7 @@ class Container:
             type=data["type"],
             channel_id=data["channel_id"],
             message_ts=data["message_ts"],
-            thread_ts=data.get("thread_ts", None)
+            thread_ts=data.get("thread_ts", None),
         )
 
 

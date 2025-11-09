@@ -360,7 +360,7 @@ def _handle_user_turn_timeout(
                             title="Are you sure you want to fail this performance",
                             text="This would make the performer not gain any coin",
                             confirm="Yes, fail this",
-                            deny="No"
+                            deny="No",
                         )
                     ),
                 ]
@@ -411,7 +411,7 @@ def debug(ctx: MessageContext):
                             title="Are you sure you want to fail this turn?",
                             text="The performer wouldn't get any coin for the turn",
                             confirm="Yes, fail the turn",
-                            deny="No"
+                            deny="No",
                         )
                     ),
                     Button("Skip Turn")
@@ -517,7 +517,7 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                             title="Are you sure you want to fail this performance",
                             text="This will not be mark as failed",
                             confirm="Yes, fail",
-                            deny="No"
+                            deny="No",
                         )
                     ),
                     Button("Force mark as completed")
@@ -553,7 +553,7 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                             title="Are you sure you want to mark as failed?",
                             text="This will make the performer not get any coin",
                             confirm="Yes, mark as fail",
-                            deny="No"
+                            deny="No",
                         )
                     ),
                 ]
@@ -1181,7 +1181,7 @@ def pick_user(event: MessageEvent, client: WebClient):
                             title="Are you sure you want to fail this performance?",
                             text="This wouldn't be mark as skipping",
                             confirm="Yes",
-                            deny="No"
+                            deny="No",
                         )
                     ),
                 ]
@@ -2011,6 +2011,7 @@ def handle_huddle_leave(event: HuddleChange, client: WebClient):
     for huddle_id in huddle_ids:
         db.remove_huddle_participant(huddle_id, user_id)
         print(f"🚪 User {user_name} ({user_id}) left huddle {huddle_id}.")
+
 
 def load_active_timers(client: WebClient):
     print("⏳ Loading active timers from the database...")

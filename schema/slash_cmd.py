@@ -18,7 +18,7 @@ class CommandEvent(Event):
     is_enterprise_install: bool
     response_url: str
     trigger_id: str
-    
+
     @classmethod
     def parse(cls, data: dict) -> Self:
         return cls(
@@ -34,5 +34,5 @@ class CommandEvent(Event):
             api_app_id=data["api_app_id"],
             is_enterprise_install=data["is_enterprise_install"] == "true",
             response_url=data["response_url"],
-            trigger_id=data["trigger_id"]
+            trigger_id=data["trigger_id"],
         )

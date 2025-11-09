@@ -54,19 +54,24 @@ def get_coin_leaderboard() -> list[SiegePartialUser2]:
     return list(map(SiegePartialUser2.parse, data.get("leaderboard", [])))
 
 
-# def get_project_time(project: ProjAlike) -> float: # Useless 
+# def get_project_time(project: ProjAlike) -> float: # Useless
 #     project_id = _as_project(project)
 #     url = f"https://siege.hackclub.com/api/project_hours/{project_id}"  # https://siege.hackclub.com/api/project_hours/1262
 #     response = requests.get(url)
 #     data = response.json()
 #     return data.get("hours", 0.0)
 
+
 def get_project_time_prec(project: ProjAlike) -> float:
     project_id = _as_project(project)
     url = f"https://siege.hackclub.com/armory/{project_id}"
-    response = requests.get(url, cookies={"_siege_session": os.environ["SIEGE_SESSION"]})
+    response = requests.get(
+        url, cookies={"_siege_session": os.environ["SIEGE_SESSION"]}
+    )
     if not response.ok:
-        raise ValueError(f"Armory link return error with status {response.status_code}, proj_id={project_id}")
+        raise ValueError(
+            f"Armory link return error with status {response.status_code}, proj_id={project_id}"
+        )
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     ele = soup.find("div", {"class": "project-week-time"})
     if ele is None:
@@ -74,7 +79,7 @@ def get_project_time_prec(project: ProjAlike) -> float:
     raw_text = ele.get_text().strip().removeprefix("Time spent: ").strip()
     result = re.match(r"(?:(\d*)h)? (?:(\d*)m)?", raw_text)
     if result is None:
-        raise ValueError(f"Cannot find project time infomation, content=\"{raw_text}\"")
+        raise ValueError(f'Cannot find project time infomation, content="{raw_text}"')
     return int(result.group(1)) + int(result.group(2)) / 60
 
 

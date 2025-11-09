@@ -242,6 +242,7 @@ def get_slack_user(user_id: str) -> tuple[str, str | None] | None:
             return None
         return row["name"], row["avatar_url"]
 
+
 def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
     """Updates a pending turn to 'IN_PROGRESS' and sets its start time, logging the transaction."""
     with get_db_connection() as conn:
@@ -410,20 +411,27 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
         )
         conn.commit()
 
+
 def auto_add(game_id: int, user_id: str, week: int | None = None):
     week_num = week or guess_week()
     projs = get_user(user_id).projects
     proj = [proj for proj in projs if proj.week == week_num]
     if proj:
         full_proj = get_project(proj[0].id)
-        add_game_participant(game_id, user_id, h_now=full_proj.hours, proj_id=proj[0].id)
+        add_game_participant(
+            game_id, user_id, h_now=full_proj.hours, proj_id=proj[0].id
+        )
     else:
         add_game_participant(game_id, user_id, h_now=0, proj_id=None)
+
 
 def auto_add_no_siege(game_id, user_id):
     add_game_participant(game_id, user_id, 0, None)
 
-def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_id: int | None):
+
+def add_game_participant(
+    game_id: int, user_id: str, h_now: float | None, proj_id: int | None
+):
     """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
     # TODO: the h_penalty thing, I hope I remember and also don't have to make 2 function for it
     with get_db_connection() as conn:
@@ -443,26 +451,35 @@ def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_i
     if proj_id is not None:
         update_time(game_id, user_id)
 
+
 @dataclass
 class HourStatus:
     h_start: Final[float]
     h_curr: Final[float]
     h_penalty: Final[float]
 
+
 def get_time(game_id: int, user_id: str) -> HourStatus | None:
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""SELECT  h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
+        cursor.execute(
+            """SELECT  h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""",
+            (game_id, user_id),
+        )
         result = cursor.fetchone()
         if not result:
             return None
         last_h_now, h_start, h_penalty = result
         return HourStatus(h_start, last_h_now, h_penalty)
 
+
 def update_time(game_id: int, user_id: str) -> HourStatus | None:
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""SELECT proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""", (game_id, user_id))
+        cursor.execute(
+            """SELECT proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""",
+            (game_id, user_id),
+        )
         result = cursor.fetchone()
         if not result:
             return None
@@ -477,13 +494,17 @@ def update_time(game_id: int, user_id: str) -> HourStatus | None:
         penalty_addition = 0
         if c_diff + ALLOWED_LEEWAY < h_diff:
             penalty_addition = h_diff - c_diff
-        cursor.execute("""UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""", (h_now, penalty_addition, game_id, user_id))
+        cursor.execute(
+            """UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""",
+            (h_now, penalty_addition, game_id, user_id),
+        )
         conn.commit()
-        return HourStatus(h_start, h_now, h_penalty+penalty_addition)
+        return HourStatus(h_start, h_now, h_penalty + penalty_addition)
 
 
 def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
-    return base + max(0, addition*int(round(hour/h_per_addition)))
+    return base + max(0, addition * int(round(hour / h_per_addition)))
+
 
 def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
     """Updates a participant's opt-out status for a specific game."""

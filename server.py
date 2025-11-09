@@ -152,8 +152,11 @@ async def get_turn_status(user_id: typing.Annotated[str, Depends(check_jwt)]):
 
     return response
 
+
 @app.get("/tickets")
-async def get_tickets(user_id: typing.Annotated[str, Depends(check_jwt)]) -> dict[str, tuple[str, int, str]]:
+async def get_tickets(
+    user_id: typing.Annotated[str, Depends(check_jwt)],
+) -> dict[str, tuple[str, int, str]]:
     game_id = await get_result(db.get_game_mgr_active_game, user_id)
     if game_id is None:
         raise HTTPException(404, "Cannot find a game that you are actively managing.")
@@ -169,13 +172,26 @@ async def get_tickets(user_id: typing.Annotated[str, Depends(check_jwt)]) -> dic
         try:
             time_v = await get_result(db.update_time, game_id, user)
             if time_v:
-                result[user] = (user_info[0], await get_result(db.get_ticket, 10, 1, 0.1, time_v.h_curr - time_v.h_start - time_v.h_penalty), (user_info[1] or "empty.png"))
+                result[user] = (
+                    user_info[0],
+                    await get_result(
+                        db.get_ticket,
+                        10,
+                        1,
+                        0.1,
+                        time_v.h_curr - time_v.h_start - time_v.h_penalty,
+                    ),
+                    (user_info[1] or "empty.png"),
+                )
         except:
             ...
     return result
 
+
 @app.get("/tickets-no-update")
-async def get_tickets_no_update(user_id: typing.Annotated[str, Depends(check_jwt)]) -> dict[str, tuple[str, int, str]]:
+async def get_tickets_no_update(
+    user_id: typing.Annotated[str, Depends(check_jwt)],
+) -> dict[str, tuple[str, int, str]]:
     game_id = await get_result(db.get_game_mgr_active_game, user_id)
     if game_id is None:
         raise HTTPException(404, "Cannot find a game that you are actively managing.")
@@ -187,11 +203,26 @@ async def get_tickets_no_update(user_id: typing.Annotated[str, Depends(check_jwt
         user_info = await get_result(db.get_slack_user, user)
         if not user_info:
             continue
-        time_v = await get_result(db.get_time, game_id, user) # Although they look almost identical, it use `get_time` instead of `update_time`
+        time_v = await get_result(
+            db.get_time, game_id, user
+        )  # Although they look almost identical, it use `get_time` instead of `update_time`
         # They are in fact not the same, for future me :) - current me
         if time_v:
-            result[user] = (user_info[0], await get_result(db.get_ticket, 10, 1, 0.1, (time_v.h_curr or 0) - (time_v.h_start or 0) - (time_v.h_penalty or 0)), (user_info[1] or "empty.png"))
+            result[user] = (
+                user_info[0],
+                await get_result(
+                    db.get_ticket,
+                    10,
+                    1,
+                    0.1,
+                    (time_v.h_curr or 0)
+                    - (time_v.h_start or 0)
+                    - (time_v.h_penalty or 0),
+                ),
+                (user_info[1] or "empty.png"),
+            )
     return result
+
 
 @app.websocket("/client-secret-ws")
 async def client_ws(
@@ -232,6 +263,7 @@ async def turn_ws(
     controller.connection_manager.add(conn)
     await conn.handler()
 
+
 @app.websocket("/ticket-ws")
 async def ticket_ws(
     websocket: WebSocket, user_id: typing.Annotated[str | None, Depends(check_jwt_ws)]
@@ -251,6 +283,7 @@ async def ticket_ws(
     conn = schema.UserConnection(meta=f"ticket/{game_id}", ws=websocket)
     controller.connection_manager.add(conn)
     await conn.handler()
+
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 

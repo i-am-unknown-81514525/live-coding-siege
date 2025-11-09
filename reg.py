@@ -61,8 +61,7 @@ class Context(ABC):
     @property
     def channel_id(self) -> str: ...
 
-
-    def private_send(   # pyright: ignore[reportInconsistentOverload]
+    def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
         *,
@@ -79,7 +78,7 @@ class Context(ABC):
         **kwargs,
     ) -> Any: ...
 
-    def public_send(   # pyright: ignore[reportInconsistentOverload]
+    def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
         *,
@@ -95,6 +94,7 @@ class Context(ABC):
         parse: str | None = None,
         **kwargs,
     ) -> Any: ...
+
 
 @dataclass
 class MessageContext(Context):
@@ -104,7 +104,7 @@ class MessageContext(Context):
     @property
     def author_id(self) -> str:
         return self.event.message.user
-    
+
     @property
     def message_ts(self) -> str | None:
         return self.event.message.ts
@@ -112,11 +112,11 @@ class MessageContext(Context):
     @property
     def thread_ts(self) -> str | None:
         return self.event.message.thread_ts
-    
+
     @property
     def channel_id(self) -> str:
         return self.event.channel
-    
+
     @property
     def no_prefix(self) -> str:
         r = self.event.message.text.split(" ", 1)
@@ -124,9 +124,8 @@ class MessageContext(Context):
             return r[1]
         return ""
 
-
     @overload
-    def private_send(   # pyright: ignore[reportInconsistentOverload]
+    def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
         *,
@@ -158,7 +157,7 @@ class MessageContext(Context):
         )
 
     @overload
-    def public_send(   # pyright: ignore[reportInconsistentOverload]
+    def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
         *,
@@ -185,6 +184,7 @@ class MessageContext(Context):
             channel=self.channel_id, thread_ts=thread_ts, *args, **kwargs
         )
 
+
 @dataclass
 class SlashContext(Context):
     event: CommandEvent
@@ -193,29 +193,29 @@ class SlashContext(Context):
     @property
     def webhook_client(self) -> WebhookClient:
         return WebhookClient(self.event.response_url)
-    
+
     @property
     def author_id(self) -> str:
         return self.event.user_id
-    
+
     @property
     def message_ts(self) -> str | None:
-        return None # Wait wtf
+        return None  # Wait wtf
 
     @property
     def thread_ts(self) -> str | None:
         return None
-    
+
     @property
     def channel_id(self) -> str:
         return self.event.channel_id
-    
+
     @property
     def no_prefix(self) -> str:
         return self.event.text.strip()
-        
+
     @overload
-    def private_send(   # pyright: ignore[reportInconsistentOverload]
+    def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
         *,
@@ -245,7 +245,7 @@ class SlashContext(Context):
         )
 
     @overload
-    def public_send(   # pyright: ignore[reportInconsistentOverload]
+    def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
         *,
@@ -268,10 +268,7 @@ class SlashContext(Context):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
-        return self.webhook_client.send(
-            response_type="in_channel", *args, **kwargs
-        )
-
+        return self.webhook_client.send(response_type="in_channel", *args, **kwargs)
 
 
 def smart_msg_listen[A: Callable](
@@ -365,16 +362,17 @@ def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
 
     return decorator
 
+
 def slash_listen[A: Callable](slash_cmd: str) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a slash command.
-    
+
     Args:
         slash_cmd: The slash command to listen for.
     """
     if not isinstance(slash_cmd, str):
         raise TypeError("The slash_cmd for @slash_listen must be a string.")
-    
+
     def decorator[F: Callable[[SlashContext], Any]](func: F) -> F:
         if SLASH_HANDLER.get(slash_cmd) is None:
             SLASH_HANDLER[slash_cmd] = []
@@ -408,7 +406,7 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
             ):
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()
-            
+
             # TODO: Handle <http://siege.lb|siege.lb>
 
 

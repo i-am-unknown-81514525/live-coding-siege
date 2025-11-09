@@ -10,7 +10,13 @@ from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
 import db
-from reg import SlashContext, action_dispatch, huddle_dispatch, message_dispatch, slash_dispatch
+from reg import (
+    SlashContext,
+    action_dispatch,
+    huddle_dispatch,
+    message_dispatch,
+    slash_dispatch,
+)
 from schema.base import Recv
 from schema.huddle import HuddleChange
 from schema.interactive import BlockActionEvent
@@ -47,7 +53,7 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     elif req.type == "interactive" and req.payload.get("type") == "block_actions":
         event = BlockActionEvent.parse(req.payload)
         action_dispatch(event, client.web_client)
-    
+
     elif req.type == "slash_commands":
         event = CommandEvent.parse(req.payload)
         ctx = SlashContext(event, client.web_client)
