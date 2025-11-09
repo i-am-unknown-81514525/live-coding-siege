@@ -21,6 +21,7 @@ ACTION_PREFIX_HANDLERS: dict[
 ] = {}
 HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, WebClient], Any]]] = {}
 SLASH_HANDLER: dict[str, list[Callable[["SlashContext"], Any]]] = {}
+DESCRIPTION: dict[str, str] = {}
 
 
 def msg_listen[A: Callable](
@@ -342,6 +343,18 @@ def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]
 
     return decorator
 
+def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
+    """
+    Mark description for the command
+
+    Args:
+        cmd: Command
+        description: The description for the command
+    """
+    DESCRIPTION[cmd] = description
+    def decorator[F: Callable](func: F) -> F:
+        return func
+    return decorator
 
 def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
     """
