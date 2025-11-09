@@ -1276,38 +1276,29 @@ def export_game_history(ctx: MessageContext):
     ctx.public_send(text=history_text)
 
 
-@msg_listen("live.rnd")
+@smart_msg_listen("live.rnd")
 @description("live.rnd", "Change the server secret")
-def refresh_server_secret(event: MessageEvent, client: WebClient):
-    manager_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts or event.message.ts
+def refresh_server_secret(ctx: Context):
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts or ctx.message_ts
 
     if not thread_ts:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot be doing this outside the performance, get back here.",
-            thread_ts=thread_ts,
         )
         return
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="There are no active magic performance, do you want to start one with `live.init`?",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1348,7 +1339,7 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
         )
     )
 
-    client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message.build())
+    ctx.public_send(**message.build())
 
 
 @smart_msg_listen("live.end")
