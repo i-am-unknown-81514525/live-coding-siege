@@ -206,7 +206,7 @@ def handle_restart_game(event: BlockActionEvent, client: WebClient):
     channel_id = event.container.channel_id
     thread_ts = (
         event.message and event.message.thread_ts
-    ) or event.container.message_ts
+    ) or event.container.thread_ts
 
     if event.actions[0].value is None:
         logging.warning("Missing game_id in restart_game button")
