@@ -29,7 +29,9 @@ async function login() {
             updateClientSecret(await get_client_secret());
             updateTurnStatus(turnStatus);
             connect_ws();
-            fetchLeaderboard().then(updateLeaderboard);
+            let result = await fetchLeaderboard();
+            updateLeaderboard(result);
+            updateGrid(result);
         }
     }
 }
@@ -155,7 +157,7 @@ function scheduleLoginAttempt() {
         return;
     }
     console.log("No active game found. Checking again in 5 seconds...");
-    let reconnectTimer = setTimeout(async () => {
+    reconnectTimer = setTimeout(async () => {
         await login();
     }, 5000);
 }
@@ -244,11 +246,12 @@ function append_grid_ticket(name, avatar_url, ticket_id) {
     avatar_inner.src = avatar_url;
     avatar_inner.alt = `@${name} slack profile picture`;
 
-    const tooltip = document.createComment("span");
+    const tooltip = document.createElement("span");
     tooltip.classList.add("grid-hover-tooltip");
     tooltip.textContent = `@${name} | Ticket ID: #${ticket_id}`
 
     avatar_outer.appendChild(avatar_inner);
+    avatar_outer.appendChild(tooltip);
     grid.appendChild(avatar_outer);
 }
 
@@ -321,9 +324,10 @@ function updateLeaderboard(leaderboardData) {
 function updateGrid(gridData) {
     gridData = gridData.sort((a, b) => a.id.localeCompare(b.id));
     let ticket_id = 0;
+    reset_grid();
     gridData.forEach((user) => {
         for (let i = 0; i < user.tickets; i++) {
-            append_grid_ticket(user.name, user.avatar_url, ticket_id);
+            append_grid_ticket(user.name, user.avatar, ticket_id);
             ticket_id++;
         }
     })

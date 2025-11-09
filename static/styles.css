@@ -162,7 +162,7 @@ button:hover, .button_alike:hover {
 
 .grid_ticket {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+    grid-template-columns: repeat(auto-fit, 40px);
     gap: 20px;
 }
 
@@ -175,9 +175,10 @@ button:hover, .button_alike:hover {
     width: 32px;
     height: 32px;
     margin: 4px;
-    overflow: hidden;
+    /*overflow: hidden;*/
     cursor: pointer;
     border-radius: 50%;
+    position: relative;
 }
 
 .grid-avatar img {
@@ -185,6 +186,7 @@ button:hover, .button_alike:hover {
     height: 100%;
     object-fit: cover;
     transition: transform 0.4s ease, filter 0.4s ease;
+    border-radius: 50%;
 }
 
 .grid-avatar:hover img {

@@ -905,9 +905,9 @@ def show_game_info(ctx: Context):
         ctx.private_send(text="No performance is currently active.")
 
 
-@smart_msg_listen("live.ticket")
+# @smart_msg_listen("live.ticket")
 @smart_msg_listen("live.tickets")
-@description("live.ticket", "View your ticket count for the game")
+@description("live.tickets", "View your ticket count for the game")
 def get_ticket_count(ctx: MessageContext):
     if ctx.no_prefix:
         return
