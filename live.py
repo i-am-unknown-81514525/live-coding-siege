@@ -1015,38 +1015,29 @@ def get_ticket_list(ctx: MessageContext):
         ctx.private_send(True, text=structured)
 
 
-@msg_listen("live.pick")
+@smart_msg_listen("live.pick")
 @description("live.pick", "Pick a user to start a turn, or switch state for the corresponding state of the game (Game manager only)")
-def pick_user(event: MessageEvent, client: WebClient):
-    manager_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts or event.message.ts
+def pick_user(ctx: Context):
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts or ctx.message_ts
 
     if not thread_ts:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="This command must be used within a game's thread.",
-            thread_ts=thread_ts,
         )
         return
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Cannot pick user: No active game found in this thread.",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1054,17 +1045,13 @@ def pick_user(event: MessageEvent, client: WebClient):
 
         active_turn_message = _build_active_turn_message(game_id, is_public=False)
         if active_turn_message:
-            client.chat_postMessage(
-                channel=channel_id, thread_ts=thread_ts, **active_turn_message.build()
-            )
+            ctx.public_send(**active_turn_message.build())
             return
 
         eligible_users = db.get_eligible_participants(game_id)
         if not eligible_users:
-            client.chat_postMessage(
-                channel=channel_id,
+            ctx.public_send(
                 text="Magician don't like any of you so he don't want to start a performance.",
-                thread_ts=thread_ts,
             )
             return
 
@@ -1072,10 +1059,8 @@ def pick_user(event: MessageEvent, client: WebClient):
 
         game_secrets = db.get_latest_secrets(game_id)
         if not game_secrets:
-            client.chat_postMessage(
-                channel=channel_id,
+            ctx.public_send(
                 text="Cannot pick user: Game secrets could not be retrieved.",
-                thread_ts=thread_ts,
             )
             return
         client_secret, server_secret = game_secrets
@@ -1150,7 +1135,7 @@ def pick_user(event: MessageEvent, client: WebClient):
         Timer(
             timeout_seconds,
             _handle_manager_action_timeout,
-            args=(game_id, target_user_id, channel_id, thread_ts, client),
+            args=(game_id, target_user_id, channel_id, thread_ts, ctx.client),
         ).start()
         new_server_secret = secrets.token_hex(16)
         db.update_server_secret(game_id, new_server_secret)
@@ -1206,7 +1191,7 @@ def pick_user(event: MessageEvent, client: WebClient):
             )
         ).build()
 
-        client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
+        ctx.public_send(**message_payload)
 
 
 @smart_msg_listen("live.summary")
