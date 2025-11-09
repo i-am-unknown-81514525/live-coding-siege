@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Awaitable
 import os, logging, secrets, time
-from threading import Timer
+from threading import Timer, Lock
 from datetime import datetime, timezone
 from typing import Any
 
@@ -39,6 +39,15 @@ def int_handler(bits: int) -> Handler[int]:
 AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
 ALLOWLIST = os.environ.get("ALLOWLIST", "").split(",")
 SIEGE_MODE = os.environ.get("SIEGE_MODE", "1") == "1"
+GLOBAL_LOC_RETRIVAL_LOCK = Lock()
+GAME_LOCK: dict[int, Lock] = {}
+
+def get_game_lock(game_id: int) -> Lock:
+    with GLOBAL_LOC_RETRIVAL_LOCK:
+        if game_id in GAME_LOCK:
+            return GAME_LOCK[game_id]
+        GAME_LOCK[game_id] = Lock()
+        return GAME_LOCK[game_id]
 
 
 @msg_listen("live.test1")
@@ -1053,166 +1062,168 @@ def pick_user(event: MessageEvent, client: WebClient):
         )
         return
 
-    active_turn_message = _build_active_turn_message(game_id, is_public=False)
-    if active_turn_message:
-        client.chat_postMessage(
-            channel=channel_id, thread_ts=thread_ts, **active_turn_message.build()
-        )
-        return
+    with get_game_lock(game_id):
 
-    eligible_users = db.get_eligible_participants(game_id)
-    if not eligible_users:
-        client.chat_postMessage(
-            channel=channel_id,
-            text="Magician don't like any of you so he don't want to start a performance.",
-            thread_ts=thread_ts,
-        )
-        return
-
-    eligible_users = list(sorted(eligible_users))
-
-    game_secrets = db.get_latest_secrets(game_id)
-    if not game_secrets:
-        client.chat_postMessage(
-            channel=channel_id,
-            text="Cannot pick user: Game secrets could not be retrieved.",
-            thread_ts=thread_ts,
-        )
-        return
-    client_secret, server_secret = game_secrets
-
-    seed = f"{client_secret}{server_secret}"
-
-    t = randint(300, 1200)
-    if os.getenv("RIG"):
-        t = randint(180, 180)
-
-    user_ticket: dict[str, int] = {}
-    for user in eligible_users:
-        if SIEGE_MODE:
-            try:
-                db.auto_add(game_id, user)
-                hour_info = db.update_time(game_id, user)
-                if hour_info:
-                    user_ticket[user] = db.get_ticket(
-                        10,
-                        1,
-                        0.1,
-                        hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
-                    )
-            except:
-                logging.warning(
-                    f"Error failed to update time and get ticket amount", exc_info=True
-                )
-        else:
-            db.auto_add_no_siege(game_id, user)
-            user_ticket[user] = 10
-
-    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
-    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
-
-    tickets = []
-    for user in eligible_users:
-        tickets += [user] * user_ticket.get(user, 0)
-
-    selected_index, duration_seconds = (
-        DeterRnd(randint(0, len(tickets) - 1), t).with_seed(seed).retrieve()
-    )
-    target_user_id = tickets[selected_index]
-
-    duration_minutes = duration_seconds // 60
-    remaining_seconds = duration_seconds % 60
-
-    duration_text_parts = []
-    if duration_minutes > 0:
-        duration_text_parts.append(
-            f"{duration_minutes} minute{'s' if duration_minutes > 1 else ''}"
-        )
-    if remaining_seconds > 0:
-        duration_text_parts.append(
-            f"{remaining_seconds} second{'s' if remaining_seconds > 1 else ''}"
-        )
-    duration_text = " and ".join(duration_text_parts)
-
-    db.add_user_selection_transaction(game_id, target_user_id, duration_seconds)
-
-    user_names_map = db.get_user_names([target_user_id])
-    user_name = user_names_map.get(target_user_id, target_user_id)
-
-    coro = controller.connection_manager.send(
-        f"turn/{game_id}",
-        json.dumps(
-            {
-                "type": "turn_update",
-                "status": "PENDING",
-                "user_id": target_user_id,
-                "user_name": user_name,
-            }
-        ).encode(),
-    )
-    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
-
-    timeout_seconds = 120
-    Timer(
-        timeout_seconds,
-        _handle_manager_action_timeout,
-        args=(game_id, target_user_id, channel_id, thread_ts, client),
-    ).start()
-    new_server_secret = secrets.token_hex(16)
-    db.update_server_secret(game_id, new_server_secret)
-
-    message_payload = (
-        Message(
-            text=f"👉 <@{target_user_id}> has been selected for the next performance by the magician!"
-        )
-        .add_block(
-            Section(
-                f"👉 <@{target_user_id}> has been selected for the next performance for *{duration_text}* by the magician!"
+        active_turn_message = _build_active_turn_message(game_id, is_public=False)
+        if active_turn_message:
+            client.chat_postMessage(
+                channel=channel_id, thread_ts=thread_ts, **active_turn_message.build()
             )
-        )
-        .add_block(
-            blockkit.Actions(
-                [
-                    Button("Start Turn").action_id("start_turn"),
-                    Button("Skip Turn")
-                    .action_id("skip_turn")
-                    .confirm(
-                        blockkit.Confirm(
-                            title="Are you sure you want to skip this performance?",
-                            text="This will make the magician don't like you.",
-                            confirm="Yes, skip",
-                            deny="No",
-                        ),
-                    ),
-                    Button("Safe skip (Mark Failed)")
-                    .action_id("manager_mark_failed")
-                    .value(target_user_id)
-                    .style("danger")
-                    .confirm(
-                        blockkit.Confirm(
-                            title="Are you sure you want to fail this performance?",
-                            text="This wouldn't be mark as skipping",
-                            confirm="Yes",
-                            deny="No",
+            return
+
+        eligible_users = db.get_eligible_participants(game_id)
+        if not eligible_users:
+            client.chat_postMessage(
+                channel=channel_id,
+                text="Magician don't like any of you so he don't want to start a performance.",
+                thread_ts=thread_ts,
+            )
+            return
+
+        eligible_users = list(sorted(eligible_users))
+
+        game_secrets = db.get_latest_secrets(game_id)
+        if not game_secrets:
+            client.chat_postMessage(
+                channel=channel_id,
+                text="Cannot pick user: Game secrets could not be retrieved.",
+                thread_ts=thread_ts,
+            )
+            return
+        client_secret, server_secret = game_secrets
+
+        seed = f"{client_secret}{server_secret}"
+
+        t = randint(300, 1200)
+        if os.getenv("RIG"):
+            t = randint(180, 180)
+
+        user_ticket: dict[str, int] = {}
+        for user in eligible_users:
+            if SIEGE_MODE:
+                try:
+                    db.auto_add(game_id, user)
+                    hour_info = db.update_time(game_id, user)
+                    if hour_info:
+                        user_ticket[user] = db.get_ticket(
+                            10,
+                            1,
+                            0.1,
+                            hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
                         )
-                    ),
-                ]
-            )
-        )
-        .add_block(blockkit.Divider())
-        .add_block(
-            blockkit.Section(
-                "Technical Data: \n"
-                f"Client secret: `{client_secret}`\n"
-                f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
-                f"New Server secret hash: `{_sha3(server_secret)}` \n"
-                f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}\n"
-                f"Selected ticket: `{selected_index}` (0-index)"
-            )
-        )
-    ).build()
+                except:
+                    logging.warning(
+                        f"Error failed to update time and get ticket amount", exc_info=True
+                    )
+            else:
+                db.auto_add_no_siege(game_id, user)
+                user_ticket[user] = 10
 
-    client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
+        coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
+        asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
+        tickets = []
+        for user in eligible_users:
+            tickets += [user] * user_ticket.get(user, 0)
+
+        selected_index, duration_seconds = (
+            DeterRnd(randint(0, len(tickets) - 1), t).with_seed(seed).retrieve()
+        )
+        target_user_id = tickets[selected_index]
+
+        duration_minutes = duration_seconds // 60
+        remaining_seconds = duration_seconds % 60
+
+        duration_text_parts = []
+        if duration_minutes > 0:
+            duration_text_parts.append(
+                f"{duration_minutes} minute{'s' if duration_minutes > 1 else ''}"
+            )
+        if remaining_seconds > 0:
+            duration_text_parts.append(
+                f"{remaining_seconds} second{'s' if remaining_seconds > 1 else ''}"
+            )
+        duration_text = " and ".join(duration_text_parts)
+
+        db.add_user_selection_transaction(game_id, target_user_id, duration_seconds)
+
+        user_names_map = db.get_user_names([target_user_id])
+        user_name = user_names_map.get(target_user_id, target_user_id)
+
+        coro = controller.connection_manager.send(
+            f"turn/{game_id}",
+            json.dumps(
+                {
+                    "type": "turn_update",
+                    "status": "PENDING",
+                    "user_id": target_user_id,
+                    "user_name": user_name,
+                }
+            ).encode(),
+        )
+        asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
+        timeout_seconds = 120
+        Timer(
+            timeout_seconds,
+            _handle_manager_action_timeout,
+            args=(game_id, target_user_id, channel_id, thread_ts, client),
+        ).start()
+        new_server_secret = secrets.token_hex(16)
+        db.update_server_secret(game_id, new_server_secret)
+
+        message_payload = (
+            Message(
+                text=f"👉 <@{target_user_id}> has been selected for the next performance by the magician!"
+            )
+            .add_block(
+                Section(
+                    f"👉 <@{target_user_id}> has been selected for the next performance for *{duration_text}* by the magician!"
+                )
+            )
+            .add_block(
+                blockkit.Actions(
+                    [
+                        Button("Start Turn").action_id("start_turn"),
+                        Button("Skip Turn")
+                        .action_id("skip_turn")
+                        .confirm(
+                            blockkit.Confirm(
+                                title="Are you sure you want to skip this performance?",
+                                text="This will make the magician don't like you.",
+                                confirm="Yes, skip",
+                                deny="No",
+                            ),
+                        ),
+                        Button("Safe skip (Mark Failed)")
+                        .action_id("manager_mark_failed")
+                        .value(target_user_id)
+                        .style("danger")
+                        .confirm(
+                            blockkit.Confirm(
+                                title="Are you sure you want to fail this performance?",
+                                text="This wouldn't be mark as skipping",
+                                confirm="Yes",
+                                deny="No",
+                            )
+                        ),
+                    ]
+                )
+            )
+            .add_block(blockkit.Divider())
+            .add_block(
+                blockkit.Section(
+                    "Technical Data: \n"
+                    f"Client secret: `{client_secret}`\n"
+                    f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
+                    f"New Server secret hash: `{_sha3(server_secret)}` \n"
+                    f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}\n"
+                    f"Selected ticket: `{selected_index}` (0-index)"
+                )
+            )
+        ).build()
+
+        client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
 
 
 @smart_msg_listen("live.summary")

@@ -11,8 +11,10 @@
 [x] - Confirm on deny/skip (if previously not added)
 [ ] - New section on website for just grid
 [ ] - Multi-thread the request to reduce live.pick and live.ticket_list
-[ ] - Locking `live.pick` on game
+[x] - Locking `live.pick` on game
 [ ] - More informational update on long command
 [x] - Fix skip not display properly on summary
 [ ] - Refactor code to seperate live module out and keep only the command handling in main
 [x] - Refactor code
+[ ] - AI in help command because I am bored?
+[ ] - Rewrite command in the newer text command framework
