@@ -881,36 +881,28 @@ def show_eligiable(ctx: MessageContext):
         ctx.private_send(text=message)
 
 
-@msg_listen("live.turn")
-@msg_listen("live.info")
+@smart_msg_listen("live.turn")
 @description("live.turn", "View turn information")
-def show_game_info(event: MessageEvent, client: WebClient):
-    user_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts or event.message.ts
+def show_game_info(ctx: Context):
+    user_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts or ctx.message_ts
+
+    if not thread_ts:
+        return ctx.private_send(text="Unable to locate the thread")
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="No active show found in this thread.",
-            thread_ts=thread_ts,
         )
         return
 
     message = _build_active_turn_message(game_id, is_public=False)
     if message:
-        client.chat_postEphemeral(
-            user=user_id, channel=channel_id, thread_ts=thread_ts, **message.build()
-        )
+        ctx.private_send(**message.build())
     else:
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
-            text="No performance is currently active.",
-            thread_ts=thread_ts,
-        )
+        ctx.private_send(text="No performance is currently active.")
 
 
 @smart_msg_listen("live.ticket")
