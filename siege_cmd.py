@@ -299,6 +299,7 @@ def get_total_proj_time(ctx: Context):
     logging.info(f"Request time: {p2-p1}s, Sorting time: {p3-p2}s")
     ctx.public_send(text=f"Total global tracked time this week: {total_time} hours.")
 
+LEADERBOARD_AMOUNT = 20
 
 @slash_listen("/lb")
 @slash_listen("/leaderboard")
@@ -316,9 +317,9 @@ def get_leaderboard(ctx: Context):
             message = blockkit.Message().add_block(
                 blockkit.Section(
                     "\n".join(
-                        [f"*{index}*: {user.slack_mention} - {user.coins} coins" for index, user in enumerate(leaderboard[:10], start=1)] + ([
+                        [f"*{index}*: {user.slack_mention} - {user.coins} coins" for index, user in enumerate(leaderboard[:LEADERBOARD_AMOUNT], start=1)] + ([
                             f"...\n*{idx[0][0]+1}*: {idx[0][1].slack_mention} - {idx[0][1].coins} coins" if len(idx) > 0 else "You are not even in top 50... Start coding!"
-                        ] if len(idx) > 0 and idx[0][0] >= 10 else [""])
+                        ] if len(idx) > 0 and idx[0][0] >= LEADERBOARD_AMOUNT else [""])
                     )
                 )
             )
@@ -330,7 +331,7 @@ def get_leaderboard(ctx: Context):
             message = blockkit.Message().add_block(
                 blockkit.Section(
                     "\n".join(
-                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout" for index, proj in enumerate(sorted_order[:10], start=1)]
+                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout" for index, proj in enumerate(sorted_order[:LEADERBOARD_AMOUNT], start=1)]
                     )
                 )
             )
@@ -342,7 +343,7 @@ def get_leaderboard(ctx: Context):
             message = blockkit.Message().add_block(
                 blockkit.Section(
                     "\n".join(
-                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name}" for index, proj in enumerate(sorted_order[:10], start=1)]
+                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name}" for index, proj in enumerate(sorted_order[:LEADERBOARD_AMOUNT], start=1)]
                     )
                 )
             )
@@ -353,7 +354,7 @@ def get_leaderboard(ctx: Context):
             message = blockkit.Message().add_block(
                 blockkit.Section(
                     "\n".join(
-                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout" for index, proj in enumerate(sorted_order[:10], start=1)]
+                        [f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout" for index, proj in enumerate(sorted_order[:LEADERBOARD_AMOUNT], start=1)]
                     )
                 )
             )
@@ -363,7 +364,7 @@ def get_leaderboard(ctx: Context):
             sorted_order = list(sorted(week_proj, key=lambda x: x.coin_value/_calc_base(x.week, x.hours), reverse=True))
             selected: list[SiegeProject] = []
             for proj in sorted_order:
-                if len(selected) >= 10:
+                if len(selected) >= LEADERBOARD_AMOUNT:
                     break
                 if proj.hours < 10:
                     continue
