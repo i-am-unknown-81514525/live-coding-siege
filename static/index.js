@@ -99,6 +99,12 @@ function updateClientSecret(newValue) {
     }
 }
 
+async function update_lb() {
+    result = await fetchLeaderboard(true);
+    updateLeaderboard(result);
+    updateGrid(result);
+}
+
 function updateTurnStatus(turnData) {
     const statusDisplay = document.getElementById('turn-status-display');
     const countdownContainer = document.getElementById('countdown-container');
@@ -262,9 +268,13 @@ function append_grid_ticket(name, avatar_url, ticket_id) {
     grid.appendChild(avatar_outer);
 }
 
-async function fetchLeaderboard() {
+async function fetchLeaderboard(force_update = false) {
+    let url = "/tickets-no-update";
+    if (force_update) {
+        url = "/ticketss"
+    }
     try {
-        const resp = await fetch("/tickets-no-update");
+        const resp = await fetch(url);
         if (!resp.ok) {
             console.error("Failed to fetch leaderboard data:", resp.statusText);
             return [];
