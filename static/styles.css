@@ -107,7 +107,7 @@ button:hover, .button_alike:hover {
     font-weight: bold;
     color: #4a90e2; /* A brighter blue for visibility */
     display: block;
-    margin-bottom: 0.5em;
+    margin-bottom: 0.1em;
 }
 
 .flash-red {
@@ -215,4 +215,8 @@ button:hover, .button_alike:hover {
 .grid-avatar:hover .grid-hover-tooltip {
     opacity: 1;
     visibility: visible;
+}
+
+#current-container {
+    margin: 0.1em;
 }
