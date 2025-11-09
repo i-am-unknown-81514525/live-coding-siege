@@ -165,3 +165,8 @@ button:hover, .button_alike:hover {
     grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     gap: 20px;
 }
+
+.hidden {
+    visibility: hidden;
+    display: none;
+}
