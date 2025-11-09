@@ -367,7 +367,15 @@ def _handle_user_turn_timeout(
                     Button("Mark Failed")
                     .action_id("manager_mark_failed")
                     .value(user_id)
-                    .style("danger"),
+                    .style("danger")
+                    .confirm(
+                        blockkit.Confirm(
+                            title="Are you sure you want to fail this performance",
+                            text="This would make the performer not gain any coin",
+                            confirm="Yes, fail this",
+                            deny="No"
+                        )
+                    ),
                 ]
             )
         )
@@ -410,7 +418,15 @@ def debug(ctx: MessageContext):
                     Button("Mark Failed")
                     .action_id("manager_mark_failed")
                     .value(user_id)
-                    .style("danger"),
+                    .style("danger")
+                    .confirm(
+                        blockkit.Confirm(
+                            title="Are you sure you want to fail this turn?",
+                            text="The performer wouldn't get any coin for the turn",
+                            confirm="Yes, fail the turn",
+                            deny="No"
+                        )
+                    ),
                     Button("Skip Turn")
                     .action_id("skip_turn")
                     .confirm(
@@ -508,7 +524,15 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                     Button("Safe skip (Mark Failed)")
                     .action_id("manager_mark_failed")
                     .value(user_id)
-                    .style("danger"),
+                    .style("danger")
+                    .confirm(
+                        blockkit.Confirm(
+                            title="Are you sure you want to fail this performance",
+                            text="This will not be mark as failed",
+                            confirm="Yes, fail",
+                            deny="No"
+                        )
+                    ),
                     Button("Force mark as completed")
                     .action_id("force_manager_mark_completed")
                     .value(user_id)
@@ -536,7 +560,15 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                     Button("Mark Failed")
                     .action_id("manager_mark_failed")
                     .value(user_id)
-                    .style("danger"),
+                    .style("danger")
+                    .confirm(
+                        blockkit.Confirm(
+                            title="Are you sure you want to mark as failed?",
+                            text="This will make the performer not get any coin",
+                            confirm="Yes, mark as fail",
+                            deny="No"
+                        )
+                    ),
                 ]
             )
         )
@@ -1152,7 +1184,15 @@ def pick_user(event: MessageEvent, client: WebClient):
                     Button("Safe skip (Mark Failed)")
                     .action_id("manager_mark_failed")
                     .value(target_user_id)
-                    .style("danger"),
+                    .style("danger")
+                    .confirm(
+                        blockkit.Confirm(
+                            title="Are you sure you want to fail this performance?",
+                            text="This wouldn't be mark as skipping",
+                            confirm="Yes",
+                            deny="No"
+                        )
+                    ),
                 ]
             )
         )
@@ -1357,7 +1397,7 @@ def end_game(event: MessageEvent, client: WebClient):
     else:
         summary_text = ""
         for stat in summary_stats:
-            summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful performance(s) :), {stat['consecutive_skips']} skip(s) :(.\n"
+            summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful performance(s) :), {stat['consecutive_skips']} consecutive skip(s) :(.\n"
 
         summary_message.add_block(Section(summary_text))
 

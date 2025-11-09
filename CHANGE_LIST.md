@@ -7,7 +7,9 @@
 [x] - Fix stats rounding
 [ ] - SIEGE_MODE env variable
 [ ] - Accept/Reject etc. interaction on UI
-[ ] - Confirm on deny/skip (if previously not added)
+[ ] - Refresh ticket list on UI
+[x] - Confirm on deny/skip (if previously not added)
 [ ] - New section on website for just grid
 [ ] - Multi-thread the request to reduce live.pick and live.ticket_list
 [ ] - More informational update on long command
+[x] - Fix skip not display properly on summary
