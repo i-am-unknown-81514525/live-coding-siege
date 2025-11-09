@@ -39,9 +39,9 @@ ALLOWED = os.environ["ALLOWLIST"].split(",")
 def help(ctx: Context):
     items = []
     for cmd, description in DESCRIPTION.items():
-        if cmd.startswith(ctx.no_prefix.strip()):
+        if cmd.startswith(ctx.no_prefix):
             items.append(f"`{cmd}` - {description}")
-    message = "\n".join(items) or "No command exist with the given prefix"
+    message = f"*Command list{ f" with prefix \"{ctx.no_prefix}\"" if ctx.no_prefix else "" }*\n" + ("\n".join(items) or "No command exist with the given prefix")
     if ctx.author_id in ALLOWED:
         ctx.public_send(text=message)
     else:
