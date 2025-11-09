@@ -333,6 +333,13 @@ function updateGrid(gridData) {
     })
 }
 
+async function accept() {
+    await fetch("/accept")
+}
+
+async function reject() {
+    await fetch("/reject")
+}
 
 window.save_jwt = save_jwt;
 window.updateClientSecret = updateClientSecret;

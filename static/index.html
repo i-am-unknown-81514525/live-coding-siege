@@ -27,6 +27,21 @@
                 <span id="countdown-display">00:00.00</span>
             </div>
             <br>
+            <div id="approval_panel" class="hidden">
+                <button 
+                    onclick="accept()", 
+                    style="min-width: 150px;", 
+                    class="left_strip",
+                >
+                    Accept
+                </button><button 
+                    onclick="reject()", 
+                    style="min-width: 150px;", 
+                    class="right_strip",
+                >
+                    Reject
+                </button>
+            </div>
             <div id="client-transaction">
                 <div>Client Secret: </div><div id="client-secret-container">
                     <span class="client-transaction">
@@ -34,6 +49,7 @@
                     </span>
                 </div>
             </div>
+
             <br>
             <h2 id="current-container">Leaderboard</h2>
             <div id="leaderboard-container">
