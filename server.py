@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from contextlib import asynccontextmanager
+import json
 import logging
 import os
 import typing
@@ -135,6 +136,17 @@ async def accept_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
     turn_user_id: str = turn_detail[0]
 
     await get_result(db.update_turn_status, game_id, turn_user_id, "COMPLETED")
+    await controller.connection_manager.send(
+        f"turn/{game_id}",
+        json.dumps(
+            {
+                "type": "turn_update",
+                "status": "COMPLETED",
+                "user_id": user_id,
+                "user_name": (await get_result(db.get_user_names, [user_id])).get(user_id, user_id),
+            }
+        ).encode(),
+    )
     return "ok"
 
 @app.get("/reject")
@@ -150,6 +162,19 @@ async def reject_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
     turn_user_id: str = turn_detail[0]
 
     await get_result(db.update_turn_status, game_id, turn_user_id, "FAILED")
+
+    await controller.connection_manager.send(
+        f"turn/{game_id}",
+        json.dumps(
+            {
+                "type": "turn_update",
+                "status": "FAILED",
+                "user_id": user_id,
+                "user_name": (await get_result(db.get_user_names, [user_id])).get(user_id, user_id),
+            }
+        ).encode(),
+    )
+    return "ok"
 
 @app.get("/turn-status")
 async def get_turn_status(user_id: typing.Annotated[str, Depends(check_jwt)]):
