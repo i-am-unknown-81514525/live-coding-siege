@@ -228,6 +228,24 @@ function connect_ws() {
     };
 }
 
+function reset_grid() {
+    const grid = document.getElementById("grid-container");
+    grid.replaceChildren();
+}
+
+function append_grid_ticket(name, avatar_url) {
+    const grid = document.getElementById("grid-container");
+    const avatar_outer = document.createElement("div");
+    avatar_outer.classList.add("grid-avatar");
+
+    const avatar_inner = document.createElement("img");
+    avatar_inner.src = avatar_url;
+    avatar_inner.alt = name;
+
+    avatar_outer.appendChild(avatar_inner);
+    grid.appendChild(avatar_inner);
+}
+
 async function fetchLeaderboard() {
     try {
         const resp = await fetch("/tickets-no-update");
