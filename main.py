@@ -43,7 +43,7 @@ import jwt
 import api
 from api import get_user, get_project
 from utils import guess_week
-from db import HourStatus, auto_add
+from db import HourStatus, auto_add, auto_add_no_siege
 
 import siege_cmd  # cmd import
 
@@ -55,6 +55,7 @@ def int_handler(bits: int) -> Handler[int]:
 
 AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
 ALLOWLIST = os.environ.get("ALLOWLIST", "").split(",")
+SIEGE_MODE = os.environ.get("SIEGE_MODE", "1") == "1"
 
 
 @msg_listen("live.test1")
@@ -200,9 +201,12 @@ def init_game(event: MessageEvent, client: WebClient):
         server_secret,
     )
     db.add_game_manager(game_id, user_id)
-    week_num = guess_week()
-    for user_id in db.get_huddle_participants(game_id):
-        auto_add(game_id, user_id, week_num)
+    if SIEGE_MODE:
+        week_num = guess_week()
+        for user_id in db.get_huddle_participants(game_id):
+            auto_add(game_id, user_id, week_num)
+    else:
+        auto_add_no_siege(game_id, user_id)
 
     client.chat_postMessage(
         channel=channel_id,
@@ -1090,20 +1094,24 @@ def pick_user(event: MessageEvent, client: WebClient):
 
     user_ticket: dict[str, int] = {}
     for user in eligible_users:
-        try:
-            db.auto_add(game_id, user)
-            hour_info = db.update_time(game_id, user)
-            if hour_info:
-                user_ticket[user] = db.get_ticket(
-                    10,
-                    1,
-                    0.1,
-                    hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
+        if SIEGE_MODE:
+            try:
+                db.auto_add(game_id, user)
+                hour_info = db.update_time(game_id, user)
+                if hour_info:
+                    user_ticket[user] = db.get_ticket(
+                        10,
+                        1,
+                        0.1,
+                        hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
+                    )
+            except:
+                logging.warning(
+                    f"Error failed to update time and get ticket amount", exc_info=True
                 )
-        except:
-            logging.warning(
-                f"Error failed to update time and get ticket amount", exc_info=True
-            )
+        else:
+            db.auto_add_no_siege(game_id, user)
+            user_ticket[user] = 10
 
     coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
@@ -1994,14 +2002,17 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
     print(f"ℹ️ User {user_name} ({user_id}) joined huddle {huddle_id}.")
     game_id = db.get_active_game_in_huddle(huddle_id)
     if game_id is not None:
-        user = get_user(user_id)
-        week_num = guess_week()
-        projs = [proj for proj in user.projects if proj.week == week_num]
-        if len(projs) == 0:
-            db.add_game_participant(game_id, user_id, None, None)
+        if SIEGE_MODE:
+            user = get_user(user_id)
+            week_num = guess_week()
+            projs = [proj for proj in user.projects if proj.week == week_num]
+            if len(projs) == 0:
+                db.add_game_participant(game_id, user_id, None, None)
+            else:
+                full = get_project(projs[0].id)
+                db.add_game_participant(game_id, user_id, full.hours, full.id)
         else:
-            full = get_project(projs[0].id)
-            db.add_game_participant(game_id, user_id, full.hours, full.id)
+            db.auto_add_no_siege(game_id, user_id)
     coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 

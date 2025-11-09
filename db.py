@@ -420,6 +420,8 @@ def auto_add(game_id: int, user_id: str, week: int | None = None):
     else:
         add_game_participant(game_id, user_id, h_now=0, proj_id=None)
 
+def auto_add_no_siege(game_id, user_id):
+    add_game_participant(game_id, user_id, 0, None)
 
 def add_game_participant(game_id: int, user_id: str, h_now: float | None, proj_id: int | None):
     """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""

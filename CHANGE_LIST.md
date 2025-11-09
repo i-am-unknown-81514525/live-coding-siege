@@ -5,11 +5,13 @@
 [x] - Slash command when necessary
 [x] - Update to longer leaderboard
 [x] - Fix stats rounding
-[ ] - SIEGE_MODE env variable
+[x] - SIEGE_MODE env variable
 [ ] - Accept/Reject etc. interaction on UI
 [ ] - Refresh ticket list on UI
 [x] - Confirm on deny/skip (if previously not added)
 [ ] - New section on website for just grid
 [ ] - Multi-thread the request to reduce live.pick and live.ticket_list
+[ ] - Locking `live.pick` on game
 [ ] - More informational update on long command
 [x] - Fix skip not display properly on summary
+[ ] - Refactor code to seperate live module out and keep only the command handling in main
