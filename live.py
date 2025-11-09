@@ -18,7 +18,8 @@ from reg import (
     huddle_listen,
     smart_msg_listen,
     MessageContext,
-    description
+    description,
+    Context
 )
 from crypto.core import DeterRnd, Handler, _sha3, randint
 import db
@@ -50,8 +51,8 @@ def get_game_lock(game_id: int) -> Lock:
         return GAME_LOCK[game_id]
 
 
-@msg_listen("live.test1")
-def test_interactive(event: MessageEvent, client: WebClient):
+@smart_msg_listen("live.test1")
+def test_interactive(ctx: Context):
     message_payload = (
         blockkit.Message(text="This is a test message with a button.").add_block(
             blockkit.Section("test").accessory(
@@ -59,7 +60,7 @@ def test_interactive(event: MessageEvent, client: WebClient):
             )
         )
     ).build()
-    client.chat_postMessage(channel=event.channel, **message_payload)
+    ctx.public_send(**message_payload)
 
 
 def _technical_not_reveal(client_secret: str, server_secret: str) -> Message:
