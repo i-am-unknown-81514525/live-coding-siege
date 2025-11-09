@@ -431,6 +431,35 @@ def auto_add(game_id: int, user_id: str, week: int | None = None):
 def auto_add_no_siege(game_id, user_id):
     add_game_participant(game_id, user_id, 0, None)
 
+def reset_game_participant(game_id: int, user_id: str, week: int):
+    week_num = week or guess_week()
+    projs = get_user(user_id).projects
+    proj = [proj for proj in projs if proj.week == week_num]
+    if proj:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT proj_id WHERE game_id = ? AND user_id = ?""",
+                (game_id, user_id)
+            )
+            result = cursor.fetchone()
+            if result and result[0] == proj[0].id:
+                update_time(game_id, user_id)
+                return
+            cursor = conn.cursor()
+            cursor.execute("""
+                        INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT (game_id, user_id) DO UPDATE SET
+                            h_curr = excluded.h_curr
+                            h_start = excluded.h_start
+                            proj_id = excluded.proj_id
+                            h_lastcheck = CURRENT_TIMESTAMP
+                            h_penalty = 0
+                        """
+            )
+            conn.commit()
+            update_time(game_id, user_id)
+
 
 def add_game_participant(
     game_id: int, user_id: str, h_now: float | None, proj_id: int | None
@@ -504,7 +533,7 @@ def update_time(game_id: int, user_id: str) -> HourStatus | None:
         conn.commit()
         return HourStatus(h_start, h_now, h_penalty + penalty_addition)
 
-def update_time_multi(game_id: int, user_ids: list[int]) -> dict[int, HourStatus]:
+def update_time_multi(game_id: int, user_ids: list[str]) -> dict[str, HourStatus]:
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -513,9 +542,9 @@ def update_time_multi(game_id: int, user_ids: list[int]) -> dict[int, HourStatus
                 })""",
             (game_id, *user_ids)
         )
-        data: dict[int, tuple[int, arrow.Arrow, float, float, float]] = {}
-        threads: list[tuple[int, concurrent.futures.Future[SiegeProject]]] = []
-        ret: dict[int, HourStatus] = {}
+        data: dict[str, tuple[str, arrow.Arrow, float, float, float]] = {}
+        threads: list[tuple[str, concurrent.futures.Future[SiegeProject]]] = []
+        ret: dict[str, HourStatus] = {}
         with concurrent.futures.ThreadPoolExecutor() as execotor:
             for row in cursor.fetchall():
                 user_id, proj_id, last_check_time, last_h_now, h_start, h_penalty = row

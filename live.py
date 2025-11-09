@@ -988,17 +988,22 @@ def get_ticket_list(ctx: MessageContext):
     )
     if not game_id:
         return ctx.private_send(text="No active show found in this thread.")
+    
+    if not SIEGE_MODE:
+        return ctx.public_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
 
     ticket_dt: dict[str, tuple[str, int | None]] = {}
     huddle_participant = db.get_huddle_participants(game_id)
     usernames = db.get_user_names(huddle_participant)
     for user in huddle_participant:
-        db.auto_add(game_id, user)
+        db.auto_add_no_siege(game_id, user)
+    status = db.update_time_multi(game_id, huddle_participant)
+    for user in huddle_participant:
         username = usernames.get(user, f"`{user}`")
         if username == "UNKNOWN":
             username = f"`{user}`"
         try:
-            hour_info = db.update_time(game_id, user)
+            hour_info = status[user]
             if hour_info:
                 ticket_dt[user] = (
                     username,
@@ -1100,23 +1105,18 @@ def pick_user(event: MessageEvent, client: WebClient):
 
         user_ticket: dict[str, int] = {}
         for user in eligible_users:
-            if SIEGE_MODE:
-                try:
-                    db.auto_add(game_id, user)
-                    hour_info = db.update_time(game_id, user)
-                    if hour_info:
-                        user_ticket[user] = db.get_ticket(
-                            10,
-                            1,
-                            0.1,
-                            hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
-                        )
-                except:
-                    logging.warning(
-                        f"Error failed to update time and get ticket amount", exc_info=True
-                    )
-            else:
-                db.auto_add_no_siege(game_id, user)
+            db.auto_add_no_siege(game_id, user)
+        if SIEGE_MODE:
+            hour_status = db.update_time_multi(game_id, eligible_users)
+            for user, hours in hour_status.items():
+                user_ticket[user] = db.get_ticket(
+                    10,
+                    1,
+                    0.1,
+                    hours.h_curr - hours.h_start - hours.h_penalty
+                )
+        else:
+            for user in eligible_users:
                 user_ticket[user] = 10
 
         coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
