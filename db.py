@@ -475,7 +475,7 @@ def add_game_participant(
                 h_curr = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN excluded.h_curr ELSE game_participant.h_curr END,
                 h_start = CASE WHEN excluded.h_start IS NOT NULL AND (game_participant.h_start IS NULL OR game_participant.proj_id != excluded.proj_id) THEN excluded.h_start ELSE game_participant.h_start END,
                 proj_id = CASE WHEN excluded.proj_id IS NOT NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
-                h_lastcheck = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN CURRENT_TIMESTAMP ELSE game_participant.h_lastchecl END
+                h_lastcheck = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN CURRENT_TIMESTAMP ELSE game_participant.h_lastcheck END
             """,
             (game_id, user_id, h_now, h_now, proj_id),
         )
