@@ -27,6 +27,10 @@
                 "command": "/project",
                 "description": "View siege project",
                 "should_escape": true
+            },
+            {
+                "command": "/global",
+                "description": "View the total hours everyone have completed this week"
             }
         ]
     },

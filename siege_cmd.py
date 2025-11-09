@@ -278,6 +278,7 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
         channel=channel, thread_ts=thread_ts, user=ori_uid, **message.build()
     )
 
+@slash_listen("/global")
 @smart_msg_listen("siege.global")
 def get_total_proj_time(ctx: MessageContext):
     if ctx.event.message.user in BANNED:
