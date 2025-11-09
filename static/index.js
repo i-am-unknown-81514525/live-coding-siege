@@ -129,6 +129,7 @@ function updateTurnStatus(turnData) {
                 clearInterval(countdownInterval);
                 countdownDisplay.textContent = "00:00.00";
                 countdownDisplay.classList.add('flash-red');
+                document.getElementById("approval_panel").classList.remove("hidden");
                 return;
             }
 
