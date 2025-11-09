@@ -18,12 +18,12 @@ from reg import (
     huddle_listen,
     smart_msg_listen,
     MessageContext,
+    description
 )
 from crypto.core import DeterRnd, Handler, _sha3, randint
 import db
 import blockkit
 from blockkit import Message, Section, Button
-from server import start_server
 from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
@@ -72,6 +72,7 @@ def _technical_not_reveal_from_msg(
 
 
 @msg_listen("live.init")
+@description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
 def init_game(event: MessageEvent, client: WebClient):
     user_id = event.message.user
     channel_id = event.channel
@@ -371,6 +372,7 @@ def _handle_user_turn_timeout(
 
 
 @smart_msg_listen("live.debug_turn")
+@description("live.debug_turn", "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)")
 def debug(ctx: MessageContext):
     if ctx.event.message.user not in AUTHORIZED_USERS:
         return
@@ -564,6 +566,7 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
 
 
 @smart_msg_listen("live.optout")
+@description("live.output", "Output from the game (Why... :heavysob:)")
 def optout(ctx: MessageContext):
     thread_ts = ctx.event.message.thread_ts
     channel_id = ctx.event.channel
@@ -639,6 +642,7 @@ def confirm_optout(event: BlockActionEvent, client: WebClient):
 
 
 @smart_msg_listen("live.reject")
+@description("live.reject", "Reject a turn")
 def reject_turn(ctx: MessageContext):
     user_id = ctx.event.message.user
     thread_ts = ctx.event.message.thread_ts
@@ -664,6 +668,7 @@ def reject_turn(ctx: MessageContext):
 
 
 @msg_listen("live.add_mgr")
+@description("live.add_mgr", "Add a game manager (Current game manager only)")
 def add_manager(event: MessageEvent, client: WebClient):
     user_id = event.message.user
     channel_id = event.channel
@@ -797,6 +802,7 @@ def takeover(ctx: MessageContext):
 
 
 @smart_msg_listen("live.rm_mgr")
+@description("live.rm_mgr", "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))")
 def remove_manager(ctx: MessageContext):
     if ctx.event.message.user not in AUTHORIZED_USERS:
         return ctx.private_send(text="You cannot pretend to be authorised magician.")
@@ -838,6 +844,7 @@ def remove_manager(ctx: MessageContext):
 
 
 @smart_msg_listen("live.members")  # Show the user in the huddle, not just eligiable
+@description("live.members", "List all the member in the huddle")
 def show_members(ctx: MessageContext):
     thread_ts = ctx.event.message.thread_ts
 
@@ -866,6 +873,7 @@ def show_members(ctx: MessageContext):
 @smart_msg_listen("live.elligible")
 @smart_msg_listen("live.eligiable")
 @smart_msg_listen("live.eligible")
+@description("live.eligible", "List all the member that elligible for the next round")
 def show_eligiable(ctx: MessageContext):
     thread_ts = ctx.event.message.thread_ts
 
@@ -893,6 +901,7 @@ def show_eligiable(ctx: MessageContext):
 
 @msg_listen("live.turn")
 @msg_listen("live.info")
+@description("live.turn", "View turn information")
 def show_game_info(event: MessageEvent, client: WebClient):
     user_id = event.message.user
     channel_id = event.channel
@@ -924,6 +933,7 @@ def show_game_info(event: MessageEvent, client: WebClient):
 
 @smart_msg_listen("live.ticket")
 @smart_msg_listen("live.tickets")
+@description("live.ticket", "View your ticket count for the game")
 def get_ticket_count(ctx: MessageContext):
     if ctx.no_prefix:
         return
@@ -958,6 +968,7 @@ def get_ticket_count(ctx: MessageContext):
 
 
 @smart_msg_listen("live.ticket_list")
+@description("live.ticket_list", "List everyone tickets")
 def get_ticket_list(ctx: MessageContext):
     if not ctx.event.message.thread_ts:
         return ctx.private_send(
@@ -1008,6 +1019,7 @@ def get_ticket_list(ctx: MessageContext):
 
 
 @msg_listen("live.pick")
+@description("live.pick", "Pick a user to start a turn, or switch state for the corresponding state of the game (Game manager only)")
 def pick_user(event: MessageEvent, client: WebClient):
     manager_id = event.message.user
     channel_id = event.channel
@@ -1204,6 +1216,7 @@ def pick_user(event: MessageEvent, client: WebClient):
 
 
 @smart_msg_listen("live.summary")
+@description("live.summary", "View a summary of the game")
 def show_game_summary(ctx: MessageContext):
     if ctx.event.message.thread_ts is None:
         return ctx.private_send(
@@ -1237,6 +1250,7 @@ def show_game_summary(ctx: MessageContext):
 
 
 @smart_msg_listen("live.export")
+@description("live.export", "Export the game state for coin distribution")
 def export_game_history(ctx: MessageContext):
     if ctx.event.message.thread_ts is None:
         return ctx.private_send(
@@ -1269,6 +1283,7 @@ def export_game_history(ctx: MessageContext):
 
 
 @msg_listen("live.rnd")
+@description("live.rnd", "Change the server secret")
 def refresh_server_secret(event: MessageEvent, client: WebClient):
     manager_id = event.message.user
     channel_id = event.channel
@@ -1343,6 +1358,7 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
 
 
 @msg_listen("live.end")
+@description("live.end", "End the game")
 def end_game(event: MessageEvent, client: WebClient):
     manager_id = event.message.user
     channel_id = event.channel
@@ -1523,6 +1539,7 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
 
 
 @smart_msg_listen("live.client_secret")
+@description("live.client_secret", "The current client secret (Just look at the screen)")
 def show_client_secret(ctx: MessageContext):
     if ctx.event.message.thread_ts is None:
         ctx.private_send(text="This command must be used within the magic show thread.")
@@ -1875,6 +1892,7 @@ async def _dispatch_async(coro: Awaitable[Any]):
 
 
 @smart_msg_listen("live.mgr_secret")
+@description("live.mgr_secret", "Show manager secret for authentication on https://livecode.relay7f98.us.to for web dashboard")
 def show_mgr_secret(ctx: MessageContext):
     user_id = ctx.event.message.user
 
