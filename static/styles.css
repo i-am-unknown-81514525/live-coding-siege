@@ -184,10 +184,33 @@ button:hover, .button_alike:hover {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4 ease, filter 0.4s ease;
+    transition: transform 0.4s ease, filter 0.4s ease;
 }
 
 .grid-avatar:hover img {
     transform: scale(1.1);
     filter: brightness(0.85);
+}
+
+.grid-hover-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #282828;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.grid-avatar:hover .grid-hover-tooltip {
+    opacity: 1;
+    visibility: visible;
 }

@@ -235,14 +235,18 @@ function reset_grid() {
     grid.replaceChildren();
 }
 
-function append_grid_ticket(alt, avatar_url) {
+function append_grid_ticket(name, avatar_url, ticket_id) {
     const grid = document.getElementById("grid-container");
     const avatar_outer = document.createElement("div");
     avatar_outer.classList.add("grid-avatar");
 
     const avatar_inner = document.createElement("img");
     avatar_inner.src = avatar_url;
-    avatar_inner.alt = alt;
+    avatar_inner.alt = `@${name} slack profile picture`;
+
+    const tooltip = document.createComment("span");
+    tooltip.classList.add("grid-hover-tooltip");
+    tooltip.textContent = `@${name} | Ticket ID: #${ticket_id}`
 
     avatar_outer.appendChild(avatar_inner);
     grid.appendChild(avatar_outer);
@@ -319,7 +323,7 @@ function updateGrid(gridData) {
     let ticket_id = 0;
     gridData.forEach((user) => {
         for (let i = 0; i < user.tickets; i++) {
-            append_grid_ticket(`Username: ${user.name}\nTicket ID: #${ticket_id}`, user.avatar_url);
+            append_grid_ticket(user.name, user.avatar_url, ticket_id);
             ticket_id++;
         }
     })
