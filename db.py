@@ -1,13 +1,16 @@
+import logging
 import sqlite3
 import os
 from contextlib import contextmanager
 import json
 from datetime import datetime, timezone
 from typing import Final
+import concurrent.futures
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
 from api import get_project, get_user
+from schema.siege import SiegeProject
 from utils import guess_week
 from dataclasses import dataclass
 
@@ -500,6 +503,49 @@ def update_time(game_id: int, user_id: str) -> HourStatus | None:
         )
         conn.commit()
         return HourStatus(h_start, h_now, h_penalty + penalty_addition)
+
+def update_time_multi(game_id: int, user_ids: list[int]) -> dict[int, HourStatus]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""SELECT user_id, proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ({
+                ",".join(["?" for v in range(len(user_ids))])
+                })""",
+            (game_id, *user_ids)
+        )
+        data: dict[int, tuple[int, arrow.Arrow, float, float, float]] = {}
+        threads: list[tuple[int, concurrent.futures.Future[SiegeProject]]] = []
+        ret: dict[int, HourStatus] = {}
+        with concurrent.futures.ThreadPoolExecutor() as execotor:
+            for row in cursor.fetchall():
+                user_id, proj_id, last_check_time, last_h_now, h_start, h_penalty = row
+                data[user_id] = (proj_id, arrow.get(last_check_time), last_h_now, h_start, h_penalty)
+                thread = execotor.submit(get_project, proj_id)
+                threads.append((user_id, thread))
+            for user_id, thread in threads:
+                try:
+                    proj_id, last_check_time, last_h_now, h_start, h_penalty = data[user_id]
+                    h_now = thread.result(10).hours
+                    last_check_time = arrow.get(last_check_time)
+                    curr = arrow.now()
+                    dt = curr - last_check_time
+                    h_diff = h_now - last_h_now
+                    c_diff = dt.total_seconds() / 3600
+                    ALLOWED_LEEWAY = 0.15
+                    penalty_addition = 0
+                    if c_diff + ALLOWED_LEEWAY < h_diff:
+                        penalty_addition = h_diff - c_diff
+                    cursor.execute(
+                        """UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""",
+                        (h_now, penalty_addition, game_id, user_id),
+                    )
+                    conn.commit()
+                    ret[user_id] = HourStatus(h_start, h_now, h_penalty + penalty_addition)
+                except:
+                    logging.warning(f"Failed to fetch project time for {user_id}", exc_info=True)
+        return ret
+        
+            
 
 
 def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
