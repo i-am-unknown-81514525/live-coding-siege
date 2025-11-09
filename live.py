@@ -662,65 +662,52 @@ def reject_turn(ctx: MessageContext):
         ctx.public_send(text="There are no active turn rn!")
 
 
-@msg_listen("live.add_mgr")
+@smart_msg_listen("live.add_mgr")
 @description("live.add_mgr", "Add a game manager (Current game manager only)")
-def add_manager(event: MessageEvent, client: WebClient):
-    user_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts or event.message.ts
+def add_manager(ctx: Context):
+    user_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts or ctx.message_ts
+
+    if not thread_ts:
+        return ctx.private_send(text="Unable to locate the game thread")
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="No active show found in this thread.",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.is_game_manager(game_id, user_id):
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
-    user_id = event.message.text.removeprefix("live.add_mgr").strip()
+    user_id = ctx.no_prefix
 
     if not re.match(r"<@(U\w+)>", user_id):
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Invalid user ID.",
-            thread_ts=thread_ts,
         )
         return
     user_id = user_id.removeprefix("<@").removesuffix(">")
 
     if not db.has_user(user_id):
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="The user have not been indexed... Ask them to join the huddle to do so!",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.has_game_manager(user_id):
         db.add_game_manager(game_id, user_id)
-        client.chat_postMessage(
-            channel=channel_id,
+        ctx.public_send(
             text="<@" + user_id + "> is now the new show manager!",
-            thread_ts=thread_ts,
         )
     else:
-        client.chat_postMessage(
-            channel=channel_id,
+        ctx.public_send(
             text="<@" + user_id + "> is already a manager in some active game show!",
-            thread_ts=thread_ts,
         )
     return
 
