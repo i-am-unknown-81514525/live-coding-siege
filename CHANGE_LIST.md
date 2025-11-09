@@ -18,3 +18,5 @@
 [x] - Refactor code
 [ ] - AI in help command because I am bored?
 [ ] - Rewrite command in the newer text command framework
+[x] - `live.reset` for project changes
+[ ] - Request logging to siege API
