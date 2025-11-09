@@ -15,30 +15,30 @@
         "slash_commands": [
             {
                 "command": "/user",
-                "description": "View siege user detail",
+                "description": "user_mention|<user_id|slack_user_id>? | View siege user detail",
                 "should_escape": true
             },
             {
                 "command": "/proj",
-                "description": "View siege project",
+                "description": "<proj_id> | View siege project",
                 "should_escape": true
             },
             {
                 "command": "/project",
-                "description": "View siege project",
+                "description": "<proj_id> | View siege project",
                 "should_escape": true
             },
             {
                 "command": "/global",
-                "description": "View the total hours everyone have completed this week"
+                "description": "| View the total hours everyone have completed this week"
             },
             {
                 "command": "/lb",
-                "description": "View the total hours everyone have completed this week"
+                "description": "| View the total hours everyone have completed this week"
             },
             {
                 "command": "/leaderboard",
-                "description": "View the total hours everyone have completed this week"
+                "description": "<lb_option>? | View the total hours everyone have completed this week"
             }
         ]
     },
