@@ -2006,7 +2006,7 @@ def handle_huddle_start_message(event: MessageEvent, client: WebClient):
 @huddle_listen(HuddleState.IN_HUDDLE)
 def handle_huddle_join(event: HuddleChange, client: WebClient):
     user_id = event.user.id
-    user_name = event.user.name
+    user_name = event.user.profile.display_name or event.user.real_name or event.user.name
     huddle_id = event.call_id
     db.upsert_huddle(huddle_id, "UNKNOWN", datetime.now(timezone.utc))
     db.upsert_user(user_id, user_name, event.user.profile.avatars.image_512)

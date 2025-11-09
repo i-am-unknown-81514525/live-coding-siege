@@ -1,4 +1,4 @@
-[ ] - Use display name instead of username
+[x] - Use display name instead of username
 [x] - Better documentation
 [x] - Help command
 [ ] - Somehow fix the timer that idk why sometime it didn't send?
