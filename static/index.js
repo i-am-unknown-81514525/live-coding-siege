@@ -319,5 +319,17 @@ window.updateClientSecret = updateClientSecret;
 window.addEventListener("load", 
     async () => {
         await login();
+        document.getElementById("current-container").addEventListener("click", async () => {
+            const component = document.getElementById("current-container");
+            if (component.innerHTML == "Leaderboard") {
+                component.innerHTML = "Grid";
+                document.getElementById("grid-container").classList.remove("hidden");
+                document.getElementById("leaderboard-container").classList.add("hidden");
+            } else {
+                component.innerHTML = "Leaderboard";
+                document.getElementById("leaderboard-container").classList.remove("hidden");
+                document.getElementById("grid-container").classList.add("hidden");
+            }
+        })
     }
 );
