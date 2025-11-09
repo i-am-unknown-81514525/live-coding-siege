@@ -35,7 +35,7 @@ ALLOWED = os.environ["ALLOWLIST"].split(",")
 @slash_listen("/help")
 @smart_msg_listen("live.help")
 @smart_msg_listen("siege.help")
-@description("/help", "Help command to hopefully answer your random question?")
+@description("/help <prefix>?", "Help command to hopefully answer your random question?")
 def help(ctx: Context):
     items = []
     for cmd, description in DESCRIPTION.items():

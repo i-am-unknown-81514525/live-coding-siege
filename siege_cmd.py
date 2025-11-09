@@ -2,7 +2,7 @@ from reg import (
     action_listen,
     action_prefix_listen,
     smart_msg_listen,
-    MessageContext,
+    description,
     Context,
     slash_listen,
 )
@@ -95,6 +95,7 @@ def _calc_base(week: int, hours: float) -> float:
 
 @slash_listen("/user")
 @smart_msg_listen("siege.user")
+@description("/user <user_id>?", "Shhhh... sneak peek on a siege user, surely no one would notice :)")
 def get_siege_user_info(ctx: Context):
     if ctx.author_id in BANNED:
         return
@@ -151,6 +152,7 @@ def get_siege_user_info(ctx: Context):
 @slash_listen("/proj")
 @slash_listen("/project")
 @smart_msg_listen("siege.proj")
+@description("/proj <proj_id>", "Let me check a project coin value... What??? Someone got 607 coins in a week?")
 def get_siege_proj_info(ctx: Context):
     if ctx.author_id in BANNED:
         return
@@ -331,6 +333,7 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
 
 @slash_listen("/global")
 @smart_msg_listen("siege.global")
+@description("/global", "Uhh am I gonna get my global bet payout this time :nervous:")
 def get_total_proj_time(ctx: Context):
     if ctx.author_id in BANNED:
         return
@@ -358,6 +361,7 @@ LEADERBOARD_AMOUNT = 20
 @slash_listen("/leaderboard")
 @smart_msg_listen("siege.leaderboard")
 @smart_msg_listen("siege.lb")
+@description("/lb <lb_option>?", "The hall of fame!")
 def get_leaderboard(ctx: Context):
     opt = ctx.no_prefix or ""
     message: blockkit.Message | None = None
@@ -507,6 +511,7 @@ def get_leaderboard(ctx: Context):
 
 @slash_listen("/stats")
 @smart_msg_listen("siege.stats")
+@description("/stats", "Stats for the Siege YSWS")
 def get_stats(ctx: Context):
     all_projs = get_all_projs()
     week_proj: dict[int, list[SiegeProject]] = {}
