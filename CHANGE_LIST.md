@@ -7,7 +7,7 @@
 [x] - Fix stats rounding
 [x] - SIEGE_MODE env variable
 [x] - Accept/Reject etc. interaction on UI
-[ ] - Refresh ticket list on UI
+[x] - Refresh ticket list on UI
 [x] - Confirm on deny/skip (if previously not added)
 [x] - New section on website for just grid
 [x] - Multi-thread the request to reduce live.pick and live.ticket_list
@@ -19,3 +19,4 @@
 [x] - Rewrite command in the newer text command framework
 [x] - `live.reset` for project changes
 [x] - Request logging to siege API
+[ ] - Fix /tickets endpoint being slow
