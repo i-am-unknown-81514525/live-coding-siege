@@ -16,6 +16,6 @@
 [x] - Fix skip not display properly on summary
 [x] - Refactor code to seperate live module out and keep only the command handling in main
 [ ] - AI in help command because I am bored?
-[ ] - Rewrite command in the newer text command framework
+[x] - Rewrite command in the newer text command framework
 [x] - `live.reset` for project changes
 [x] - Request logging to siege API
