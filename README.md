@@ -109,5 +109,8 @@ If you are lazy like me, check the image below:
 
 <img width="1426" height="1414" alt="224e139aaff22a0dba354487b8b45ad14070eff3c2f97c403c9f9490109ad5fb" src="https://github.com/user-attachments/assets/2cdeb755-d037-4b39-8393-05972b3f41c3" />
 
+<img src="https://github.com/user-attachments/files/23443113/clipboard_2025-11-09_23-44.bmp">
+
+
 (Idk why some of the background got significantly whiter than it actually is)
 
