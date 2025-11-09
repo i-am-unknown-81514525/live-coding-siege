@@ -403,14 +403,14 @@ def get_stats(ctx: MessageContext):
     total_msg = []
     for week in sorted(week_proj):
         projs = week_proj[week]
-        week_msg = [f"W{week} - {len(projs)} with {sum(map(lambda x: x.hours, projs))}h"]
+        week_msg = [f"W{week} - {len(projs)} with {sum(map(lambda x: x.hours, projs)):.1f}h"]
         status_dict: dict[str, tuple[int, float]] = {}
         for proj in projs:
             status = proj.status
             status_dict[status] = status_dict.get(status, (0, 0))
             status_dict[status] = (status_dict[status][0] + 1, status_dict[status][1] + proj.hours)
         for status in sorted(status_dict):
-            week_msg.append(f"- {status} - {status_dict[status][0]} project with {status_dict[status][1]}h")
+            week_msg.append(f"- {status} - {status_dict[status][0]} project with {status_dict[status][1]:.1f}h")
         total_msg.append("\n".join(week_msg))
     if ctx.event.message.user in ALLOWED:
         ctx.public_send(True, text="\n".join(total_msg))
