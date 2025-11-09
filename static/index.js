@@ -6,7 +6,7 @@ function get_jwt_from_element() {
 }
 
 async function save_jwt() {
-    jwt = get_jwt_from_element();
+    const jwt = get_jwt_from_element();
     document.cookie = `JWT=${jwt}`;
     await login();
 }
@@ -17,7 +17,7 @@ async function login() {
         reconnectTimer = null;
     }
 
-    user_id = await validate_jwt();
+    const user_id = await validate_jwt();
     set_login_with(user_id);
     if (user_id !== null) {
         const turnStatus = await get_turn_status();
@@ -35,7 +35,7 @@ async function login() {
 }
 
 async function validate_jwt() {
-    resp = await fetch("/validate");
+    const resp = await fetch("/validate");
     if (!resp.ok) {
         return null;
     }
@@ -43,7 +43,7 @@ async function validate_jwt() {
 }
 
 async function get_client_secret() {
-    resp = await fetch("/client-secret");
+    const resp = await fetch("/client-secret");
     if (!resp.ok) {
         return null;
     }
@@ -140,7 +140,7 @@ function updateTurnStatus(turnData) {
         };
 
         updateTimer();
-        countdownInterval = setInterval(updateTimer, 10);
+        let countdownInterval = setInterval(updateTimer, 10);
     } else if (turnData.status === 'PENDING') {
         statusDisplay.textContent = `Waiting for: ${userName}`;
         countdownContainer.style.display = 'none';
@@ -155,7 +155,7 @@ function scheduleLoginAttempt() {
         return;
     }
     console.log("No active game found. Checking again in 5 seconds...");
-    reconnectTimer = setTimeout(async () => {
+    let reconnectTimer = setTimeout(async () => {
         await login();
     }, 5000);
 }
