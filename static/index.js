@@ -112,6 +112,12 @@ function updateTurnStatus(turnData) {
 
     const userName = turnData.user_name || turnData.user_id || 'N/A';
 
+    if (turnData.status === "COMPLETED") {
+        document.getElementById("approval_panel").classList.remove("hidden")
+    } else {
+        document.getElementById("approval_panel").classList.add("hidden")
+    }
+
     if (turnData.status === 'IN_PROGRESS' && turnData.endTime) {
         statusDisplay.textContent = `Live: ${userName}`;
         countdownContainer.style.display = 'unset';
