@@ -159,3 +159,9 @@ button:hover, .button_alike:hover {
     margin-left: 10px;
     object-fit: cover;
 }
+
+.grid_ticket {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 20px;
+}
