@@ -431,7 +431,7 @@ def auto_add(game_id: int, user_id: str, week: int | None = None):
 def auto_add_no_siege(game_id, user_id):
     add_game_participant(game_id, user_id, 0, None)
 
-def reset_game_participant(game_id: int, user_id: str, week: int):
+def reset_game_participant(game_id: int, user_id: str, week: int | None = None):
     week_num = week or guess_week()
     projs = get_user(user_id).projects
     proj = [proj for proj in projs if proj.week == week_num]

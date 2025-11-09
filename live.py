@@ -975,6 +975,24 @@ def get_ticket_count(ctx: MessageContext):
         text=f"You have {ticket_count} tickets. (Start: {hour_info.h_start}h, Current: {hour_info.h_curr}h, Penalty: {hour_info.h_penalty}"
     )
 
+@smart_msg_listen("live.reset")
+@description("live.reset", "Reset your siege project record in the database for the game")
+def reset_proj(ctx: MessageContext):
+    if not ctx.event.message.thread_ts:
+        return ctx.private_send(
+            text="This command must be used within a game show's thread."
+        )
+    game_id = db.get_active_game_by_thread(
+        ctx.event.channel, ctx.event.message.thread_ts
+    )
+    if not game_id:
+        return ctx.private_send(text="No active show found in this thread.")
+    
+    if not SIEGE_MODE:
+        return ctx.private_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
+    db.reset_game_participant(game_id, ctx.author_id)
+    ctx.private_send(text="Attempted to reset your project")
+    
 
 @smart_msg_listen("live.ticket_list")
 @description("live.ticket_list", "List everyone tickets")
