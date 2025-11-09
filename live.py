@@ -1351,39 +1351,24 @@ def refresh_server_secret(event: MessageEvent, client: WebClient):
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message.build())
 
 
-@msg_listen("live.end")
+@smart_msg_listen("live.end")
 @description("live.end", "End the game")
-def end_game(event: MessageEvent, client: WebClient):
-    manager_id = event.message.user
-    channel_id = event.channel
-    thread_ts = event.message.thread_ts or event.message.ts
+def end_game(ctx: Context):
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts or ctx.message_ts
 
     if not thread_ts:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
-            text="This command must be used within the magic show thread.",
-            thread_ts=thread_ts,
-        )
+        ctx.private_send(text="This command must be used within the magic show thread.")
         return
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
-            text="No active game found in this thread to end.",
-            thread_ts=thread_ts,
-        )
+        ctx.private_send(text="No active game found in this thread to end.")
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
-            text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
-        )
+        ctx.private_send(text="You cannot overrule the magician.")
         return
 
     db.update_game_status(game_id, "COMPLETED")
@@ -1405,9 +1390,7 @@ def end_game(event: MessageEvent, client: WebClient):
     summary_message.add_block(blockkit.Divider())
     summary_message.add_block(Section("Thanks for playing! 🎉"))
 
-    client.chat_postMessage(
-        channel=channel_id, thread_ts=thread_ts, **summary_message.build()
-    )
+    ctx.public_send(**summary_message.build())
 
 
 @action_listen("force_manager_mark_completed")
