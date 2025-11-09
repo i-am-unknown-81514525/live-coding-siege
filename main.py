@@ -16,6 +16,11 @@ from reg import (
     huddle_dispatch,
     message_dispatch,
     slash_dispatch,
+    slash_listen,
+    DESCRIPTION,
+    description,
+    Context,
+    smart_msg_listen
 )
 from schema.base import Recv
 from schema.huddle import HuddleChange
@@ -24,12 +29,27 @@ from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
 from server import start_server
 
-import live
-import siege_cmd
-
-
 load_dotenv()
+ALLOWED = os.environ["ALLOWLIST"].split(",")
 
+@slash_listen("/help")
+@smart_msg_listen("live.help")
+@smart_msg_listen("siege.help")
+@description("/help", "Help command to hopefully answer your random question?")
+def help(ctx: Context):
+    items = []
+    for cmd, description in DESCRIPTION.items():
+        if cmd.startswith(ctx.no_prefix.strip()):
+            items.append(f"`{cmd}` - {description}")
+    message = "\n".join(items) or "No command exist with the given prefix"
+    if ctx.author_id in ALLOWED:
+        ctx.public_send(text=message)
+    else:
+        ctx.private_send(text=message)
+
+# Cmd load
+import siege_cmd
+import live
 
 def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     response = SocketModeResponse(envelope_id=req.envelope_id)

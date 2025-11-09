@@ -43,6 +43,10 @@
             {
                 "command": "/stats",
                 "description": "| View stats for each week"
+            },
+            {
+                "command": "/help",
+                "description": "<prefix>? | Help command to hopefully answer your random question?"
             }
         ]
     },
