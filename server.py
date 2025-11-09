@@ -121,6 +121,22 @@ async def client_secret_curr(user_id: typing.Annotated[str, Depends(check_jwt)])
     client_secret, _ = secrets
     return {"client_secret": client_secret}
 
+@app.get("/accept")
+async def accept_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
+    game_id = await get_result(db.get_game_mgr_active_game, user_id)
+    if game_id is None:
+        raise HTTPException(404, "Cannot find a game that you are actively managing")
+
+    turn_detail = await get_result(db.get_active_turn_details, game_id)
+
+    if not turn_detail:
+        raise HTTPException(419, "Unable to find an active turn")
+
+    turn_user_id: str = turn_detail[0]
+
+    await get_result(db.update_turn_status, game_id, turn_user_id, "COMPLETED")
+    return "ok"
+
 
 @app.get("/turn-status")
 async def get_turn_status(user_id: typing.Annotated[str, Depends(check_jwt)]):
