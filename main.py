@@ -32,9 +32,10 @@ from server import start_server
 load_dotenv()
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 
+
+@smart_msg_listen("live.helps")
+@smart_msg_listen("siege.helps")
 @slash_listen("/help")
-@smart_msg_listen("live.help")
-@smart_msg_listen("siege.help")
 @description("/help <prefix>?", "Help command to hopefully answer your random question?")
 def help(ctx: Context):
     items = []

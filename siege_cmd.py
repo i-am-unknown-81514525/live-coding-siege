@@ -611,7 +611,7 @@ def search_project(ctx: Context):
         base += " (Only showing 50 results)"
     base += "\n"
     base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours}h" + (f" matched by {full_info(p)} - {
-        str(retrieve(p, full_info(p) or "project name"))[:50]
+        str(retrieve(p, full_info(p) or "project name"))[:150]
     }" if req else "") for p in filtered[:50])
 
     if ctx.author_id in ALLOWED:

@@ -92,7 +92,7 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 
 `siege.leaderboard` - Leaderboard, everyone love this, aside from gambling
 
-For the full list, use `siege.help` or `/help`
+For the full list, use `siege.helps` or `/help`
 
 ### How does it follow the grid theme
 Go to the web dashboard and click the leaderboard text (Yes, it is a button), and it will show a grid of ticket, which see more fun and more represetable for the ticket system
