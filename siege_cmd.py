@@ -105,7 +105,7 @@ def get_siege_user_info(ctx: Context):
     if left_over:
         if re.match(r"<@(U\w+)(\|[0-9a-zA-Z\-_\.]+)?>", left_over):
             user_id = (
-                left_over.removeprefix("<@").removesuffix(">").split("|")[0]
+                left_over.strip().removeprefix("<@").removesuffix(">").split("|")[0]
             )  # https://stackoverflow.com/questions/29392407/how-to-get-a-slack-user-by-email-using-users-info-api/51469610#51469610
         else:
             user_id = left_over
@@ -556,11 +556,12 @@ def search_project(ctx: Context):
             return "project name"
         if req in proj.description:
             return "description"
-        parsed = _parse_repo(proj.project_url)
-        if req in _parse_repo_user(parsed):
-            return "repo user"
-        if req in parsed.split("/")[1]:
-            return "repo"
+        if proj.repo_url:
+            parsed = _parse_repo(proj.repo_url)
+            if req in _parse_repo_user_from_shorthand(parsed):
+                return "repo user"
+            if req in parsed.split("/")[1]:
+                return "repo"
         try:
             if int(req) == proj.user.id or int(req) == proj.id:
                 if int(req) == proj.user.id:

@@ -122,7 +122,7 @@ class MessageContext(Context):
     def no_prefix(self) -> str:
         r = self.event.message.text.split(" ", 1)
         if len(r) > 1:
-            return r[1]
+            return r[1].strip()
         return ""
 
     @overload
