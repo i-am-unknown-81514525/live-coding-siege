@@ -19,6 +19,7 @@ import time
 import logging
 from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
+import difflib
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 BANNED = []
@@ -544,6 +545,14 @@ def get_stats(ctx: Context):
     else:
         ctx.private_send(False, text="\n".join(total_msg))
 
+def _cmp(search: str, term: str) -> float:
+    if len(search) < 3 or len(term) < 3:
+        return 0
+    matcher = difflib.SequenceMatcher(None, search, term)
+    return matcher.ratio()
+
+SIMILARITY_THRESHOLD = 0.75
+
 @slash_listen("/searchs")
 @smart_msg_listen("siege.search ")
 @smart_msg_listen("siege.searchs ")
@@ -552,15 +561,15 @@ def search_project(ctx: Context):
     req = ctx.no_prefix.lower()
     all_projs = get_all_projs()
     def full_info(proj: SiegeProject) -> Literal["project name", "description", "repo user", "repo", None, "user id", "project id", "display name", "user name"]:
-        if req in proj.name.lower():
+        if req in proj.name.lower() or _cmp(req, proj.name.lower()) > SIMILARITY_THRESHOLD:
             return "project name"
-        if req in proj.description.lower():
+        if req in proj.description.lower() or _cmp(req, proj.description.lower()) > SIMILARITY_THRESHOLD:
             return "description"
         if proj.repo_url:
             parsed = _parse_repo(proj.repo_url)
-            if req in _parse_repo_user_from_shorthand(parsed).lower():
+            if req in _parse_repo_user_from_shorthand(parsed).lower() or _cmp(req, _parse_repo_user_from_shorthand(parsed).lower()) > SIMILARITY_THRESHOLD:
                 return "repo user"
-            if req in parsed.split("/")[1].lower():
+            if req in parsed.split("/")[1].lower() or _cmp(req, parsed.split("/")[1].lower()) > SIMILARITY_THRESHOLD:
                 return "repo"
         try:
             if int(req) == proj.user.id or int(req) == proj.id:
@@ -570,9 +579,9 @@ def search_project(ctx: Context):
                     return "project id"
         except:
             ...
-        if req in proj.user.display_name.lower():
+        if req in proj.user.display_name.lower() or _cmp(req, proj.user.display_name.lower() ) > SIMILARITY_THRESHOLD:
             return "display name"
-        if req in proj.user.name.lower():
+        if req in proj.user.name.lower()  or _cmp(req, proj.user.name.lower() ) > SIMILARITY_THRESHOLD:
             return "user name"
     
     filtered = list(filter(lambda proj: full_info(proj) is not None, all_projs))
