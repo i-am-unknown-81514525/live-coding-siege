@@ -544,9 +544,10 @@ def get_stats(ctx: Context):
     else:
         ctx.private_send(False, text="\n".join(total_msg))
 
-@slash_listen("/search")
-@smart_msg_listen("siege.search")
-@description("/search <keyword>?", "Search for project by keyword")
+@slash_listen("/searchs")
+@smart_msg_listen("siege.search ")
+@smart_msg_listen("siege.searchs ")
+@description("/searchs <keyword>?", "Search for project by keyword")
 def search_project(ctx: Context):
     req = ctx.no_prefix
     all_projs = get_all_projs()
