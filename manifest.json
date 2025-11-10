@@ -47,6 +47,10 @@
             {
                 "command": "/help",
                 "description": "<prefix>? | Help command to hopefully answer your random question?"
+            },
+            {
+                "command": "/search",
+                "description": "<keyword>? | Search Siege project by keywords"
             }
         ]
     },

@@ -20,3 +20,4 @@
 [x] - `live.reset` for project changes
 [x] - Request logging to siege API
 [x] - Fix /tickets endpoint being slow
+[x] - Implemented `/search`

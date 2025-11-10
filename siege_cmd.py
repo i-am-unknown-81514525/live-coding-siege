@@ -1,3 +1,4 @@
+from typing import Literal
 from reg import (
     action_listen,
     action_prefix_listen,
@@ -542,3 +543,48 @@ def get_stats(ctx: Context):
         ctx.public_send(True, text="\n".join(total_msg))
     else:
         ctx.private_send(False, text="\n".join(total_msg))
+
+@slash_listen("/search")
+@smart_msg_listen("siege.search")
+@description("/search <keyword>?", "Search for project by keyword")
+def search_project(ctx: Context):
+    req = ctx.no_prefix
+    all_projs = get_all_projs()
+    def full_info(proj: SiegeProject) -> Literal["project name", "description", "repo user", "repo", None, "user id", "project id", "display name", "user name"]:
+        if req in proj.name:
+            return "project name"
+        if req in proj.description:
+            return "description"
+        parsed = _parse_repo(proj.project_url)
+        if req in _parse_repo_user(parsed):
+            return "repo user"
+        if req in parsed.split("/")[1]:
+            return "repo"
+        try:
+            if int(req) == proj.user.id or int(req) == proj.id:
+                if int(req) == proj.user.id:
+                    return "user id"
+                else:
+                    return "project id"
+        except:
+            ...
+        if req in proj.user.display_name:
+            return "display name"
+        if req in proj.user.name:
+            return "user name"
+    
+    filtered = list(filter(lambda proj: full_info(proj) is not None, all_projs))
+
+    base = f"Founded {len(filtered)} matched project"
+    if req:
+        base += f" with keyword \"{req}\""
+    if len(filtered) > 50:
+        base += " (Only showing 50 results)"
+    base += "\n"
+    base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id} - {p.name}: {p.status} with {p.hours} matched by {full_info(p)}`" for p in filtered[:50])
+
+    if ctx.author_id in ALLOWED:
+        ctx.public_send(text=base)
+    else:
+        ctx.private_send(text=base)
+
