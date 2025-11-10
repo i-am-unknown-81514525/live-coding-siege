@@ -549,18 +549,18 @@ def get_stats(ctx: Context):
 @smart_msg_listen("siege.searchs ")
 @description("/searchs <keyword>?", "Search for project by keyword")
 def search_project(ctx: Context):
-    req = ctx.no_prefix
+    req = ctx.no_prefix.lower()
     all_projs = get_all_projs()
     def full_info(proj: SiegeProject) -> Literal["project name", "description", "repo user", "repo", None, "user id", "project id", "display name", "user name"]:
-        if req in proj.name:
+        if req in proj.name.lower():
             return "project name"
-        if req in proj.description:
+        if req in proj.description.lower():
             return "description"
         if proj.repo_url:
             parsed = _parse_repo(proj.repo_url)
-            if req in _parse_repo_user_from_shorthand(parsed):
+            if req in _parse_repo_user_from_shorthand(parsed).lower():
                 return "repo user"
-            if req in parsed.split("/")[1]:
+            if req in parsed.split("/")[1].lower():
                 return "repo"
         try:
             if int(req) == proj.user.id or int(req) == proj.id:
@@ -570,9 +570,9 @@ def search_project(ctx: Context):
                     return "project id"
         except:
             ...
-        if req in proj.user.display_name:
+        if req in proj.user.display_name.lower():
             return "display name"
-        if req in proj.user.name:
+        if req in proj.user.name.lower():
             return "user name"
     
     filtered = list(filter(lambda proj: full_info(proj) is not None, all_projs))
