@@ -19,7 +19,7 @@ import time
 import logging
 from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
-import difflib
+from rapidfuzz import fuzz
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 BANNED = []
@@ -548,10 +548,9 @@ def get_stats(ctx: Context):
 def _cmp(search: str, term: str) -> float:
     if len(search) < 3 or len(term) < 3:
         return 0
-    matcher = difflib.SequenceMatcher(None, search, term)
-    return matcher.ratio()
+    return fuzz.partial_ratio(search, term) / 100
 
-SIMILARITY_THRESHOLD = 0.75
+SIMILARITY_THRESHOLD = 0.9
 
 @slash_listen("/searchs")
 @smart_msg_listen("siege.search ")
@@ -584,6 +583,25 @@ def search_project(ctx: Context):
         if req in proj.user.name.lower()  or _cmp(req, proj.user.name.lower() ) > SIMILARITY_THRESHOLD:
             return "user name"
     
+    def retrieve(proj: SiegeProject, key: Literal["project name", "description", "repo user", "repo", "user id", "project id", "display name", "user name"]):
+        match key:
+            case "project name":
+                return proj.name
+            case "description":
+                return proj.description
+            case "display name":
+                return proj.user.display_name
+            case "repo user":
+                return _parse_repo_user(proj.repo_url)
+            case "repo":
+                return proj.repo_url
+            case "user id":
+                return proj.user.id
+            case "project id":
+                return proj.id
+            case "user name":
+                return proj.user.name
+    
     filtered = list(filter(lambda proj: full_info(proj) is not None, all_projs))
 
     base = f"Founded {len(filtered)} matched project"
@@ -592,7 +610,9 @@ def search_project(ctx: Context):
     if len(filtered) > 50:
         base += " (Only showing 50 results)"
     base += "\n"
-    base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id} - {p.name}: {p.status} with {p.hours} matched by {full_info(p)}`" for p in filtered[:50])
+    base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours}h" + (f" matched by {full_info(p)} - {
+        str(retrieve(p, full_info(p) or "project name"))[:50]
+    }" if req else "") for p in filtered[:50])
 
     if ctx.author_id in ALLOWED:
         ctx.public_send(text=base)
