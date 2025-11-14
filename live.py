@@ -1848,13 +1848,14 @@ async def _dispatch_async(coro: Awaitable[Any]):
 
 @smart_msg_listen("live.mgr_secret")
 @description("live.mgr_secret", "Show manager secret for authentication on https://livecode.relay7f98.us.to for web dashboard")
-def show_mgr_secret(ctx: MessageContext):
+@require_game_manager
+def show_mgr_secret(ctx: MessageContext, game_id: int):
     user_id = ctx.event.message.user
 
-    if (game_id := db.get_game_mgr_active_game(user_id)) is None:
-        return ctx.private_send(
-            text="You are not a game manager of any active game instance"
-        )
+    # if (game_id := db.get_game_mgr_active_game(user_id)) is None:
+    #     return ctx.private_send(
+    #         text="You are not a game manager of any active game instance"
+    #     )
 
     jwt_token = jwt.encode(
         {
