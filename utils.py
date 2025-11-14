@@ -18,17 +18,8 @@ def guess_week() -> int:
     return max_week_num
 
 def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
-    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
-        # if not db.has_game_manager(ctx.author_id):
-        #     ctx.private_send(text="Require missing role \"Game manager\"")
-        #     return None
-        if not ctx.thread_ts:
-            ctx.private_send(text="You can only run this in a thread")
-            return None
-        game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
-        if game_id is None:
-            ctx.private_send(text=f"No game instance exist in thread `{ctx.thread_ts}`")
-            return None
+    @require_game_thread
+    def inner(ctx: C, game_id: int, *args: P.args, **kwargs: P.kwargs) -> T | None:
         if not db.is_game_manager(game_id, ctx.author_id):
             ctx.private_send(text=f"Require missing role \"Game manager\" in thread `{ctx.thread_ts}`")
             return None
@@ -47,4 +38,16 @@ def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, P], T])
         if ctx.author_id not in AUTHORIZED_USERS:
             return None
         return func(ctx, *args, **kwargs)
+    return inner
+
+def require_game_thread[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
+    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
+        if ctx.thread_ts is None:
+            ctx.private_send(text="You can only run this in a thread")
+            return None
+        game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
+        if game_id is None:
+            ctx.private_send(text=f"No game instance exist in thread `{ctx.thread_ts}`")
+            return None
+        return func(ctx, game_id, *args, **kwargs)
     return inner
