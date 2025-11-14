@@ -1,10 +1,14 @@
 from collections.abc import Callable
 from typing import Concatenate
+import os
 
 from api import get_all_projs
 import db
 from reg import Context
 from typing import Any
+
+
+ALLOWED = os.environ["ALLOWLIST"].split(",")
 
 
 def guess_week() -> int:
@@ -22,4 +26,9 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
         return func(ctx, game_id, *args, **kwargs)
     return inner
 
-
+def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, P], T | None]:
+    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
+        if ctx.author_id not in ALLOWED:
+            return None
+        return inner(ctx, *args, **kwargs)
+    return inner

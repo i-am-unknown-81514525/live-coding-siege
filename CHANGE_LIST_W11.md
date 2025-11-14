@@ -15,3 +15,4 @@
 [ ] - Fix random after doing a statistical analysis of the current one
 [ ] - Transaction web page + server (address apce)
 [x] - decorator for permission check
+[ ] - `Context` for interaction
