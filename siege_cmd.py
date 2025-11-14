@@ -102,7 +102,7 @@ def get_siege_user_info(ctx: Context):
     if ctx.author_id in BANNED:
         return
     user_id = ctx.author_id
-    left_over = ctx.no_prefix
+    left_over = ctx.value
     if left_over:
         if re.match(r"<@(U\w+)(\|[0-9a-zA-Z\-_\.]+)?>", left_over):
             user_id = (
@@ -158,7 +158,7 @@ def get_siege_user_info(ctx: Context):
 def get_siege_proj_info(ctx: Context):
     if ctx.author_id in BANNED:
         return
-    left_over = ctx.no_prefix.strip()
+    left_over = ctx.value.strip()
     if left_over:
         try:
             proj_id = int(left_over)
@@ -365,7 +365,7 @@ LEADERBOARD_AMOUNT = 20
 @smart_msg_listen("siege.lb")
 @description("/lb <lb_option>?", "The hall of fame!")
 def get_leaderboard(ctx: Context):
-    opt = ctx.no_prefix or ""
+    opt = ctx.value or ""
     message: blockkit.Message | None = None
     force_ephemeral: bool = False
     match opt:
@@ -557,7 +557,7 @@ SIMILARITY_THRESHOLD = 0.9
 @smart_msg_listen("siege.searchs ")
 @description("/searchs <keyword>?", "Search for project by keyword")
 def search_project(ctx: Context):
-    req = ctx.no_prefix.lower()
+    req = ctx.value.lower()
     all_projs = get_all_projs()
     def full_info(proj: SiegeProject) -> Literal["project name", "description", "repo user", "repo", None, "user id", "project id", "display name", "user name"]:
         if req in proj.name.lower() or _cmp(req, proj.name.lower()) > SIMILARITY_THRESHOLD:

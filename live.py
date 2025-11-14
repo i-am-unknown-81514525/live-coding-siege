@@ -362,7 +362,7 @@ def _handle_user_turn_timeout(
 @require_authorised
 @require_game_manager
 def debug(ctx: MessageContext, game_id: int):
-    user_id = ctx.no_prefix
+    user_id = ctx.value
 
     if not re.match(r"<@(U\w+)>", user_id):
         ctx.private_send(text="Invalid user ID.")
@@ -625,7 +625,7 @@ def reject_turn(ctx: MessageContext, game_id: int):
 @description("live.add_mgr", "Add a game manager (Current game manager only)")
 @require_game_manager
 def add_manager(ctx: Context, game_id: int):
-    user_id = ctx.no_prefix
+    user_id = ctx.value
 
     if not re.match(r"<@(U\w+)>", user_id):
         ctx.private_send(
@@ -643,11 +643,11 @@ def add_manager(ctx: Context, game_id: int):
     if not db.has_game_manager(user_id):
         db.add_game_manager(game_id, user_id)
         ctx.public_send(
-            text="<@" + user_id + "> is now the new show manager!",
+            text=f"<@{user_id}> is now the new show manager!",
         )
     else:
         ctx.public_send(
-            text="<@" + user_id + "> is already a manager in some active game show!",
+            text=f"<@{user_id}> is already a manager in some active game show!",
         )
     return
 
@@ -705,7 +705,7 @@ def takeover(ctx: MessageContext, game_id: int):
 @require_authorised
 @require_game_thread
 def remove_manager(ctx: MessageContext, game_id: int):
-    user_id = ctx.no_prefix
+    user_id = ctx.value
 
     if not re.match(r"<@(U\w+)>", user_id):
         ctx.private_send(text="Invalid user ID.")
@@ -777,7 +777,7 @@ def show_game_info(ctx: Context, game_id: int):
 @description("live.tickets", "View your ticket count for the game")
 @require_game_thread
 def get_ticket_count(ctx: MessageContext, game_id: int):
-    if ctx.no_prefix:
+    if ctx.value:
         return
 
     user = ctx.event.message.user

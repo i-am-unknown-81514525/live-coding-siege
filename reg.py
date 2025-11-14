@@ -51,7 +51,7 @@ class Context(ABC):
     client: WebClient
 
     @property
-    def no_prefix(self) -> str: ...
+    def value(self) -> str: ...
 
     @property
     def author_id(self) -> str: ...
@@ -119,7 +119,7 @@ class MessageContext(Context):
         return self.event.channel
 
     @property
-    def no_prefix(self) -> str:
+    def value(self) -> str:
         r = self.event.message.text.split(" ", 1)
         if len(r) > 1:
             return r[1].strip()
@@ -212,7 +212,7 @@ class SlashContext(Context):
         return self.event.channel_id
 
     @property
-    def no_prefix(self) -> str:
+    def value(self) -> str:
         return self.event.text.strip()
 
     @overload
