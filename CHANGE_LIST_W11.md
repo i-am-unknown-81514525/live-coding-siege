@@ -11,3 +11,7 @@
 [ ] - `siege.shop` ???? (idk if it even necessary but well, it is an api so I must use it)
 [ ] - `siege.user_search` for user searching
 [ ] - Improve the timer system?
+[ ] - Convert `SIEGE_MODE` to something handled by per game instance
+[ ] - Fix random after doing a statistical analysis of the current one
+[ ] - Transaction web page + server (address apce)
+[x] - decorator for permission check
