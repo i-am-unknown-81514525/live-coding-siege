@@ -28,7 +28,7 @@ from blockkit import Message, Section, Button
 from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
-from utils import guess_week
+from utils import guess_week, require_allowed, require_authorised, require_game_manager
 from db import HourStatus, auto_add, auto_add_no_siege
 
 

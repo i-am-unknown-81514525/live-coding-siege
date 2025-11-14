@@ -19,10 +19,18 @@ def guess_week() -> int:
 
 def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
-        if not db.has_game_manager(ctx.author_id):
+        # if not db.has_game_manager(ctx.author_id):
+        #     ctx.private_send(text="Require missing role \"Game manager\"")
+        #     return None
+        if not ctx.thread_ts:
+            ctx.private_send(text="You can only run this in a thread")
             return None
-        game_id = db.get_game_mgr_active_game(ctx.author_id)
+        game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
         if game_id is None:
+            ctx.private_send(text=f"No game instance exist in thread `{ctx.thread_ts}`")
+            return None
+        if not db.is_game_manager(game_id, ctx.author_id):
+            ctx.private_send(text=f"Require missing role \"Game manager\" in thread `{ctx.thread_ts}`")
             return None
         return func(ctx, game_id, *args, **kwargs)
     return inner
