@@ -83,20 +83,11 @@ def _technical_not_reveal_from_msg(
 
 @smart_msg_listen("live.init")
 @description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
+@require_allowed
 def init_game(ctx: Context):
     user_id = ctx.author_id
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts or ctx.message_ts
-
-    if (
-        user_id not in AUTHORIZED_USERS
-        and user_id not in ALLOWLIST
-        and not os.getenv("RIG")
-    ):
-        ctx.public_send(
-            text="You cannot overrule the magician."
-        )
-        return
     
     if not thread_ts:
         ctx.public_send(text="Unable to locate the thread")
@@ -368,9 +359,11 @@ def _handle_user_turn_timeout(
 
 @smart_msg_listen("live.debug_turn")
 @description("live.debug_turn", "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)")
-def debug(ctx: MessageContext):
-    if ctx.event.message.user not in AUTHORIZED_USERS:
-        return
+@require_authorised
+@require_game_manager
+def debug(ctx: MessageContext, game_id: int):
+    # if ctx.event.message.user not in AUTHORIZED_USERS:
+    #     return
 
     thread_ts = ctx.event.message.thread_ts
     channel_id = ctx.event.channel
@@ -638,20 +631,21 @@ def confirm_optout(event: BlockActionEvent, client: WebClient):
 
 @smart_msg_listen("live.reject")
 @description("live.reject", "Reject a turn")
-def reject_turn(ctx: MessageContext):
+@require_game_manager
+def reject_turn(ctx: MessageContext, game_id: int):
     user_id = ctx.event.message.user
     thread_ts = ctx.event.message.thread_ts
 
-    if (
-        thread_ts is None
-        or (game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts))
-        is None
-    ):
-        ctx.private_send(text="There are no performance here, go somewhere else!")
-        return
+    # if (
+    #     thread_ts is None
+    #     or (game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts))
+    #     is None
+    # ):
+    #     ctx.private_send(text="There are no performance here, go somewhere else!")
+    #     return
 
-    if not db.is_game_manager(game_id, user_id):
-        ctx.private_send(text="You cannot overrule the magician.")
+    # if not db.is_game_manager(game_id, user_id):
+    #     ctx.private_send(text="You cannot overrule the magician.")
 
     turn_row = db.get_active_turn_details(game_id)
 
@@ -664,26 +658,27 @@ def reject_turn(ctx: MessageContext):
 
 @smart_msg_listen("live.add_mgr")
 @description("live.add_mgr", "Add a game manager (Current game manager only)")
-def add_manager(ctx: Context):
+@require_game_manager
+def add_manager(ctx: Context, game_id: int):
     user_id = ctx.author_id
-    channel_id = ctx.channel_id
-    thread_ts = ctx.thread_ts or ctx.message_ts
+    # channel_id = ctx.channel_id
+    # thread_ts = ctx.thread_ts or ctx.message_ts
 
-    if not thread_ts:
-        return ctx.private_send(text="Unable to locate the game thread")
+    # if not thread_ts:
+    #     return ctx.private_send(text="Unable to locate the game thread")
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        ctx.private_send(
-            text="No active show found in this thread.",
-        )
-        return
+    # game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    # if not game_id:
+    #     ctx.private_send(
+    #         text="No active show found in this thread.",
+    #     )
+    #     return
 
-    if not db.is_game_manager(game_id, user_id):
-        ctx.private_send(
-            text="You cannot overrule the magician.",
-        )
-        return
+    # if not db.is_game_manager(game_id, user_id):
+    #     ctx.private_send(
+    #         text="You cannot overrule the magician.",
+    #     )
+    #     return
 
     user_id = ctx.no_prefix
 
@@ -715,21 +710,22 @@ def add_manager(ctx: Context):
 @smart_msg_listen(
     "live.force_leave"
 )  # Deregister as game manager in any active game participated. Would also end the huddle if it is the last game manager
-def force_leave(ctx: MessageContext):
+@require_game_manager
+def force_leave(ctx: MessageContext, game_id: int):
     user_id = ctx.event.message.user
     channel_id = ctx.event.channel
 
-    if (managing_game_id := db.get_game_mgr_active_game(user_id)) is None:
-        return ctx.private_send(
-            text="You are not a game manager in any active show instance."
-        )
+    # if (managing_game_id := db.get_game_mgr_active_game(user_id)) is None:
+    #     return ctx.private_send(
+    #         text="You are not a game manager in any active show instance."
+    #     )
 
-    db.remove_game_manager(managing_game_id, user_id)
+    db.remove_game_manager(game_id, user_id)
 
     ctx.public_send(text="You are removed from the game manager in the active game")
 
-    if not db.list_game_manager(managing_game_id):
-        db.update_turn_status(managing_game_id, user_id, "COMPLETED")
+    if not db.list_game_manager(game_id):
+        db.update_turn_status(game_id, user_id, "COMPLETED")
         ctx.private_send(
             channel=channel_id,
             text="Additional from removing from game manager, the event is also ended",
@@ -737,22 +733,23 @@ def force_leave(ctx: MessageContext):
 
 
 @smart_msg_listen("live.leave")
-def leave(ctx: MessageContext):
+@require_game_manager
+def leave(ctx: MessageContext, game_id: int):
     user_id = ctx.event.message.user
     channel_id = ctx.event.channel
     thread_ts = ctx.event.message.thread_ts
 
-    if (managing_game_id := db.get_game_mgr_active_game(user_id)) is None:
-        return ctx.private_send(
-            text="You are not a game manager in any active show instance."
-        )
+    # if (managing_game_id := db.get_game_mgr_active_game(user_id)) is None:
+    #     return ctx.private_send(
+    #         text="You are not a game manager in any active show instance."
+    #     )
 
-    if db.list_game_manager(managing_game_id) == [user_id]:
+    if db.list_game_manager(game_id) == [user_id]:
         return ctx.private_send(
             text="You are the only manager left, therefore you cannot leave without ending the event. If you still want to do so, use `live.force_leave`"
         )
 
-    db.remove_game_manager(managing_game_id, user_id)
+    db.remove_game_manager(game_id, user_id)
 
     ctx.public_send(
         channel=channel_id,
@@ -761,9 +758,10 @@ def leave(ctx: MessageContext):
 
 
 @smart_msg_listen("live.takeover")
+@require_authorised
 def takeover(ctx: MessageContext):
-    if ctx.event.message.user not in AUTHORIZED_USERS:
-        return ctx.private_send(text="You cannot pretend to be authorised magician.")
+    # if ctx.event.message.user not in AUTHORIZED_USERS:
+    #     return ctx.private_send(text="You cannot pretend to be authorised magician.")
 
     user_id = ctx.event.message.user
     channel_id = ctx.event.channel
@@ -785,9 +783,10 @@ def takeover(ctx: MessageContext):
 
 @smart_msg_listen("live.rm_mgr")
 @description("live.rm_mgr", "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))")
+@require_authorised
 def remove_manager(ctx: MessageContext):
-    if ctx.event.message.user not in AUTHORIZED_USERS:
-        return ctx.private_send(text="You cannot pretend to be authorised magician.")
+    # if ctx.event.message.user not in AUTHORIZED_USERS:
+    #     return ctx.private_send(text="You cannot pretend to be authorised magician.")
 
     user_id = ctx.event.message.user
     channel_id = ctx.event.channel
@@ -1017,29 +1016,30 @@ def get_ticket_list(ctx: MessageContext):
 
 @smart_msg_listen("live.pick")
 @description("live.pick", "Pick a user to start a turn, or switch state for the corresponding state of the game (Game manager only)")
-def pick_user(ctx: Context):
+@require_game_manager
+def pick_user(ctx: Context, game_id: int):
     manager_id = ctx.author_id
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts or ctx.message_ts
 
-    if not thread_ts:
-        ctx.private_send(
-            text="This command must be used within a game's thread.",
-        )
-        return
+    # if not thread_ts:
+    #     ctx.private_send(
+    #         text="This command must be used within a game's thread.",
+    #     )
+    #     return
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        ctx.private_send(
-            text="Cannot pick user: No active game found in this thread.",
-        )
-        return
+    # game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    # if not game_id:
+    #     ctx.private_send(
+    #         text="Cannot pick user: No active game found in this thread.",
+    #     )
+    #     return
 
-    if not db.is_game_manager(game_id, manager_id):
-        ctx.private_send(
-            text="You cannot overrule the magician.",
-        )
-        return
+    # if not db.is_game_manager(game_id, manager_id):
+    #     ctx.private_send(
+    #         text="You cannot overrule the magician.",
+    #     )
+    #     return
 
     with get_game_lock(game_id):
 
@@ -1263,29 +1263,30 @@ def export_game_history(ctx: MessageContext):
 
 @smart_msg_listen("live.rnd")
 @description("live.rnd", "Change the server secret")
-def refresh_server_secret(ctx: Context):
+@require_game_manager
+def refresh_server_secret(ctx: Context, game_id: int):
     manager_id = ctx.author_id
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts or ctx.message_ts
 
-    if not thread_ts:
-        ctx.private_send(
-            text="You cannot be doing this outside the performance, get back here.",
-        )
-        return
+    # if not thread_ts:
+    #     ctx.private_send(
+    #         text="You cannot be doing this outside the performance, get back here.",
+    #     )
+    #     return
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        ctx.private_send(
-            text="There are no active magic performance, do you want to start one with `live.init`?",
-        )
-        return
+    # game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    # if not game_id:
+    #     ctx.private_send(
+    #         text="There are no active magic performance, do you want to start one with `live.init`?",
+    #     )
+    #     return
 
-    if not db.is_game_manager(game_id, manager_id):
-        ctx.private_send(
-            text="You cannot overrule the magician.",
-        )
-        return
+    # if not db.is_game_manager(game_id, manager_id):
+    #     ctx.private_send(
+    #         text="You cannot overrule the magician.",
+    #     )
+    #     return
 
     new_server_secret = secrets.token_hex(16)
     new_server_secret_hash = _sha3(new_server_secret)
@@ -1329,23 +1330,24 @@ def refresh_server_secret(ctx: Context):
 
 @smart_msg_listen("live.end")
 @description("live.end", "End the game")
-def end_game(ctx: Context):
+@require_game_manager
+def end_game(ctx: Context, game_id: int):
     manager_id = ctx.author_id
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts or ctx.message_ts
 
-    if not thread_ts:
-        ctx.private_send(text="This command must be used within the magic show thread.")
-        return
+    # if not thread_ts:
+    #     ctx.private_send(text="This command must be used within the magic show thread.")
+    #     return
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        ctx.private_send(text="No active game found in this thread to end.")
-        return
+    # game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    # if not game_id:
+    #     ctx.private_send(text="No active game found in this thread to end.")
+    #     return
 
-    if not db.is_game_manager(game_id, manager_id):
-        ctx.private_send(text="You cannot overrule the magician.")
-        return
+    # if not db.is_game_manager(game_id, manager_id):
+    #     ctx.private_send(text="You cannot overrule the magician.")
+    #     return
 
     db.update_game_status(game_id, "COMPLETED")
 
