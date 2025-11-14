@@ -28,7 +28,7 @@ from blockkit import Message, Section, Button
 from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
-from utils import guess_week, require_allowed, require_authorised, require_game_manager
+from utils import guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread
 from db import HourStatus, auto_add, auto_add_no_siege
 
 
@@ -555,19 +555,20 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
 
 @smart_msg_listen("live.optout")
 @description("live.output", "Output from the game (Why... :heavysob:)")
-def optout(ctx: MessageContext):
-    thread_ts = ctx.event.message.thread_ts
-    channel_id = ctx.event.channel
+@require_game_thread
+def optout(ctx: MessageContext, game_id: int):
+    # thread_ts = ctx.event.message.thread_ts
+    # channel_id = ctx.event.channel
 
-    if not thread_ts:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
+    # if not thread_ts:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        ctx.private_send(text="No active show found in this thread.")
-        return
+    # game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    # if not game_id:
+    #     ctx.private_send(text="No active show found in this thread.")
+    #     return
 
     ctx.private_send(
         **Message()
@@ -826,18 +827,19 @@ def remove_manager(ctx: MessageContext):
 
 @smart_msg_listen("live.members")  # Show the user in the huddle, not just eligiable
 @description("live.members", "List all the member in the huddle")
-def show_members(ctx: MessageContext):
-    thread_ts = ctx.event.message.thread_ts
+@require_authorised
+def show_members(ctx: MessageContext, game_id: int):
+    # thread_ts = ctx.event.message.thread_ts
 
-    if not thread_ts:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
+    # if not thread_ts:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
 
-    game_id = db.get_active_game_by_thread(ctx.event.channel, thread_ts)
+    # game_id = db.get_active_game_by_thread(ctx.event.channel, thread_ts)
 
-    if game_id is None:
-        return ctx.private_send(text="No active show found in this thread.")
+    # if game_id is None:
+    #     return ctx.private_send(text="No active show found in this thread.")
 
     user_ids = db.get_huddle_participants(game_id)
     user_names_map = db.get_user_names(user_ids)
@@ -855,18 +857,19 @@ def show_members(ctx: MessageContext):
 @smart_msg_listen("live.eligiable")
 @smart_msg_listen("live.eligible")
 @description("live.eligible", "List all the member that elligible for the next round")
-def show_eligiable(ctx: MessageContext):
-    thread_ts = ctx.event.message.thread_ts
+@require_game_thread
+def show_eligiable(ctx: MessageContext, game_id: int):
+    # thread_ts = ctx.event.message.thread_ts
 
-    if not thread_ts:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
+    # if not thread_ts:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
 
-    game_id = db.get_active_game_by_thread(ctx.event.channel, thread_ts)
+    # game_id = db.get_active_game_by_thread(ctx.event.channel, thread_ts)
 
-    if game_id is None:
-        return ctx.private_send(text="No active show found in this thread.")
+    # if game_id is None:
+    #     return ctx.private_send(text="No active show found in this thread.")
 
     user_ids = db.get_eligible_participants(game_id)
     user_names_map = db.get_user_names(user_ids)
@@ -882,20 +885,21 @@ def show_eligiable(ctx: MessageContext):
 
 @smart_msg_listen("live.turn")
 @description("live.turn", "View turn information")
-def show_game_info(ctx: Context):
-    user_id = ctx.author_id
-    channel_id = ctx.channel_id
-    thread_ts = ctx.thread_ts or ctx.message_ts
+@require_game_thread
+def show_game_info(ctx: Context, game_id: int):
+    # user_id = ctx.author_id
+    # channel_id = ctx.channel_id
+    # thread_ts = ctx.thread_ts or ctx.message_ts
 
-    if not thread_ts:
-        return ctx.private_send(text="Unable to locate the thread")
+    # if not thread_ts:
+    #     return ctx.private_send(text="Unable to locate the thread")
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        ctx.private_send(
-            text="No active show found in this thread.",
-        )
-        return
+    # game_id = db.get_active_game_by_thread(channel_id, thread_ts)
+    # if not game_id:
+    #     ctx.private_send(
+    #         text="No active show found in this thread.",
+    #     )
+    #     return
 
     message = _build_active_turn_message(game_id, is_public=False)
     if message:
@@ -907,19 +911,20 @@ def show_game_info(ctx: Context):
 # @smart_msg_listen("live.ticket")
 @smart_msg_listen("live.tickets")
 @description("live.tickets", "View your ticket count for the game")
-def get_ticket_count(ctx: MessageContext):
+@require_game_thread
+def get_ticket_count(ctx: MessageContext, game_id: int):
     if ctx.no_prefix:
         return
-    if not ctx.event.message.thread_ts:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
+    # if not ctx.event.message.thread_ts:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
 
-    game_id = db.get_active_game_by_thread(
-        ctx.event.channel, ctx.event.message.thread_ts
-    )
-    if not game_id:
-        return ctx.private_send(text="No active show found in this thread.")
+    # game_id = db.get_active_game_by_thread(
+    #     ctx.event.channel, ctx.event.message.thread_ts
+    # )
+    # if not game_id:
+    #     return ctx.private_send(text="No active show found in this thread.")
 
     user = ctx.event.message.user
     db.auto_add(game_id, user)
@@ -941,16 +946,17 @@ def get_ticket_count(ctx: MessageContext):
 
 @smart_msg_listen("live.reset")
 @description("live.reset", "Reset your siege project record in the database for the game")
-def reset_proj(ctx: MessageContext):
-    if not ctx.event.message.thread_ts:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
-    game_id = db.get_active_game_by_thread(
-        ctx.event.channel, ctx.event.message.thread_ts
-    )
-    if not game_id:
-        return ctx.private_send(text="No active show found in this thread.")
+@require_game_thread
+def reset_proj(ctx: MessageContext, game_id: int):
+    # if not ctx.event.message.thread_ts:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
+    # game_id = db.get_active_game_by_thread(
+    #     ctx.event.channel, ctx.event.message.thread_ts
+    # )
+    # if not game_id:
+    #     return ctx.private_send(text="No active show found in this thread.")
     
     if not SIEGE_MODE:
         return ctx.private_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
@@ -960,16 +966,17 @@ def reset_proj(ctx: MessageContext):
 
 @smart_msg_listen("live.ticket_list")
 @description("live.ticket_list", "List everyone tickets")
-def get_ticket_list(ctx: MessageContext):
-    if not ctx.event.message.thread_ts:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
-    game_id = db.get_active_game_by_thread(
-        ctx.event.channel, ctx.event.message.thread_ts
-    )
-    if not game_id:
-        return ctx.private_send(text="No active show found in this thread.")
+@require_game_thread
+def get_ticket_list(ctx: MessageContext, game_id: int):
+    # if not ctx.event.message.thread_ts:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
+    # game_id = db.get_active_game_by_thread(
+    #     ctx.event.channel, ctx.event.message.thread_ts
+    # )
+    # if not game_id:
+    #     return ctx.private_send(text="No active show found in this thread.")
     
     if not SIEGE_MODE:
         return ctx.public_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
@@ -1196,14 +1203,15 @@ def pick_user(ctx: Context, game_id: int):
 
 @smart_msg_listen("live.summary")
 @description("live.summary", "View a summary of the game")
-def show_game_summary(ctx: MessageContext):
-    if ctx.event.message.thread_ts is None:
-        return ctx.private_send(
-            text="This command must be used within a game show's thread."
-        )
-    game_id = db.get_any_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
-    if not game_id:
-        return ctx.private_send(text="No show found in this thread.")
+@require_game_thread
+def show_game_summary(ctx: MessageContext, game_id: int):
+    # if ctx.event.message.thread_ts is None:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game show's thread."
+    #     )
+    # game_id = db.get_any_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+    # if not game_id:
+    #     return ctx.private_send(text="No show found in this thread.")
 
     summary_stats = db.get_game_summary_stats(game_id)
 
@@ -1230,15 +1238,16 @@ def show_game_summary(ctx: MessageContext):
 
 @smart_msg_listen("live.export")
 @description("live.export", "Export the game state for coin distribution")
-def export_game_history(ctx: MessageContext):
-    if ctx.event.message.thread_ts is None:
-        return ctx.private_send(
-            text="This command must be used within a game's thread."
-        )
+@require_game_thread
+def export_game_history(ctx: MessageContext, game_id: int):
+    # if ctx.event.message.thread_ts is None:
+    #     return ctx.private_send(
+    #         text="This command must be used within a game's thread."
+    #     )
 
-    game_id = db.get_any_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
-    if not game_id:
-        return ctx.private_send(text="No game found in this thread.")
+    # game_id = db.get_any_game_by_thread(ctx.event.channel, ctx.event.message.thread_ts)
+    # if not game_id:
+    #     return ctx.private_send(text="No game found in this thread.")
 
     turns = db.get_all_turns_for_game(game_id)
     if not turns:
@@ -1265,9 +1274,9 @@ def export_game_history(ctx: MessageContext):
 @description("live.rnd", "Change the server secret")
 @require_game_manager
 def refresh_server_secret(ctx: Context, game_id: int):
-    manager_id = ctx.author_id
-    channel_id = ctx.channel_id
-    thread_ts = ctx.thread_ts or ctx.message_ts
+    # manager_id = ctx.author_id
+    # channel_id = ctx.channel_id
+    # thread_ts = ctx.thread_ts or ctx.message_ts
 
     # if not thread_ts:
     #     ctx.private_send(
@@ -1332,9 +1341,9 @@ def refresh_server_secret(ctx: Context, game_id: int):
 @description("live.end", "End the game")
 @require_game_manager
 def end_game(ctx: Context, game_id: int):
-    manager_id = ctx.author_id
-    channel_id = ctx.channel_id
-    thread_ts = ctx.thread_ts or ctx.message_ts
+    # manager_id = ctx.author_id
+    # channel_id = ctx.channel_id
+    # thread_ts = ctx.thread_ts or ctx.message_ts
 
     # if not thread_ts:
     #     ctx.private_send(text="This command must be used within the magic show thread.")
@@ -1495,18 +1504,19 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
 
 @smart_msg_listen("live.client_secret")
 @description("live.client_secret", "The current client secret (Just look at the screen)")
-def show_client_secret(ctx: MessageContext):
-    if ctx.event.message.thread_ts is None:
-        ctx.private_send(text="This command must be used within the magic show thread.")
-        return
+@require_game_thread
+def show_client_secret(ctx: MessageContext, game_id: int):
+    # if ctx.event.message.thread_ts is None:
+    #     ctx.private_send(text="This command must be used within the magic show thread.")
+    #     return
 
-    game_id = db.get_active_game_by_thread(
-        ctx.event.channel, ctx.event.message.thread_ts
-    )
+    # game_id = db.get_active_game_by_thread(
+    #     ctx.event.channel, ctx.event.message.thread_ts
+    # )
 
-    if game_id is None:
-        ctx.private_send(text="No active show found in this thread.")
-        return
+    # if game_id is None:
+    #     ctx.private_send(text="No active show found in this thread.")
+    #     return
 
     (client_secret, _) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
     ctx.public_send(text=f"Current client secret: `{client_secret}`.")
