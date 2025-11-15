@@ -47,7 +47,7 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
     return inner
 
 def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
-    @have_allowed
+    @filter_allowed
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
         if not groups:
             group_names = ", ".join(f"\"{name}\"" for name in groups)
@@ -57,7 +57,7 @@ def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str],
     return inner
 
 def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
-    @have_authorised
+    @filter_authorised
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
         if not groups:
             group_names = ", ".join(f"\"{name}\"" for name in groups)
@@ -66,7 +66,7 @@ def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[st
         return func(ctx, groups, *args, **kwargs)
     return inner
 
-def have_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+def filter_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         configs = get_config()["bot"]["group"]
         clo = groups.copy()
@@ -76,7 +76,7 @@ def have_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P]
         return func(ctx, clo, *args, **kwargs)
     return inner
 
-def have_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+def filter_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         configs = get_config()["bot"]["group"]
         clo = groups.copy()
