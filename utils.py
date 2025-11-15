@@ -55,6 +55,8 @@ def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str],
             if ctx.author_id not in  configs[group]["allowed"] and ctx.author_id not in configs[group]["authorized"]:
                 clo.remove(group)
         if not clo:
+            group_names = ", ".join(f"\"{name}\"" for name in groups)
+            ctx.private_send(text=f"Missing required group of \"Allowed\" or \"Authorised\" in one of {group_names}")
             return None
         return func(ctx, clo, *args, **kwargs)
     return inner
@@ -68,6 +70,8 @@ def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[st
             if ctx.author_id not in configs[group]["authorized"]:
                 clo.remove(group)
         if not clo:
+            group_names = ", ".join(f"\"{name}\"" for name in groups)
+            ctx.private_send(text=f"Missing required group of \"Authorised\" in one of {group_names}")
             return None
         return func(ctx, clo, *args, **kwargs)
     return inner
