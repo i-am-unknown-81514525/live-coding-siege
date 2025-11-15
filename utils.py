@@ -95,41 +95,73 @@ def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T
     return inner
 
 @overload
-def require_group[**P, T, C: Context](group: str, forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+def require_group[**P, T, C: Context](group: str, forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
 
 @overload
 def require_group[**P, T, C: Context](group: str, forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
 
 
-def require_group[**P, T, C: Context](group: str, forwarding: bool = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]]:
-    def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
+def require_group[**P, T, C: Context](group: str, forwarding: bool = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]] | Callable[[Callable[Concatenate[C, P], T]], Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer_fwd(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
         def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
             if group not in groups:
                 ctx.private_send(text=f"Missing required group {group}")
                 return None
-            if forwarding:
-                return func(ctx, [group], *args, **kwargs)
-            return func(ctx, *args, **kwargs) # pyright: ignore[reportCallIssue]
+            return func(ctx, [group], *args, **kwargs)
         return inner
-    return outer
+    
+    def outer_no_fwd(func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            if group not in groups:
+                ctx.private_send(text=f"Missing required group {group}")
+                return None
+            return func(ctx, *args, **kwargs)
+        return inner
+    if forwarding:
+        return outer_fwd
+    return outer_no_fwd
 
 @overload
-def require_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+def require_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
 
 @overload
 def require_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
 
 
-def require_groups[**P, T, C: Context](groups: list[str], forwarding: bool = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]]:
-    def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
-        def inner(ctx: C, inner: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
-            overlap = set(groups).intersection(inner)
+def require_groups[**P, T, C: Context](groups: list[str], forwarding: bool = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]] | Callable[[Callable[Concatenate[C, P], T]], Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer_fwd(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            overlap = set(groups).intersection(inner_group)
             if not overlap:
                 group_names = ", ".join(f"\"{name}\"" for name in groups)
                 ctx.private_send(text=f"Missing required group of {group_names}")
                 return None
-            if forwarding:
-                return func(ctx, list(overlap), *args, **kwargs)
-            return func(ctx, *args, **kwargs) # pyright: ignore[reportCallIssue]
+            return func(ctx, list(overlap), *args, **kwargs)
         return inner
-    return outer
+    
+    def outer_no_fwd(func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            overlap = set(groups).intersection(inner_group)
+            if not overlap:
+                group_names = ", ".join(f"\"{name}\"" for name in groups)
+                ctx.private_send(text=f"Missing required group of {group_names}")
+                return None
+            return func(ctx, *args, **kwargs)
+        return inner
+    if forwarding:
+        return outer_fwd
+    
+    # def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
+    #     def inner(ctx: C, inner: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+    #         overlap = set(groups).intersection(inner)
+    #         if not overlap:
+    #             group_names = ", ".join(f"\"{name}\"" for name in groups)
+    #             ctx.private_send(text=f"Missing required group of {group_names}")
+    #             return None
+    #         if forwarding:
+    #             return func(ctx, list(overlap), *args, **kwargs)
+    #         return func(ctx, *args, **kwargs) # pyright: ignore[reportCallIssue]
+    #     return inner
+    if forwarding:
+        return outer_fwd
+    return outer_no_fwd

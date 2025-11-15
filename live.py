@@ -28,7 +28,7 @@ from blockkit import Message, Section, Button
 from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
-from utils import guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread
+from utils import guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread, require_group
 from db import HourStatus, auto_add, auto_add_no_siege
 
 
@@ -84,6 +84,7 @@ def _technical_not_reveal_from_msg(
 @smart_msg_listen("live.init")
 @description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
 @require_allowed
+@require_group("siege")
 def init_game(ctx: Context):
     user_id = ctx.author_id
     channel_id = ctx.channel_id
