@@ -45,6 +45,7 @@ namespace = [
     "slash:/leaderboard",
     "slash:/stats",
     "slash:/searchs",
+    "slash:/define"
 ]
 module = "siege"
 
