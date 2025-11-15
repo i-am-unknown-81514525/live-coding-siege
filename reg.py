@@ -68,6 +68,19 @@ class Context(ABC):
     @property
     def action_namespace(self) -> str: ...
 
+    @property
+    def list_namespace(self) -> list[str]:
+        namespaces = [
+            self.action_namespace,
+            f"channel:{self.channel_id}",
+            f"author:{self.author_id}",
+        ]
+        if self.thread_ts:
+            namespaces.append(f"thread:{self.thread_ts}")
+        if self.message_ts:
+            namespaces.append(f"message:{self.message_ts}")
+        return namespaces
+
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
