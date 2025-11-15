@@ -12,7 +12,7 @@
 [ ] - `siege.user_search` for user searching
 [ ] - Improve the timer system?
 [ ] - Convert `SIEGE_MODE` to something handled by per game instance
-[ ] - Fix random after doing a statistical analysis of the current one
+[x] - Fix random after doing a statistical analysis of the current one
 [ ] - Transaction web page + server (address apce)
 [x] - decorator for permission check
 [x] - `Context` for interaction
@@ -22,3 +22,5 @@
 [ ] - Fix prefix command get recognised as link
 [x] - `no_prefix` change to `value` in favuor for `Context` for interaction
 [ ] - `siege.define` / `/define` - get dictionary definition of word
+[ ] - `.cmd` attr on `Context`
+[ ] - `config.toml` file for permission namespace

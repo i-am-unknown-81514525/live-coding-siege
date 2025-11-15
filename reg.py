@@ -62,6 +62,12 @@ class Context(ABC):
     @property
     def channel_id(self) -> str: ...
 
+    @property
+    def cmd(self) -> str: ...
+
+    @property
+    def action_namespace(self) -> str: ...
+
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
@@ -124,6 +130,14 @@ class MessageContext(Context):
         if len(r) > 1:
             return r[1].strip()
         return ""
+    
+    @property
+    def cmd(self) -> str:
+        return self.event.message.text.split(" ")[0].strip()
+    
+    @property
+    def action_namespace(self) -> str:
+        return f"cmd:{self.cmd}"
 
     @overload
     def private_send(  # pyright: ignore[reportInconsistentOverload]
@@ -214,6 +228,14 @@ class SlashContext(Context):
     @property
     def value(self) -> str:
         return self.event.text.strip()
+    
+    @property
+    def cmd(self) -> str:
+        return self.event.command.strip()
+    
+    @property
+    def action_namespace(self) -> str:
+        return f"slash:{self.cmd}"
 
     @overload
     def private_send(  # pyright: ignore[reportInconsistentOverload]
@@ -295,6 +317,14 @@ class InteractionContext(Context):
     @property
     def channel_id(self) -> str:
         return self.event.container.channel_id
+    
+    @property
+    def cmd(self) -> str:
+        return self.event.actions[0].action_id
+    
+    @property
+    def action_namespace(self) -> str:
+        return f"interation:{self.cmd}"
     
     @overload
     def private_send(  # pyright: ignore[reportInconsistentOverload]
