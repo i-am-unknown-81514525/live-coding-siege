@@ -1,6 +1,6 @@
 from typing import Literal
 from reg import (
-    action_listen,
+    smart_action_listen,
     smart_action_prefix_listen,
     smart_msg_listen,
     description,
@@ -99,6 +99,7 @@ def _calc_base(week: int, hours: float) -> float:
 
 @slash_listen("/user")
 @smart_msg_listen("siege.user")
+@smart_action_listen("siege_user_view")
 @description("/user <user_id>?", "Shhhh... sneak peek on a siege user, surely no one would notice :)")
 @utils.get_group
 @utils.filter_allowed
@@ -148,7 +149,7 @@ def get_siege_user_info(ctx: Context, public: bool):
     if buttons:
         message.add_block(blockkit.Actions(buttons))
 
-    if public:
+    if public and not isinstance(ctx, InteractionContext):
         ctx.public_send(**message.build())
     else:
         ctx.private_send(**message.build())
@@ -272,57 +273,57 @@ def get_siege_proj_info(ctx: Context, public: bool):
 #     )
 
 
-@action_listen("siege_user_view")
-def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
-    v = event.actions[0].value
-    ori_uid = event.user.id
-    if not v:
-        logging.warning("siege_proj_view missing project id")
-        return
-    user_id = int(v)
-    user = get_user(user_id)
+# @action_listen("siege_user_view")
+# def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
+#     v = event.actions[0].value
+#     ori_uid = event.user.id
+#     if not v:
+#         logging.warning("siege_proj_view missing project id")
+#         return
+#     user_id = int(v)
+#     user = get_user(user_id)
 
-    channel = event.container.channel_id
-    thread_ts = (
-        event.message.thread_ts if event.message else None
-    ) or event.container.thread_ts
+#     channel = event.container.channel_id
+#     thread_ts = (
+#         event.message.thread_ts if event.message else None
+#     ) or event.container.thread_ts
 
-    proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
-    known_repo = [get_project(proj.id).repo_url for proj in user.projects]
-    known_identity = [_parse_repo_user(repo) for repo in known_repo if repo]
-    id_count = Counter(known_identity)
-    id_string = ", ".join(
-        f"<{construct_from_short(id)}|{id}> `{count}/{len(known_identity)}`"
-        for id, count in id_count.most_common()
-    )
+#     proj_list = [(proj.week, proj.id, proj.name) for proj in user.projects]
+#     known_repo = [get_project(proj.id).repo_url for proj in user.projects]
+#     known_identity = [_parse_repo_user(repo) for repo in known_repo if repo]
+#     id_count = Counter(known_identity)
+#     id_string = ", ".join(
+#         f"<{construct_from_short(id)}|{id}> `{count}/{len(known_identity)}`"
+#         for id, count in id_count.most_common()
+#     )
 
-    buttons: list = [
-        blockkit.Button(f"W{item[0]} - {item[2]}")
-        .value(str(item[1]))
-        .action_id(f"siege_proj_view_{item[0]}")
-        for item in sorted(proj_list, key=lambda x: x[0])
-    ]
+#     buttons: list = [
+#         blockkit.Button(f"W{item[0]} - {item[2]}")
+#         .value(str(item[1]))
+#         .action_id(f"siege_proj_view_{item[0]}")
+#         for item in sorted(proj_list, key=lambda x: x[0])
+#     ]
 
-    message = blockkit.Message().add_block(
-        blockkit.Section(
-            f"*User info:*\n"
-            f"*Slack ID:* `{user.slack_id}`\n"
-            f"*User ID:* `{user.id}`\n"
-            f"*Name:* {user.name}\n"
-            f"*Display Name:* {user.display_name}\n"
-            f"*Coins:* {user.coins}\n"
-            f"*Rank:* {user.rank.readable}\n"
-            f"*Status:* {user.status.readable}\n"
-            + (f"*Common identity:* {id_string}" if id_string else "")
-        )
-    )
+#     message = blockkit.Message().add_block(
+#         blockkit.Section(
+#             f"*User info:*\n"
+#             f"*Slack ID:* `{user.slack_id}`\n"
+#             f"*User ID:* `{user.id}`\n"
+#             f"*Name:* {user.name}\n"
+#             f"*Display Name:* {user.display_name}\n"
+#             f"*Coins:* {user.coins}\n"
+#             f"*Rank:* {user.rank.readable}\n"
+#             f"*Status:* {user.status.readable}\n"
+#             + (f"*Common identity:* {id_string}" if id_string else "")
+#         )
+#     )
 
-    if buttons:
-        message.add_block(blockkit.Actions(buttons))
+#     if buttons:
+#         message.add_block(blockkit.Actions(buttons))
 
-    client.chat_postEphemeral(
-        channel=channel, thread_ts=thread_ts, user=ori_uid, **message.build()
-    )
+#     client.chat_postEphemeral(
+#         channel=channel, thread_ts=thread_ts, user=ori_uid, **message.build()
+#     )
 
 
 @slash_listen("/global")
