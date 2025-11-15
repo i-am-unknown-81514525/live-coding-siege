@@ -105,7 +105,7 @@ def require_group[**P, T, C: Context](group: str, forwarding: bool = False) -> C
     def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
         def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
             if group not in groups:
-                ctx.private_send(text="Missing required group")
+                ctx.private_send(text=f"Missing required group {group}")
                 return None
             if forwarding:
                 return func(ctx, groups, *args, **kwargs)
