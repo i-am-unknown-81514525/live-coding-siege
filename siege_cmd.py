@@ -22,7 +22,7 @@ from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
 from rapidfuzz import fuzz
 import utils
-from schema import disctionary
+from schema import dictionary
 import requests
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
@@ -511,11 +511,11 @@ def search_project(ctx: Context, public: bool):
     else:
         ctx.private_send(text=base)
 
-def fetch_dictionary(word: str) -> disctionary.DictError | disctionary.DictResult:
+def fetch_dictionary(word: str) -> dictionary.DictError | dictionary.DictResult:
     req = requests.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}")
     if not req.ok:
-        return disctionary.DictError.parse(req.json())
-    return disctionary.DictResult.parse(req.json()[0])
+        return dictionary.DictError.parse(req.json())
+    return dictionary.DictResult.parse(req.json()[0])
 
 
 

@@ -99,6 +99,10 @@ class PhoneticsResult(Readable):
             license=License.parse(raw["license"]),
         )
     
+    @property
+    def readable(self) -> str:
+        return f"{self.text}"
+    
 
 
 @dataclass(frozen=True)
@@ -123,4 +127,4 @@ class DictResult(Readable):
     
     @property
     def readable(self) -> str:
-        return f"*{self.word}*\n{self.phonetic}\n{"\n".join(meaning.readable for meaning in self.meanings)}\n{self.license.readable}"
+        return f"*{self.word}*({self.phonetic})\n{"\n".join(meaning.readable for meaning in self.meanings)}\n{self.license.readable} from https://dictionaryapi.dev/"
