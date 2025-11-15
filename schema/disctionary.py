@@ -49,24 +49,39 @@ class WordDef(Readable):
     @classmethod
     def parse(cls, raw: dict) -> Self:
         return cls(**raw)
+    
+    @property
+    def readable(self) -> str:
+        text = self.definition
+        if self.synonyms:
+            text += f"\n*Synonyms:*{', '.join(self.synonyms)}"
+        if self.antonyms:
+            text += f"\n*Antoyms:*{', '.join(self.antonyms)}"
+        return text
 
     
 
 @dataclass(frozen=True)
 class WordDefPart(Readable):
+    word: str
     partOfSpeech: str
     synonyms: list[str]
     antonyms: list[str]
     definitions: list[WordDef]
 
     @classmethod
-    def parse(cls, raw: dict) -> Self:
+    def parse(cls, word: str, raw: dict) -> Self:
         return cls(
+            word=word,
             partOfSpeech=raw["partOfSpeech"],
             synonyms=raw["synonyms"],
             antonyms=raw["antonyms"],
             definitions=[WordDef.parse(d) for d in raw["definitions"]],
         )
+    
+    @property
+    def readable(self) -> str:
+        return f"*{self.word} ({self.partOfSpeech})*\n{"\n".join(definition.readable for definition in self.definitions)}"
 
 @dataclass(frozen=True)
 class PhoneticsResult(Readable):
@@ -83,6 +98,7 @@ class PhoneticsResult(Readable):
             sourceUrl=raw["sourceUrl"],
             license=License.parse(raw["license"]),
         )
+    
 
 
 @dataclass(frozen=True)
@@ -102,5 +118,9 @@ class DictResult(Readable):
             phonetics=[PhoneticsResult.parse(p) for p in raw["phonetics"]],
             license=License.parse(raw["license"]),
             sourceUrls=raw["sourceUrls"],
-            meanings=[WordDefPart.parse(p) for p in raw["meanings"]],
+            meanings=[WordDefPart.parse(raw["word"] ,p) for p in raw["meanings"]],
         )
+    
+    @property
+    def readable(self) -> str:
+        return f"*{self.word}*\n{self.phonetic}\n{"\n".join(meaning.readable for meaning in self.meanings)}\n{self.license.readable}"
