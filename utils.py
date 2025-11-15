@@ -46,18 +46,30 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
         return func(ctx, game_id, *args, **kwargs)
     return inner
 
-def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, P], T | None]:
-    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
-        if ctx.author_id not in ALLOWED and ctx.author_id not in AUTHORIZED_USERS:
+def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+    @get_group
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+        configs = get_config()["bot"]["group"]
+        clo = groups.copy()
+        for group in groups:
+            if ctx.author_id not in  configs[group]["allowed"] and ctx.author_id not in configs[group]["authorized"]:
+                clo.remove(group)
+        if not clo:
             return None
-        return func(ctx, *args, **kwargs)
+        return func(ctx, clo, *args, **kwargs)
     return inner
 
-def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, P], T | None]:
-    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
-        if ctx.author_id not in AUTHORIZED_USERS:
+def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+    @get_group
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+        configs = get_config()["bot"]["group"]
+        clo = groups.copy()
+        for group in groups:
+            if ctx.author_id not in configs[group]["authorized"]:
+                clo.remove(group)
+        if not clo:
             return None
-        return func(ctx, *args, **kwargs)
+        return func(ctx, clo, *args, **kwargs)
     return inner
 
 def require_game_thread[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
