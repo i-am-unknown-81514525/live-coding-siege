@@ -46,7 +46,7 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
         return func(ctx, game_id, *args, **kwargs)
     return inner
 
-def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
     @have_allowed
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
         if not groups:
@@ -56,7 +56,7 @@ def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str],
         return func(ctx, groups, *args, **kwargs)
     return inner
 
-def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
     @have_authorised
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
         if not groups:
@@ -66,9 +66,8 @@ def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[st
         return func(ctx, groups, *args, **kwargs)
     return inner
 
-def have_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
-    @get_group
-    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+def have_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         configs = get_config()["bot"]["group"]
         clo = groups.copy()
         for group in groups:
@@ -77,9 +76,8 @@ def have_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P]
         return func(ctx, clo, *args, **kwargs)
     return inner
 
-def have_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
-    @get_group
-    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+def have_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         configs = get_config()["bot"]["group"]
         clo = groups.copy()
         for group in groups:

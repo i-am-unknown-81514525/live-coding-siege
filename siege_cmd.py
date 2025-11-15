@@ -99,6 +99,7 @@ def _calc_base(week: int, hours: float) -> float:
 @slash_listen("/user")
 @smart_msg_listen("siege.user")
 @description("/user <user_id>?", "Shhhh... sneak peek on a siege user, surely no one would notice :)")
+@utils.get_group
 @utils.have_allowed
 @utils.has_group("siege")
 def get_siege_user_info(ctx: Context, public: bool):
@@ -156,6 +157,7 @@ def get_siege_user_info(ctx: Context, public: bool):
 @slash_listen("/project")
 @smart_msg_listen("siege.proj")
 @description("/proj <proj_id>", "Let me check a project coin value... What??? Someone got 607 coins in a week?")
+@utils.get_group
 @utils.have_allowed
 @utils.has_group("siege")
 def get_siege_proj_info(ctx: Context, public: bool):
@@ -358,6 +360,7 @@ LEADERBOARD_AMOUNT = 20
 @smart_msg_listen("siege.leaderboard")
 @smart_msg_listen("siege.lb")
 @description("/lb <lb_option>?", "The hall of fame!")
+@utils.get_group
 @utils.have_allowed
 @utils.has_group("siege")
 def get_leaderboard(ctx: Context, public: bool):
@@ -511,6 +514,7 @@ def get_leaderboard(ctx: Context, public: bool):
 @slash_listen("/siege_stats")
 @smart_msg_listen("siege.stats")
 @description("/stats", "Stats for the Siege YSWS")
+@utils.get_group
 @utils.have_allowed
 @utils.has_group("siege")
 def get_stats(ctx: Context, public: bool):
@@ -555,6 +559,7 @@ SIMILARITY_THRESHOLD = 0.9
 @smart_msg_listen("siege.search ")
 @smart_msg_listen("siege.searchs ")
 @description("/searchs <keyword>?", "Search for project by keyword")
+@utils.get_group
 @utils.have_allowed
 @utils.has_group("siege")
 def search_project(ctx: Context, public: bool):

@@ -28,7 +28,7 @@ from blockkit import Message, Section, Button
 from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
-from utils import guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread, require_group
+from utils import get_group, guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread, require_group
 from db import HourStatus, auto_add, auto_add_no_siege
 
 
@@ -83,6 +83,7 @@ def _technical_not_reveal_from_msg(
 
 @smart_msg_listen("live.init")
 @description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
+@get_group
 @require_allowed
 @require_group("siege")
 def init_game(ctx: Context):
@@ -360,6 +361,7 @@ def _handle_user_turn_timeout(
 
 @smart_msg_listen("live.debug_turn")
 @description("live.debug_turn", "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)")
+@get_group
 @require_authorised
 @require_group("siege")
 @require_game_manager
@@ -690,6 +692,7 @@ def leave(ctx: MessageContext, game_id: int):
 
 
 @smart_msg_listen("live.takeover")
+@get_group
 @require_authorised
 @require_group("siege")
 @require_game_thread
@@ -705,6 +708,7 @@ def takeover(ctx: MessageContext, game_id: int):
 
 @smart_msg_listen("live.rm_mgr")
 @description("live.rm_mgr", "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))")
+@get_group
 @require_authorised
 @require_group("siege")
 @require_game_thread
