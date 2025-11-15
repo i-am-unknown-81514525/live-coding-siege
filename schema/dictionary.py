@@ -88,18 +88,18 @@ class WordDefPart(Readable):
 
 @dataclass(frozen=True)
 class PhoneticsResult(Readable):
-    text: str
-    audio: str
-    sourceUrl: str
-    license: License
+    text: str | None 
+    audio: str | None
+    sourceUrl: str | None
+    license: License | None
 
     @classmethod
     def parse(cls, raw: dict) -> Self:
         return cls(
-            text=raw["text"],
-            audio=raw["audio"],
-            sourceUrl=raw["sourceUrl"],
-            license=License.parse(raw["license"]),
+            text=raw.get("text"),
+            audio=raw.get("audio"),
+            sourceUrl=raw.get("sourceUrl"),
+            license=License.parse(raw["license"]) if raw.get("license") else None,
         )
     
     @property
