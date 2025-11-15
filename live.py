@@ -545,7 +545,7 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
 
 
 @smart_msg_listen("live.optout")
-@description("live.output", "Output from the game (Why... :heavysob:)")
+@description("live.optout", "Optout from the game (Why... :heavysob:)")
 @require_game_thread
 def optout(ctx: MessageContext, game_id: int):
     ctx.private_send(
