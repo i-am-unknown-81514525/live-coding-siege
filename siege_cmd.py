@@ -157,6 +157,7 @@ def get_siege_user_info(ctx: Context, public: bool):
 @slash_listen("/proj")
 @slash_listen("/project")
 @smart_msg_listen("siege.proj")
+@smart_action_prefix_listen("siege_proj_view")
 @description("/proj <proj_id>", "Let me check a project coin value... What??? Someone got 607 coins in a week?")
 @utils.get_group
 @utils.filter_allowed
@@ -209,66 +210,66 @@ def get_siege_proj_info(ctx: Context, public: bool):
         .add_block(blockkit.Actions(buttons))
     )
 
-    if public:
+    if public and not isinstance(ctx, InteractionContext):
         ctx.public_send(**message.build(), unfurl_links=False)
     else:
         ctx.private_send(**message.build(), unfurl_links=False)
 
 
-@smart_action_prefix_listen("siege_proj_view")
-def handle_siege_proj_view(ctx: InteractionContext):
-    v = ctx.value
-    if not v:
-        logging.warning("siege_proj_view missing project id")
-        return
-    proj_id = int(v)
-    proj = get_project(proj_id)
+# @smart_action_prefix_listen("siege_proj_view")
+# def handle_siege_proj_view(ctx: InteractionContext):
+#     v = ctx.value
+#     if not v:
+#         logging.warning("siege_proj_view missing project id")
+#         return
+#     proj_id = int(v)
+#     proj = get_project(proj_id)
 
-    kv = [
-        ("Project Page", proj.project_url),
-        ("Repo", proj.repo_url),
-        ("Demo", proj.demo_url),
-        ("Stonemason Page", proj.stonemason_review_url),
-        ("Reviewer Page", proj.reviewer_url),
-    ]
+#     kv = [
+#         ("Project Page", proj.project_url),
+#         ("Repo", proj.repo_url),
+#         ("Demo", proj.demo_url),
+#         ("Stonemason Page", proj.stonemason_review_url),
+#         ("Reviewer Page", proj.reviewer_url),
+#     ]
 
-    buttons: list = [blockkit.Button(k).url(v) for k, v in kv if v] + [
-        blockkit.Button("View User")
-        .action_id("siege_user_view")
-        .value(str(proj.user.id))
-    ]
+#     buttons: list = [blockkit.Button(k).url(v) for k, v in kv if v] + [
+#         blockkit.Button("View User")
+#         .action_id("siege_user_view")
+#         .value(str(proj.user.id))
+#     ]
 
-    message = (
-        blockkit.Message()
-        .add_block(
-            blockkit.Section(
-                f"*Week {proj.week} - {proj.name}*\n"
-                f"*ID:* `{proj.id}`\n"
-                f"*Status:* {proj.status.readable}\n"
-                f"*Created At:* {_time_to_slack(proj.created_at)}\n"
-                f"*Description:* {proj.description}\n"
-                f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
-                f"*Is Updated:* {proj.is_update}\n"
-                f"*Hours:* {proj.hours} hours\n"
-                + (
-                    f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
-                    if proj.repo_url
-                    else ""
-                )
-            )
-        )
-        .add_block(blockkit.Actions(buttons))
-    )
-    # if user_id in ALLOWED:
-    #     client.chat_postMessage(channel=channel, thread_ts=thread_ts, **message.build())
-    # else:
-    #     client.chat_postEphemeral(
-    #         channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
-    #     )
-    ctx.private_send(
-        **message.build(),
-        unfurl_links=False,
-    )
+#     message = (
+#         blockkit.Message()
+#         .add_block(
+#             blockkit.Section(
+#                 f"*Week {proj.week} - {proj.name}*\n"
+#                 f"*ID:* `{proj.id}`\n"
+#                 f"*Status:* {proj.status.readable}\n"
+#                 f"*Created At:* {_time_to_slack(proj.created_at)}\n"
+#                 f"*Description:* {proj.description}\n"
+#                 f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
+#                 f"*Is Updated:* {proj.is_update}\n"
+#                 f"*Hours:* {proj.hours} hours\n"
+#                 + (
+#                     f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
+#                     if proj.repo_url
+#                     else ""
+#                 )
+#             )
+#         )
+#         .add_block(blockkit.Actions(buttons))
+#     )
+#     # if user_id in ALLOWED:
+#     #     client.chat_postMessage(channel=channel, thread_ts=thread_ts, **message.build())
+#     # else:
+#     #     client.chat_postEphemeral(
+#     #         channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
+#     #     )
+#     ctx.private_send(
+#         **message.build(),
+#         unfurl_links=False,
+#     )
 
 
 @action_listen("siege_user_view")
