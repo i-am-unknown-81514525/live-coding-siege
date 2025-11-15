@@ -361,6 +361,7 @@ def _handle_user_turn_timeout(
 @smart_msg_listen("live.debug_turn")
 @description("live.debug_turn", "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)")
 @require_authorised
+@require_group("siege")
 @require_game_manager
 def debug(ctx: MessageContext, game_id: int):
     user_id = ctx.value
@@ -690,6 +691,7 @@ def leave(ctx: MessageContext, game_id: int):
 
 @smart_msg_listen("live.takeover")
 @require_authorised
+@require_group("siege")
 @require_game_thread
 def takeover(ctx: MessageContext, game_id: int):
 
@@ -704,6 +706,7 @@ def takeover(ctx: MessageContext, game_id: int):
 @smart_msg_listen("live.rm_mgr")
 @description("live.rm_mgr", "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))")
 @require_authorised
+@require_group("siege")
 @require_game_thread
 def remove_manager(ctx: MessageContext, game_id: int):
     user_id = ctx.value
@@ -730,7 +733,7 @@ def remove_manager(ctx: MessageContext, game_id: int):
 
 @smart_msg_listen("live.members")  # Show the user in the huddle, not just eligiable
 @description("live.members", "List all the member in the huddle")
-@require_authorised
+@require_game_thread
 def show_members(ctx: MessageContext, game_id: int):
     user_ids = db.get_huddle_participants(game_id)
     user_names_map = db.get_user_names(user_ids)
