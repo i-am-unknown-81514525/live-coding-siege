@@ -150,18 +150,6 @@ def require_groups[**P, T, C: Context](groups: list[str], forwarding: bool = Fal
         return inner
     if forwarding:
         return outer_fwd
-    
-    # def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
-    #     def inner(ctx: C, inner: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
-    #         overlap = set(groups).intersection(inner)
-    #         if not overlap:
-    #             group_names = ", ".join(f"\"{name}\"" for name in groups)
-    #             ctx.private_send(text=f"Missing required group of {group_names}")
-    #             return None
-    #         if forwarding:
-    #             return func(ctx, list(overlap), *args, **kwargs)
-    #         return func(ctx, *args, **kwargs) # pyright: ignore[reportCallIssue]
-    #     return inner
     if forwarding:
         return outer_fwd
     return outer_no_fwd
