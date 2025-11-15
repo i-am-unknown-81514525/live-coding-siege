@@ -6,7 +6,7 @@ import re
 from api import get_all_projs
 import db
 from reg import Context
-from typing import Any
+from typing import overload, Literal
 from config import AllGroupConfig, get_config
 
 
@@ -89,3 +89,23 @@ def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T
         configs = get_config()["bot"]["group"]
         return func(ctx, get_match_group(ctx.list_namespace, configs), *args, **kwargs)
     return inner
+
+@overload
+def require_group[**P, T, C: Context](group: str, forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+
+@overload
+def require_group[**P, T, C: Context](group: str, forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
+
+
+def require_group[**P, T, C: Context](group: str, forwarding: bool = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            if group not in groups:
+                ctx.private_send(text="Missing required group")
+                return None
+            if forwarding:
+                return func(ctx, groups, *args, **kwargs)
+            return func(ctx, [group], *args, **kwargs)
+        return inner
+    return outer
+
