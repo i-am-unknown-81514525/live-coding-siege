@@ -22,5 +22,5 @@
 [ ] - Fix prefix command get recognised as link
 [x] - `no_prefix` change to `value` in favuor for `Context` for interaction
 [ ] - `siege.define` / `/define` - get dictionary definition of word
-[ ] - `.cmd` attr on `Context`
-[ ] - `config.toml` file for permission namespace
+[x] - `.cmd` attr on `Context`
+[x] - `config.toml` file for permission namespace
