@@ -57,13 +57,6 @@ def randint(low: int, high: int) -> Handler[int]:
     lim = high - low
 
     def inner(v: int) -> int:
-        base = v % (2**bit_size)
-        other = v >> bit_size
-        if other == 0:
-            other = 2 ** (bit_size - 1)
-        k = 0
-        while (base + k * other) % (2**bit_size) > lim:
-            k += 1
-        return ((base + k * other) % (2**bit_size)) + low
+        return (v % lim) + low
 
-    return (bit_size * 2 - 1, inner)
+    return ((bit_size * 4) + 16, inner)
