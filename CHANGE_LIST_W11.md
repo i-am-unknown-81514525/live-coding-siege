@@ -6,7 +6,7 @@
 [ ] - Attempt to connect live coding to hackatime server for generic live coding 
 [ ] - Rewrite live coding database schema to remove siege/YSWS specific reference - should only track the ticket hold for each user
 [ ] - Put hour tracking on siege database
-[ ] - Check and fix more rounding issue
+[x] - Check and fix more rounding issue
 [ ] - Post project change in a separate channel which can be publicly searchable like som bulletin
 [ ] - `siege.shop` ???? (idk if it even necessary but well, it is an api so I must use it)
 [ ] - `siege.user_search` for user searching

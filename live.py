@@ -802,7 +802,7 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     ctx.private_send(
-        text=f"You have {ticket_count} tickets. (Start: {hour_info.h_start}h, Current: {hour_info.h_curr}h, Penalty: {hour_info.h_penalty}"
+        text=f"You have {ticket_count} tickets. (Start: {hour_info.h_start:.1f}h, Current: {hour_info.h_curr:.1f}h, Penalty: {hour_info.h_penalty:.4f}"
     )
 
 @smart_msg_listen("live.reset")

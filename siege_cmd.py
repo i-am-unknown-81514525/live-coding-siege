@@ -233,7 +233,7 @@ def get_total_proj_time(ctx: Context):
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
-    ctx.public_send(text=f"Total global tracked time this week: {total_time} hours.")
+    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.")
 
 
 LEADERBOARD_AMOUNT = 20
@@ -292,7 +292,7 @@ def get_leaderboard(ctx: Context, public: bool):
                 blockkit.Section(
                     "\n".join(
                         [
-                            f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout"
+                            f"*{index}*: W{proj.week} {proj.name} - {proj.hours:.1f} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout"
                             for index, proj in enumerate(
                                 sorted_order[:LEADERBOARD_AMOUNT], start=1
                             )
@@ -309,7 +309,7 @@ def get_leaderboard(ctx: Context, public: bool):
                 blockkit.Section(
                     "\n".join(
                         [
-                            f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name}"
+                            f"*{index}*: W{proj.week} {proj.name} - {proj.hours:.1f} hours by {proj.user.display_name}"
                             for index, proj in enumerate(
                                 sorted_order[:LEADERBOARD_AMOUNT], start=1
                             )
@@ -329,7 +329,7 @@ def get_leaderboard(ctx: Context, public: bool):
                 blockkit.Section(
                     "\n".join(
                         [
-                            f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value)} coins payout"
+                            f"*{index}*: W{proj.week} {proj.name} - {proj.hours} hours by {proj.user.display_name} with {float(proj.coin_value):.0f} coins payout"
                             for index, proj in enumerate(
                                 sorted_order[:LEADERBOARD_AMOUNT], start=1
                             )
@@ -371,7 +371,7 @@ def get_leaderboard(ctx: Context, public: bool):
                     blockkit.Section(
                         "\n".join(
                             [
-                                f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours}h,{proj.coin_value}c, {proj.coin_value / _calc_base(proj.week, proj.hours):.2f}x"
+                                f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours:.1f}h,{proj.coin_value}c, {proj.coin_value / _calc_base(proj.week, proj.hours):.3f}x"
                                 for index, proj in enumerate(selected, start=1)
                             ]
                         )
@@ -500,7 +500,7 @@ def search_project(ctx: Context, public: bool):
     if len(filtered) > 50:
         base += " (Only showing 50 results)"
     base += "\n"
-    base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours}h" + (f" matched by {full_info(p)} - {
+    base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours:.1f}h" + (f" matched by {full_info(p)} - {
         str(retrieve(p, full_info(p) or "project name"))[:150]
     }" if req else "") for p in filtered[:50])
 
