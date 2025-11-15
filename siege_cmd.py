@@ -512,6 +512,7 @@ def get_leaderboard(ctx: Context):
 
 
 @slash_listen("/stats")
+@slash_listen("/siege_stats")
 @smart_msg_listen("siege.stats")
 @description("/stats", "Stats for the Siege YSWS")
 def get_stats(ctx: Context):
