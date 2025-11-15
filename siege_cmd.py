@@ -22,6 +22,8 @@ from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
 from rapidfuzz import fuzz
 import utils
+from schema import disctionary
+import requests
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
@@ -509,3 +511,21 @@ def search_project(ctx: Context, public: bool):
     else:
         ctx.private_send(text=base)
 
+def fetch_dictionary(word: str) -> disctionary.DictError | disctionary.DictResult:
+    req = requests.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}")
+    if not req.ok:
+        return disctionary.DictError.parse(req.json())
+    return disctionary.DictResult.parse(req.json()[0])
+
+
+
+@slash_listen("/define")
+@smart_msg_listen("siege.define ")
+@description("/define <word>", "Get a dictionary definition of a word")
+@utils.get_group
+@utils.filter_allowed
+@utils.has_group("siege")
+def get_define(ctx: Context, public: bool):
+    if public:
+        return ctx.public_send(text=fetch_dictionary(ctx.value).readable)
+    return ctx.private_send(text=fetch_dictionary(ctx.value).readable)
