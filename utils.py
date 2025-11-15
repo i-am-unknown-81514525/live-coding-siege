@@ -220,3 +220,8 @@ def have_one_of_groups[**P, T, C: Context](groups: list[str], forwarding: bool =
     if forwarding:
         return outer_fwd
     return outer_no_fwd
+
+def consume_second[**P, A, B, T](func: Callable[Concatenate[A, P], T]) -> Callable[Concatenate[A, B, P], T]: # pyright: ignore[reportInvalidTypeVarUse]
+    def inner(a: A, _: B, *args: P.args, **kwargs: P.kwargs) -> T:
+        return func(a, *args, **kwargs)
+    return inner
