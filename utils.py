@@ -7,6 +7,7 @@ from api import get_all_projs
 import db
 from reg import Context
 from typing import Any
+from config import AllGroupConfig
 
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
@@ -24,6 +25,12 @@ def check_namespace_match(current: list[str], require: list[str]) -> bool:
                 return True
     return False
 
+def get_match_namespace(current:list[str], configs: AllGroupConfig) -> list[str]:
+    ret: list[str] = []
+    for group_name, group_config in configs.items():
+        if check_namespace_match(current, group_config["namespace"]):
+            ret.append(group_name)
+    return ret
 
 def guess_week() -> int:
     projs = get_all_projs()
@@ -39,7 +46,7 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
         return func(ctx, game_id, *args, **kwargs)
     return inner
 
-def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list, P], T]) -> Callable[Concatenate[C, P], T | None]:
+def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, P], T | None]:
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
         if ctx.author_id not in ALLOWED and ctx.author_id not in AUTHORIZED_USERS:
             return None
