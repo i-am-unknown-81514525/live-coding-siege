@@ -94,6 +94,13 @@ def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T
         return func(ctx, get_match_group(ctx.list_namespace, configs), *args, **kwargs)
     return inner
 
+def filter_groups[**P, T, C: Context](groups: list[str]) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T]]
+    def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+        def inner(ctx: C, curr_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
+            return func(ctx, list(set(groups).intersection(curr_group)), *args, **kwargs)
+        return inner
+    return outer
+
 @overload
 def require_group[**P, T, C: Context](group: str, forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
 
