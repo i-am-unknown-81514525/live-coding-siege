@@ -108,8 +108,28 @@ def require_group[**P, T, C: Context](group: str, forwarding: bool = False) -> C
                 ctx.private_send(text=f"Missing required group {group}")
                 return None
             if forwarding:
-                return func(ctx, groups, *args, **kwargs)
-            return func(ctx, [group], *args, **kwargs)
+                return func(ctx, [group], *args, **kwargs)
+            return func(ctx, *args, **kwargs) # pyright: ignore[reportCallIssue]
         return inner
     return outer
 
+@overload
+def require_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+
+@overload
+def require_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
+
+
+def require_groups[**P, T, C: Context](groups: list[str], forwarding: bool = False) -> Callable[[Callable[Concatenate[C, list[str], P], T]], Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer(func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None] | Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            overlap = set(groups).intersection(inner)
+            if not overlap:
+                group_names = ", ".join(f"\"{name}\"" for name in groups)
+                ctx.private_send(text=f"Missing required group of {group_names}")
+                return None
+            if forwarding:
+                return func(ctx, list(overlap), *args, **kwargs)
+            return func(ctx, *args, **kwargs) # pyright: ignore[reportCallIssue]
+        return inner
+    return outer
