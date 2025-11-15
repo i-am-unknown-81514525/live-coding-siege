@@ -15,9 +15,10 @@
 [ ] - Fix random after doing a statistical analysis of the current one
 [ ] - Transaction web page + server (address apce)
 [x] - decorator for permission check
-[ ] - `Context` for interaction
+[x] - `Context` for interaction
 [ ] - Slack client transfer to web API so a message is sent on accept/reject
 [ ] - `live.add_mgr all` for all allowed user
 [ ] - `live.transaction`
 [ ] - Fix prefix command get recognised as link
 [x] - `no_prefix` change to `value` in favuor for `Context` for interaction
+[ ] - `siege.define` / `/define` - get dictionary definition of word

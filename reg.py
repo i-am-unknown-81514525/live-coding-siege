@@ -271,6 +271,92 @@ class SlashContext(Context):
             thread_ts = self.message_ts
         return self.webhook_client.send(response_type="in_channel", *args, **kwargs)
 
+@dataclass
+class InteractionContext(Context):
+    event: BlockActionEvent
+    client: WebClient
+
+    @property
+    def author_id(self) -> str:
+        return self.event.user.id
+    
+    @property
+    def value(self) -> str:
+        return self.event.actions[0].value or ""
+    
+    @property
+    def message_ts(self) -> str | None:
+        return self.event.container.message_ts
+    
+    @property
+    def thread_ts(self) -> str | None:
+        return self.event.container.thread_ts
+    
+    @property
+    def channel_id(self) -> str:
+        return self.event.container.channel_id
+    
+    @overload
+    def private_send(  # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
+
+    def private_send[**P](
+        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+    ):
+        thread_ts = self.thread_ts
+        if thread_ts is None and always_thread and self.message_ts:
+            thread_ts = self.message_ts
+        return self.client.chat_postEphemeral(
+            user=self.author_id,
+            channel=self.channel_id,
+            thread_ts=thread_ts,
+            *args,
+            **kwargs,
+        )
+
+    @overload
+    def public_send(  # pyright: ignore[reportInconsistentOverload]
+        self,
+        always_thread: bool = False,
+        *,
+        text: str | None = None,
+        as_user: bool | None = None,
+        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
+        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        thread_ts: str | None = None,
+        icon_emoji: str | None = None,
+        icon_url: str | None = None,
+        link_names: bool | None = None,
+        username: str | None = None,
+        parse: str | None = None,
+        **kwargs,
+    ) -> Any: ...
+
+    def public_send[**P](
+        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+    ):
+        thread_ts = self.thread_ts
+        if thread_ts is None and always_thread and self.message_ts:
+            thread_ts = self.message_ts
+        return self.client.chat_postMessage(
+            channel=self.channel_id, thread_ts=thread_ts, *args, **kwargs
+        )
+    
+
 
 def smart_msg_listen[A: Callable](
     message_key: str, is_subtype: bool = False
