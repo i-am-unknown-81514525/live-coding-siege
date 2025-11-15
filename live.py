@@ -13,7 +13,6 @@ from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
 from reg import (
-    msg_listen,
     action_listen,
     huddle_listen,
     smart_msg_listen,
@@ -1688,12 +1687,12 @@ def listen_all(ctx: MessageContext):
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
 
-@msg_listen("huddle_thread", is_subtype=True)
-def handle_huddle_start_message(event: MessageEvent, client: WebClient):
-    room = event.message.room
+@smart_msg_listen("huddle_thread", is_subtype=True)
+def handle_huddle_start_message(ctx: MessageContext):
+    room = ctx.event.message.room
     if not room or not room.channels:
         logging.info(
-            f"⚠️ Received huddle_thread message without room or channel data. TS: {event.message.ts}"
+            f"⚠️ Received huddle_thread message without room or channel data. TS: {ctx.event.message.ts}"
         )
         return
 
