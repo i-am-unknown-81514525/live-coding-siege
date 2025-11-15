@@ -55,6 +55,10 @@
             {
                 "command": "/searchs",
                 "description": "<keyword>? | Search Siege project by keywords"
+            },
+            {
+                "command": "/define",
+                "description": "<word> | Get definition of a word"
             }
         ]
     },
