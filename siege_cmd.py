@@ -1,11 +1,12 @@
 from typing import Literal
 from reg import (
     action_listen,
-    action_prefix_listen,
+    smart_action_prefix_listen,
     smart_msg_listen,
     description,
     Context,
     slash_listen,
+    InteractionContext
 )
 import blockkit
 from api import get_project, get_user, get_all_projs, get_coin_leaderboard
@@ -214,20 +215,14 @@ def get_siege_proj_info(ctx: Context, public: bool):
         ctx.private_send(**message.build(), unfurl_links=False)
 
 
-@action_prefix_listen("siege_proj_view")
-def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
-    v = event.actions[0].value
-    user_id = event.user.id
+@smart_action_prefix_listen("siege_proj_view")
+def handle_siege_proj_view(ctx: InteractionContext):
+    v = ctx.value
     if not v:
         logging.warning("siege_proj_view missing project id")
         return
     proj_id = int(v)
     proj = get_project(proj_id)
-
-    channel = event.container.channel_id
-    thread_ts = (
-        event.message.thread_ts if event.message else None
-    ) or event.container.thread_ts
 
     kv = [
         ("Project Page", proj.project_url),
@@ -270,10 +265,7 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     #     client.chat_postEphemeral(
     #         channel=channel, thread_ts=thread_ts, user=user_id, **message.build()
     #     )
-    client.chat_postEphemeral(
-        channel=channel,
-        thread_ts=thread_ts,
-        user=user_id,
+    ctx.private_send(
         **message.build(),
         unfurl_links=False,
     )
