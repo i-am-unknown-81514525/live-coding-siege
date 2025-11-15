@@ -45,6 +45,7 @@ class WordDef(Readable):
     definition: str
     synonyms: list[str]
     antonyms: list[str]
+    example: str | None = None
 
     @classmethod
     def parse(cls, raw: dict) -> Self:
