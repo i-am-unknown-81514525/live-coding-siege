@@ -473,6 +473,52 @@ def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]
 
     return decorator
 
+def smart_action_listen[A: Callable[[InteractionContext], Any]](
+    action_id: str
+) -> Callable[[A], A]:
+    """
+    A decorator factory registers a function to handle a specific action
+
+    Args:
+        action_id: The action id that the decorated function will handle
+    """
+    if not isinstance(action_id, str):
+        raise TypeError("The action_id for @smart_action_listen must be a string.")
+
+    def decorator[F: Callable[[InteractionContext], Any]](func: F) -> F:
+        handler = ACTION_HANDLERS.setdefault(action_id, [])
+        def inner(event: BlockActionEvent, client: WebClient):
+            ctx = InteractionContext(event, client)
+            return func(ctx)
+        handler.append(inner)
+        return func
+
+    return decorator
+
+def smart_action_prefix_listen[A: Callable[[InteractionContext], Any]](
+    action_id_prefix: str
+) -> Callable[[A], A]:
+    """
+    A decorator factory registers a function to handle a specific action prefix
+
+    Args:
+        action_id_prefix: The action id prefix that the decorated function will handle
+    """
+    if not isinstance(action_id_prefix, str):
+        raise TypeError("The action_id for @smart_action_listen must be a string.")
+
+    def decorator[F: Callable[[InteractionContext], Any]](func: F) -> F:
+        handler = ACTION_PREFIX_HANDLERS.setdefault(action_id_prefix, [])
+        def inner(event: BlockActionEvent, client: WebClient):
+            ctx = InteractionContext(event, client)
+            return func(ctx)
+        handler.append(inner)
+        return func
+
+    return decorator       
+
+    
+
 def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
     """
     Mark description for the command
