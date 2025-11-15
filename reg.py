@@ -23,28 +23,27 @@ HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, WebClient], Any]
 SLASH_HANDLER: dict[str, list[Callable[["SlashContext"], Any]]] = {}
 DESCRIPTION: dict[str, str] = {}
 
+# def msg_listen[A: Callable](
+#     message_key: str, is_subtype: bool = False
+# ) -> Callable[[A], A]:
+#     """
+#     A decorator factory that registers a function to handle a specific message key.
 
-def msg_listen[A: Callable](
-    message_key: str, is_subtype: bool = False
-) -> Callable[[A], A]:
-    """
-    A decorator factory that registers a function to handle a specific message key.
+#     Args:
+#         message_key: The key for the message that the decorated function will handle.
+#         is_subtype: If True, matches against the message subtype instead of the text content.
+#     """
+#     if not isinstance(message_key, str):
+#         raise TypeError("The message_key for @msg_listen must be a string.")
 
-    Args:
-        message_key: The key for the message that the decorated function will handle.
-        is_subtype: If True, matches against the message subtype instead of the text content.
-    """
-    if not isinstance(message_key, str):
-        raise TypeError("The message_key for @msg_listen must be a string.")
+#     def decorator[F: Callable[[MessageEvent, WebClient], Any]](func: F) -> F:
+#         """The actual decorator that performs the registration."""
+#         handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
+#         handlers.append(func)
+#         setattr(func, "_is_subtype_handler", is_subtype)
+#         return func  # type: ignore
 
-    def decorator[F: Callable[[MessageEvent, WebClient], Any]](func: F) -> F:
-        """The actual decorator that performs the registration."""
-        handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
-        handlers.append(func)
-        setattr(func, "_is_subtype_handler", is_subtype)
-        return func  # type: ignore
-
-    return decorator
+#     return decorator
 
 
 class Context(ABC):
