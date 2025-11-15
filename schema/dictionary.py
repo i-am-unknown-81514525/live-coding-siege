@@ -53,11 +53,13 @@ class WordDef(Readable):
     
     @property
     def readable(self) -> str:
-        text = self.definition
+        text = f"- {self.definition}"
         if self.synonyms:
-            text += f"\n*Synonyms:*{', '.join(self.synonyms)}"
+            text += f"\n? *Synonyms:*{', '.join(self.synonyms)}"
         if self.antonyms:
-            text += f"\n*Antoyms:*{', '.join(self.antonyms)}"
+            text += f"\n> *Antoyms:*{', '.join(self.antonyms)}"
+        if self.example:
+            text += f"\n> *Example:*{self.example}"
         return text
 
     
