@@ -7,7 +7,7 @@ from api import get_all_projs
 import db
 from reg import Context
 from typing import Any
-from config import AllGroupConfig
+from config import AllGroupConfig, get_config
 
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
@@ -25,7 +25,7 @@ def check_namespace_match(current: list[str], require: list[str]) -> bool:
                 return True
     return False
 
-def get_match_namespace(current:list[str], configs: AllGroupConfig) -> list[str]:
+def get_match_group(current:list[str], configs: AllGroupConfig) -> list[str]:
     ret: list[str] = []
     for group_name, group_config in configs.items():
         if check_namespace_match(current, group_config["namespace"]):
@@ -70,4 +70,10 @@ def require_game_thread[**P, T, C: Context](func: Callable[Concatenate[C, int, P
             ctx.private_send(text=f"No game instance exist in thread `{ctx.thread_ts}`")
             return None
         return func(ctx, game_id, *args, **kwargs)
+    return inner
+
+def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P]]:
+    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:
+        configs = get_config()["bot"]["group"]
+        return func(ctx, get_match_group(ctx.list_namespace, configs), *args, **kwargs)
     return inner
