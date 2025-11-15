@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Concatenate
 import os
+import re
 
 from api import get_all_projs
 import db
@@ -10,6 +11,18 @@ from typing import Any
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
+
+def check_namespace_match(current: list[str], require: list[str]) -> bool:
+    for req in require:
+        if req.startswith("r:"):
+            regex = req.removeprefix("r:")
+            for key in current:
+                if re.fullmatch(regex, key):
+                    return True
+        else:
+            if req in current:
+                return True
+    return False
 
 
 def guess_week() -> int:
@@ -26,7 +39,7 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
         return func(ctx, game_id, *args, **kwargs)
     return inner
 
-def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, P], T]) -> Callable[Concatenate[C, P], T | None]:
+def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list, P], T]) -> Callable[Concatenate[C, P], T | None]:
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
         if ctx.author_id not in ALLOWED and ctx.author_id not in AUTHORIZED_USERS:
             return None
