@@ -1,18 +1,42 @@
 [bot.group.siege]
-allowed=["U097L0VNZ3K","U0928F9L3B4","U07H8T3AL2W","U087V98HWGP","U09192704Q7","U095669844X","U08PLHD4L2J","U0926KMCVDJ","U07SU9F50MT","U0828FYS2UC","U08CJCZ2Z9S","U09B2BFQJFJ","U092BGL0UUQ","U0943NG73PA","U03U380TSNT","U093H5LJHGC","U08SF8MVC82","U084PTWSWR5","U0971C3C44D","U083XGD4XFY","U0929F6RWL9","U07BN55GN3D","U08DDHGPBCM"]
-authorized=["U092BGL0UUQ","U0929F6RWL9","U07BN55GN3D"]
-namespace=[
+allowed = [
+    "U097L0VNZ3K",
+    "U0928F9L3B4",
+    "U07H8T3AL2W",
+    "U087V98HWGP",
+    "U09192704Q7",
+    "U095669844X",
+    "U08PLHD4L2J",
+    "U0926KMCVDJ",
+    "U07SU9F50MT",
+    "U0828FYS2UC",
+    "U08CJCZ2Z9S",
+    "U09B2BFQJFJ",
+    "U092BGL0UUQ",
+    "U0943NG73PA",
+    "U03U380TSNT",
+    "U093H5LJHGC",
+    "U08SF8MVC82",
+    "U084PTWSWR5",
+    "U0971C3C44D",
+    "U083XGD4XFY",
+    "U0929F6RWL9",
+    "U07BN55GN3D",
+    "U08DDHGPBCM",
+]
+authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D"] 
+namespace = [
     "r:cmd:siege\\..*",
-    "channel:C08SKC6P85V", # Siege channel
-    "channel:C09A8DBGNCV", # Siege announcement
-    "channel:C09LYSH1ZEK", # Internal 1
-    "channel:C09FYEXJK1N", # Internal 2
-    "channel:C09F37FUC93", # Internal 3
-    "channel:C09KZ66SKAS", # Internal 4
-    "channel:C09AAQNDSP8", # Siege help
-    "channel:C09GSTH65B7", # Ask the stonemason
-    "channel:C09KH3WD3GR", # Internal 5
-    "channel:C09KTR863L3", # Internal 6
+    "channel:C08SKC6P85V",    # Siege channel
+    "channel:C09A8DBGNCV",    # Siege announcement
+    "channel:C09LYSH1ZEK",    # Internal 1
+    "channel:C09FYEXJK1N",    # Internal 2
+    "channel:C09F37FUC93",    # Internal 3
+    "channel:C09KZ66SKAS",    # Internal 4
+    "channel:C09AAQNDSP8",    # Siege help
+    "channel:C09GSTH65B7",    # Ask the stonemason
+    "channel:C09KH3WD3GR",    # Internal 5
+    "channel:C09KTR863L3",    # Internal 6
     "r:interaction:siege_.*",
     "slash:/user",
     "slash:/proj",
@@ -20,14 +44,14 @@ namespace=[
     "slash:/lb",
     "slash:/leaderboard",
     "slash:/stats",
-    "slash:/searchs"
+    "slash:/searchs",
 ]
-module="siege"
+module = "siege"
 
 [bot.group.hackatime]
-allowed=["U092BGL0UUQ"]
-authorized=["U092BGL0UUQ"]
-namespace=[
+allowed = ["U092BGL0UUQ"]
+authorized = ["U092BGL0UUQ"]
+namespace = [
     "channel:C09KTR863L3", # Internal 1
 ]
-module="hackatime"
+module = "hackatime"

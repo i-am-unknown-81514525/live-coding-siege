@@ -88,7 +88,7 @@ def require_game_thread[**P, T, C: Context](func: Callable[Concatenate[C, int, P
         return func(ctx, game_id, *args, **kwargs)
     return inner
 
-def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P]]:
+def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T]:
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:
         configs = get_config()["bot"]["group"]
         return func(ctx, get_match_group(ctx.list_namespace, configs), *args, **kwargs)
@@ -147,6 +147,56 @@ def require_groups[**P, T, C: Context](groups: list[str], forwarding: bool = Fal
                 ctx.private_send(text=f"Missing required group of {group_names}")
                 return None
             return func(ctx, *args, **kwargs)
+        return inner
+    if forwarding:
+        return outer_fwd
+    if forwarding:
+        return outer_fwd
+    return outer_no_fwd
+
+
+@overload
+def has_group[**P, T, C: Context](group: str, forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, bool, P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+
+@overload
+def has_group[**P, T, C: Context](group: str, forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, bool, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
+
+
+def has_group[**P, T, C: Context](group: str, forwarding: bool = False) -> Callable[[Callable[Concatenate[C, bool, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]] | Callable[[Callable[Concatenate[C, bool, P], T]], Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer_fwd(func: Callable[Concatenate[C, bool, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            ret = [group]
+            if group not in groups:
+                ret.remove(group)
+            return func(ctx, bool(ret), ret, *args, **kwargs)
+        return inner
+    
+    def outer_no_fwd(func: Callable[Concatenate[C, bool, P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            return func(ctx, group in groups, *args, **kwargs)
+        return inner
+    if forwarding:
+        return outer_fwd
+    return outer_no_fwd
+
+@overload
+def have_one_of_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, bool, P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+
+@overload
+def have_one_of_groups[**P, T, C: Context](groups: list[str], forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, bool, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
+
+
+def have_one_of_groups[**P, T, C: Context](groups: list[str], forwarding: bool = False) -> Callable[[Callable[Concatenate[C, bool, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]] | Callable[[Callable[Concatenate[C, bool, P], T]], Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer_fwd(func: Callable[Concatenate[C, bool, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            overlap = set(groups).intersection(inner_group)
+            return func(ctx, bool(overlap),list(overlap), *args, **kwargs)
+        return inner
+    
+    def outer_no_fwd(func: Callable[Concatenate[C, bool, P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            overlap = set(groups).intersection(inner_group)
+            return func(ctx, bool(overlap), *args, **kwargs)
         return inner
     if forwarding:
         return outer_fwd
