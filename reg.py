@@ -23,6 +23,8 @@ HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, WebClient], Any]
 SLASH_HANDLER: dict[str, list[Callable[["SlashContext"], Any]]] = {}
 DESCRIPTION: dict[str, str] = {}
 
+type CtxFn[C: Context, T] = Callable[[C], T]
+
 # def msg_listen[A: Callable](
 #     message_key: str, is_subtype: bool = False
 # ) -> Callable[[A], A]:
@@ -400,7 +402,7 @@ class InteractionContext(Context):
     
 
 
-def smart_msg_listen[A: Callable](
+def smart_msg_listen[A: Callable[[MessageContext], Any]](
     message_key: str, is_subtype: bool = False
 ) -> Callable[[A], A]:
     """
@@ -504,7 +506,7 @@ def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
     return decorator
 
 
-def slash_listen[A: Callable](slash_cmd: str) -> Callable[[A], A]:
+def slash_listen[A: Callable[[SlashContext], Any]](slash_cmd: str) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a slash command.
 
