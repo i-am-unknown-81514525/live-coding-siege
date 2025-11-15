@@ -22,8 +22,8 @@ from collections import Counter
 from rapidfuzz import fuzz
 import utils
 
-ALLOWED = os.environ["ALLOWLIST"].split(",")
-BANNED = []
+# ALLOWED = os.environ["ALLOWLIST"].split(",")
+# BANNED = []
 
 
 def _time_to_slack(time: Arrow) -> str:
@@ -99,9 +99,9 @@ def _calc_base(week: int, hours: float) -> float:
 @slash_listen("/user")
 @smart_msg_listen("siege.user")
 @description("/user <user_id>?", "Shhhh... sneak peek on a siege user, surely no one would notice :)")
-def get_siege_user_info(ctx: Context):
-    if ctx.author_id in BANNED:
-        return
+@utils.have_allowed
+@utils.has_group("siege")
+def get_siege_user_info(ctx: Context, public: bool):
     user_id = ctx.author_id
     left_over = ctx.value
     if left_over:
@@ -146,7 +146,7 @@ def get_siege_user_info(ctx: Context):
     if buttons:
         message.add_block(blockkit.Actions(buttons))
 
-    if ctx.author_id in ALLOWED:
+    if public:
         ctx.public_send(**message.build())
     else:
         ctx.private_send(**message.build())
@@ -156,9 +156,9 @@ def get_siege_user_info(ctx: Context):
 @slash_listen("/project")
 @smart_msg_listen("siege.proj")
 @description("/proj <proj_id>", "Let me check a project coin value... What??? Someone got 607 coins in a week?")
-def get_siege_proj_info(ctx: Context):
-    if ctx.author_id in BANNED:
-        return
+@utils.have_allowed
+@utils.has_group("siege")
+def get_siege_proj_info(ctx: Context, public: bool):
     left_over = ctx.value.strip()
     if left_over:
         try:
@@ -206,7 +206,7 @@ def get_siege_proj_info(ctx: Context):
         .add_block(blockkit.Actions(buttons))
     )
 
-    if ctx.author_id in ALLOWED:
+    if public:
         ctx.public_send(**message.build(), unfurl_links=False)
     else:
         ctx.private_send(**message.build(), unfurl_links=False)
@@ -216,8 +216,6 @@ def get_siege_proj_info(ctx: Context):
 def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
     v = event.actions[0].value
     user_id = event.user.id
-    if user_id in BANNED:
-        return
     if not v:
         logging.warning("siege_proj_view missing project id")
         return
@@ -283,8 +281,6 @@ def handle_siege_proj_view(event: BlockActionEvent, client: WebClient):
 def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
     v = event.actions[0].value
     ori_uid = event.user.id
-    if ori_uid in BANNED:
-        return
     if not v:
         logging.warning("siege_proj_view missing project id")
         return
@@ -338,9 +334,6 @@ def handle_siege_user_view(event: BlockActionEvent, client: WebClient):
 @smart_msg_listen("siege.global")
 @description("/global", "Uhh am I gonna get my global bet payout this time :nervous:")
 def get_total_proj_time(ctx: Context):
-    if ctx.author_id in BANNED:
-        return
-
     p1 = time.perf_counter()
 
     proj_list = get_all_projs()
@@ -365,10 +358,12 @@ LEADERBOARD_AMOUNT = 20
 @smart_msg_listen("siege.leaderboard")
 @smart_msg_listen("siege.lb")
 @description("/lb <lb_option>?", "The hall of fame!")
-def get_leaderboard(ctx: Context):
+@utils.have_allowed
+@utils.has_group("siege")
+def get_leaderboard(ctx: Context, public: bool):
     opt = ctx.value or ""
     message: blockkit.Message | None = None
-    force_ephemeral: bool = False
+    force_ephemeral: bool = not public
     match opt:
         case "coin":
             leaderboard = get_coin_leaderboard()
@@ -506,7 +501,7 @@ def get_leaderboard(ctx: Context):
                 "Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`, `efficiency`"
             )
 
-    if ctx.author_id in ALLOWED and not force_ephemeral:
+    if not force_ephemeral:
         ctx.public_send(**message.build())
     else:
         ctx.private_send(**message.build())
@@ -516,7 +511,9 @@ def get_leaderboard(ctx: Context):
 @slash_listen("/siege_stats")
 @smart_msg_listen("siege.stats")
 @description("/stats", "Stats for the Siege YSWS")
-def get_stats(ctx: Context):
+@utils.have_allowed
+@utils.has_group("siege")
+def get_stats(ctx: Context, public: bool):
     all_projs = get_all_projs()
     week_proj: dict[int, list[SiegeProject]] = {}
     for proj in all_projs:
@@ -542,7 +539,7 @@ def get_stats(ctx: Context):
                 f"- {status} - {status_dict[status][0]} project with {status_dict[status][1]:.1f}h"
             )
         total_msg.append("\n".join(week_msg))
-    if ctx.author_id in ALLOWED:
+    if public:
         ctx.public_send(True, text="\n".join(total_msg))
     else:
         ctx.private_send(False, text="\n".join(total_msg))
@@ -558,7 +555,9 @@ SIMILARITY_THRESHOLD = 0.9
 @smart_msg_listen("siege.search ")
 @smart_msg_listen("siege.searchs ")
 @description("/searchs <keyword>?", "Search for project by keyword")
-def search_project(ctx: Context):
+@utils.have_allowed
+@utils.has_group("siege")
+def search_project(ctx: Context, public: bool):
     req = ctx.value.lower()
     all_projs = get_all_projs()
     def full_info(proj: SiegeProject) -> Literal["project name", "description", "repo user", "repo", None, "user id", "project id", "display name", "user name"]:
@@ -616,7 +615,7 @@ def search_project(ctx: Context):
         str(retrieve(p, full_info(p) or "project name"))[:150]
     }" if req else "") for p in filtered[:50])
 
-    if ctx.author_id in ALLOWED:
+    if public:
         ctx.public_send(text=base)
     else:
         ctx.private_send(text=base)
