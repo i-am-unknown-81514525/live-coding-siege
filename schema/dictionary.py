@@ -111,17 +111,17 @@ class PhoneticsResult(Readable):
 @dataclass(frozen=True)
 class DictResult(Readable):
     word: str
-    phonetic: str
     phonetics: list[PhoneticsResult]
     license: License
     sourceUrls: list[str]
     meanings: list[WordDefPart]
+    phonetic: str | None = None
 
     @classmethod
     def parse(cls, raw: dict) -> Self:
         return cls(
             word=raw["word"],
-            phonetic=raw["phonetic"],
+            phonetic=raw.get("phonetic"),
             phonetics=[PhoneticsResult.parse(p) for p in raw["phonetics"]],
             license=License.parse(raw["license"]),
             sourceUrls=raw["sourceUrls"],
@@ -130,4 +130,4 @@ class DictResult(Readable):
     
     @property
     def readable(self) -> str:
-        return f"*{self.word}*({self.phonetic})\n{"\n".join(meaning.readable for meaning in self.meanings)}\n{self.license.readable} from https://dictionaryapi.dev/"
+        return f"*{self.word}*{f"({self.phonetic})" if self.phonetic else ""}\n{"\n".join(meaning.readable for meaning in self.meanings)}\n{self.license.readable} from https://dictionaryapi.dev/"
