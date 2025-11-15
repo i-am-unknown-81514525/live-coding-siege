@@ -20,6 +20,7 @@ import logging
 from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
 from rapidfuzz import fuzz
+import utils
 
 ALLOWED = os.environ["ALLOWLIST"].split(",")
 BANNED = []

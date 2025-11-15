@@ -47,6 +47,26 @@ def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, 
     return inner
 
 def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+    @have_allowed
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+        if not groups:
+            group_names = ", ".join(f"\"{name}\"" for name in groups)
+            ctx.private_send(text=f"Missing required group of \"Allowed\" or \"Authorised\" in one of {group_names}")
+            return None
+        return func(ctx, groups, *args, **kwargs)
+    return inner
+
+def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+    @have_authorised
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+        if not groups:
+            group_names = ", ".join(f"\"{name}\"" for name in groups)
+            ctx.private_send(text=f"Missing required group of \"Authorised\" in one of {group_names}")
+            return None
+        return func(ctx, groups, *args, **kwargs)
+    return inner
+
+def have_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
     @get_group
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
         configs = get_config()["bot"]["group"]
@@ -54,14 +74,10 @@ def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str],
         for group in groups:
             if ctx.author_id not in  configs[group]["allowed"] and ctx.author_id not in configs[group]["authorized"]:
                 clo.remove(group)
-        if not clo:
-            group_names = ", ".join(f"\"{name}\"" for name in groups)
-            ctx.private_send(text=f"Missing required group of \"Allowed\" or \"Authorised\" in one of {group_names}")
-            return None
         return func(ctx, clo, *args, **kwargs)
     return inner
 
-def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
+def have_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T | None]:
     @get_group
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
         configs = get_config()["bot"]["group"]
@@ -69,10 +85,6 @@ def require_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[st
         for group in groups:
             if ctx.author_id not in configs[group]["authorized"]:
                 clo.remove(group)
-        if not clo:
-            group_names = ", ".join(f"\"{name}\"" for name in groups)
-            ctx.private_send(text=f"Missing required group of \"Authorised\" in one of {group_names}")
-            return None
         return func(ctx, clo, *args, **kwargs)
     return inner
 
