@@ -89,6 +89,12 @@ def push_link(game_id: int, user_id: int) -> None:
         """, (game_id, user_id))
         conn.commit()
 
+def get_user_id_from_proj() -> list[int]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""SELECT user_id FROM proj_record GROUP BY user_id""")
+        rows = cursor.fetchall()
+        return [row["user_id"] for row in rows]
 
 class Siege(LiveModuleBase):
     def __init__(self, instance: GameInstance):
@@ -119,6 +125,27 @@ def proj_loop():
         if sleep_time > 0:
             time.sleep(sleep_time)
 
+USER_LOOP_TIME = 600
+def user_loop():
+    while True:
+        start = time.perf_counter()
+        user_id_list: list[int] = get_user_id_from_proj()
+        users: list[SiegeUser] = []
+        try:
+            for user_id in user_id_list:
+                try:
+                    user = api.get_user(user_id)
+                    users.append(user)
+                except Exception as e:
+                    logging.info(f"Faile to fetch users", exc_info=True)
+            push_user(users)
+        except Exception as e:
+            logging.warning(f"Faile to fetch users", exc_info=True)
+        curr = time.perf_counter()
+        logging.info(f"Fetched and processed {len(users)} users in {curr-start}s (Loop time: {USER_LOOP_TIME}s)")
+        sleep_time = USER_LOOP_TIME - (curr - start)
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
 def start(client: SocketModeClient):
     init_db()
