@@ -160,7 +160,7 @@ def get_siege_user_info(ctx: Context, public: bool):
 
 @slash_listen("/proj")
 @slash_listen("/project")
-@smart_msg_listen("siege.proj")
+@smart_msg_listen("siege.proj ")
 @smart_action_prefix_listen("siege_proj_view")
 @description("/proj <proj_id>", "Let me check a project coin value... What??? Someone got 607 coins in a week?")
 @utils.get_group
