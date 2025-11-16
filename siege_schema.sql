@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS proj_record(
 
 CREATE TABLE IF NOT EXISTS user_record(
     user_id INT not null,
+    username TEXT not null,
     measurement_time DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     coin_count INT not null,
     user_status TEXT not null,
