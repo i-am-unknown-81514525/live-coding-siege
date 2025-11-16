@@ -1,6 +1,6 @@
 [x] - Setup schema for siege project logging
-[ ] - Task loop to auto fetch update for projects and user (5m/projs request // 10s/user request weighted by 1.3**(k-1) for each project where k is the project week)
-[ ] - `siege.summary` for the summary of work done during the time
+[x] - Task loop to auto fetch update for projects and user (5m/projs request and also track user)
+[x] - `siege.proj_details` for the summary of work done during the time
 [x] - Modulise the siege part out of live coding 
 [x] - Remove magical theme if necessary (?)
 [ ] - Attempt to connect live coding to hackatime server for generic live coding 
@@ -21,6 +21,6 @@
 [ ] - `live.transaction`
 [ ] - Fix prefix command get recognised as link
 [x] - `no_prefix` change to `value` in favuor for `Context` for interaction
-[ ] - `siege.define` / `/define` - get dictionary definition of word
+[x] - `siege.define` / `/define` - get dictionary definition of word
 [x] - `.cmd` attr on `Context`
 [x] - `config.toml` file for permission namespace
