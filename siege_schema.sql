@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS proj_record(
     proj_id INT not null,
-    measuremen_time DATETIME not null DEFAULT CURRENT_TIMESTAMP,
+    measurement_time DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     week_num INT not null,
     title TEXT not null,
     description TEXT not null,
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS proj_record(
     repo_url TEXT null,
     demo_url TEXT null,
     proj_status TEXT NOT NULL,
-    PRIMARY KEY (proj_id, measuremen_time)
+    PRIMARY KEY (proj_id, measuremet_time)
 );
 
 CREATE TABLE IF NOT EXISTS user_record(
@@ -17,4 +17,5 @@ CREATE TABLE IF NOT EXISTS user_record(
     measurement_time DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     coin_count INT not null,
     user_status TEXT not null,
+    PRIMARY KEY(user_id, measurement_time)
 );
