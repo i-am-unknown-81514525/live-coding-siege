@@ -17,6 +17,8 @@ import jwt
 from ws_mgr import controller, schema, signals
 import uvicorn
 import db
+from slack_sdk.socket_mode import SocketModeClient
+
 
 type ExcInfo[E: BaseException] = tuple[type[E], E, TracebackType]
 
@@ -345,3 +347,6 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 def start_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+def start(client: SocketModeClient):
+    start_server()
