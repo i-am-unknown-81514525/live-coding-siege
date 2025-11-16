@@ -1117,7 +1117,6 @@ def add_game_participant(
     game_id: int, user_id: str, ticket_count: int
 ):
     """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
-    # TODO: the h_penalty thing, I hope I remember and also don't have to make 2 function for it
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -1129,6 +1128,27 @@ def add_game_participant(
             (game_id, user_id, ticket_count),
         )
         conn.commit()
+
+def get_participant_ticket_count(game_id: int, user_id: str) -> int | None:
+    """Return ticket_count for a given participant in a game, or None if not present."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        row = cur.execute(
+            "SELECT ticket_count FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1",
+            (game_id, user_id),
+        ).fetchone()
+        return row["ticket_count"] if row else None
+
+
+def get_all_participant_ticket_counts(game_id: int) -> dict[str, int]:
+    """Return mapping user_id -> ticket_count for all participants in a game."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        rows = cur.execute(
+            "SELECT user_id, ticket_count FROM game_participant WHERE game_id = ?",
+            (game_id,),
+        ).fetchall()
+        return {r["user_id"]: (r["ticket_count"] or 0) for r in rows}
 
 if __name__ == "__main__":
     init_db()

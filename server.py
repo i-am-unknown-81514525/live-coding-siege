@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from fastapi.staticfiles import StaticFiles
 import jwt
 
+from live_base import get_module
 from ws_mgr import controller, schema, signals
 import uvicorn
 import db
@@ -220,28 +221,16 @@ async def get_tickets(
     users = await get_result(db.get_huddle_participants, game_id)
 
     result: dict[str, tuple[str, int, str]] = {}
+    instance = await get_result(db.get_game_instance, game_id)
+    module = await get_result(get_module, instance)
+    user_tickets = await get_result(module.get_tickets, users)
+    for user, ticket in user_tickets.items():
+        await get_result(db.add_game_participant,game_id, user, ticket)
     for user in users:
-        await get_result(db.auto_add_no_siege, game_id, user)
-    for user, hour_info in (await get_result(db.update_time_multi, game_id, users)).items():
         user_info = await get_result(db.get_slack_user, user)
         if not user_info:
             continue
-        try:
-            time_v = hour_info
-            if time_v:
-                result[user] = (
-                    user_info[0],
-                    await get_result(
-                        db.get_ticket,
-                        10,
-                        1,
-                        0.1,
-                        time_v.h_curr - time_v.h_start - time_v.h_penalty,
-                    ),
-                    (user_info[1] or "empty.png"),
-                )
-        except:
-            ...
+        result[user] = (user_info[0], user_tickets.get(user, 0), (user_info[1] or "empty.png"))
     return result
 
 
@@ -256,28 +245,12 @@ async def get_tickets_no_update(
     users = await get_result(db.get_huddle_participants, game_id)
 
     result: dict[str, tuple[str, int, str]] = {}
+    user_tickets = await get_result(db.get_all_participant_ticket_counts, game_id)
     for user in users:
         user_info = await get_result(db.get_slack_user, user)
         if not user_info:
             continue
-        time_v = await get_result(
-            db.get_time, game_id, user
-        )  # Although they look almost identical, it use `get_time` instead of `update_time`
-        # They are in fact not the same, for future me :) - current me
-        if time_v:
-            result[user] = (
-                user_info[0],
-                await get_result(
-                    db.get_ticket,
-                    10,
-                    1,
-                    0.1,
-                    (time_v.h_curr or 0)
-                    - (time_v.h_start or 0)
-                    - (time_v.h_penalty or 0),
-                ),
-                (user_info[1] or "empty.png"),
-            )
+        result[user] = (user_info[0], user_tickets.get(user, 0), (user_info[1] or "empty.png"))
     return result
 
 
