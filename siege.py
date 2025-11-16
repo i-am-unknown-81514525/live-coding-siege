@@ -125,19 +125,6 @@ def fetch_all_user_link(used_ids: list[int]) -> list[int]:
         rows = cursor.fetchall()
         return [row["game_id"] for row in rows]
 
-class Siege(LiveModuleBase):
-    def __init__(self, instance: GameInstance):
-        super().__init__(instance)
-
-    def get_ticket(self, user: str) -> int:
-        return 1
-
-    def get_tickets(self, users: list[str]) -> dict[str, int]:
-        return {user: 1 for user in users}
-
-    def refresh_tickets(self, users: list[str]) -> dict[str, int]:
-        return self.get_tickets(users)
-
 PROJ_LOOP_TIME = 300
 def proj_loop():
     while True:
@@ -295,6 +282,18 @@ def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
         curr_t = hb.measurement_time
     return max(0, final_h - initial_h - penalty_h)
 
+class Siege(LiveModuleBase):
+    def __init__(self, instance: GameInstance):
+        super().__init__(instance)
+
+    def get_ticket(self, user: str) -> int:
+        return 1
+
+    def get_tickets(self, users: list[str]) -> dict[str, int]:
+        return {user: 1 for user in users}
+
+    def refresh_tickets(self, users: list[str]) -> dict[str, int]:
+        return self.get_tickets(users)
 
 def start(client: SocketModeClient):
     init_db()
