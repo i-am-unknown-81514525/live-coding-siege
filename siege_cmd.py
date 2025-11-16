@@ -575,7 +575,7 @@ def get_proj_details(ctx: Context, public: bool):
                 line += f"\n> {key}: {old} -> {new}"
         message_lines.append(line)
     if public:
-        ctx.public_send(text="\n".join(message_lines))
+        ctx.public_send(True, text="\n".join(message_lines))
     else:
-        ctx.private_send(text="\n".join(message_lines))
+        ctx.private_send(True, text="\n".join(message_lines))
         
