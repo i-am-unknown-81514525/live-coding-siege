@@ -64,6 +64,14 @@ def get_game_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], 
         return func(ctx, ret, *args, **kwargs)
     return inner
 
+def filter_by_value[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+    def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
+        ret: list[str] = []
+        if ctx.value.strip() in groups:
+            ret = [ctx.value.strip()]
+        return func(ctx, ret, *args, **kwargs)
+    return inner
+
 @smart_msg_listen("live.test1")
 def test_interactive(ctx: Context):
     message_payload = (
@@ -98,7 +106,11 @@ def _technical_not_reveal_from_msg(
 @description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
 @get_group
 @require_allowed
-def init_game(ctx: Context, modes: list[str]):
+@utils.duplicate_second
+@filter_by_value
+@utils.filter_authorised
+@utils.have_any_group()
+def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
     picked_mode = ctx.value
     if picked_mode not in modes:
         text = f"\"{picked_mode}\" cannot be selected"
@@ -126,7 +138,6 @@ def init_game(ctx: Context, modes: list[str]):
         previous_managers = db.list_game_manager(existing_game_id)
         if user_id in previous_managers:
             can_restart = False
-            is_authorized = user_id in utils.get_config()["bot"]["group"][picked_mode].get("authorized", [])
 
             if is_authorized:
                 if not db.get_game_mgr_active_game(user_id):
