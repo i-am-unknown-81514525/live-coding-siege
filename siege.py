@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 from pathlib import Path
 import sqlite3
@@ -6,6 +7,8 @@ import logging
 import time
 import threading
 
+from arrow import Arrow
+import arrow
 from slack_sdk.socket_mode import SocketModeClient
 
 from live import push_ticket_update_ws
@@ -186,6 +189,112 @@ def user_loop():
         sleep_time = USER_LOOP_TIME - (curr - start)
         if sleep_time > 0:
             time.sleep(sleep_time)
+
+@dataclass(frozen=True)
+class ProjHeartbeatRecord:
+    proj_id: int
+    measurement_time: Arrow
+    week_num: int
+    title: str
+    description: str
+    user_id: int
+    hours: float
+    repo_url: str
+    demo_url: str
+    proj_status: str
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> "ProjHeartbeatRecord":
+        return cls(
+            proj_id=row["proj_id"],
+            measurement_time=arrow.get(row["measurement_time"]),
+            week_num=row["week_num"],
+            title=row["title"],
+            description=row["description"],
+            user_id=row["user_id"],
+            hours=row["hours"],
+            repo_url=row["repo_url"],
+            demo_url=row["demo_url"],
+            proj_status=row["proj_status"]
+        )
+
+def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT
+            proj_id,
+            measurement_time,
+            week_num,
+            title,
+            description,
+            user_id,
+            hours,
+            repo_url,
+            demo_url,
+            proj_status
+        FROM proj_record
+        WHERE user_id = ?
+        ORDER BY measurement_time DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        records = []
+        for row in rows:
+            record = ProjHeartbeatRecord.from_row(row)
+            records.append(record)
+        return records
+
+def retrieve_all_heartbeat_curr_proj_curr_week(user_id: int, week_num: int, from_time: Arrow) -> list[ProjHeartbeatRecord]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        curr_proj = get_user_proj(user_id, week_num)
+        if curr_proj is None:
+            return []
+        cursor.execute("""
+        SELECT
+            proj_id,
+            measurement_time,
+            week_num,
+            title,
+            description,
+            user_id,
+            hours,
+            repo_url,
+            demo_url,
+            proj_status
+        FROM proj_record
+        WHERE user_id = ? AND week_num = ? AND proj_id = ? AND measurement_time >= ?
+        ORDER BY measurement_time DESC
+        """, (user_id, week_num, curr_proj, from_time.datetime))
+        rows = cursor.fetchall()
+        records = []
+        for row in rows:
+            record = ProjHeartbeatRecord.from_row(row)
+            records.append(record)
+        return records
+
+def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
+    LEEWAY_HOURS_PER_HEARTBEAT = 0.15
+    hours = 0
+    if not heartbeats:
+        return 0
+    heartbeats_sorted = list(sorted(heartbeats, key=lambda hb: hb.measurement_time))
+    earlist_heartbeat = heartbeats_sorted[0]
+    initial_h = earlist_heartbeat.hours
+    final_h = heartbeats_sorted[-1].hours
+    curr_h = initial_h
+    curr_t = earlist_heartbeat.measurement_time
+    penalty_h = 0
+    for hb in heartbeats_sorted[1:]:
+        delta_t = (hb.measurement_time - curr_t).total_seconds() / 3600.0
+        increase_h = hb.hours - curr_h
+        expected_increase_h = delta_t + LEEWAY_HOURS_PER_HEARTBEAT
+        if increase_h >= expected_increase_h:
+            penalty_h += increase_h - delta_t
+        curr_h = hb.hours
+        curr_t = hb.measurement_time
+    return max(0, final_h - initial_h - penalty_h)
+
 
 def start(client: SocketModeClient):
     init_db()
