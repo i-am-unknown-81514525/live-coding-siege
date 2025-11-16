@@ -593,11 +593,11 @@ def optout(ctx: MessageContext, game_id: int):
     )
 
 
-@action_listen("confirm_optout")
-def confirm_optout(event: BlockActionEvent, client: WebClient):
-    user_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (event.message and event.message.thread_ts) or event.container.thread_ts
+@smart_action_listen("confirm_optout")
+def confirm_optout(ctx: InteractionContext):
+    user_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
 
     if thread_ts is None:
         logging.warning("Cannot find thread.")
@@ -609,28 +609,23 @@ def confirm_optout(event: BlockActionEvent, client: WebClient):
 
     game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if game_id is None:
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Could not find an active show in this thread.",
-            thread_ts=thread_ts,
         )
         return
 
     db.update_participant_opt_out(game_id, user_id, is_opted_out=True)
 
-    client.chat_postEphemeral(
-        user=user_id,
-        channel=channel_id,
+    ctx.private_send(
         text="You have opted out of the current show. You will no longer be selected for performances.",
-        thread_ts=thread_ts,
     )
-    client.chat_update(
-        channel=channel_id,
-        ts=event.container.message_ts,
-        text="You have opted out.",
-        blocks=[],
-    )
+    if ctx.message_ts:
+        ctx.client.chat_update(
+            channel=channel_id,
+            ts=ctx.message_ts,
+            text="You have opted out.",
+            blocks=[],
+        )
 
 
 @smart_msg_listen("live.reject")
