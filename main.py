@@ -27,7 +27,7 @@ from schema.huddle import HuddleChange
 from schema.interactive import BlockActionEvent
 from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
-from server import start_server
+import server
 
 load_dotenv()
 ALLOWED = os.environ["ALLOWLIST"].split(",")
@@ -84,12 +84,11 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     db.init_db()
-    thread = Thread(target=start_server)
-    thread.start()
     client = SocketModeClient(
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
     )
+    server.start(client)
     live.load_active_timers(client.web_client)
     client.socket_mode_request_listeners.append(process_message)
     print("Bot is listening for messages...")
