@@ -223,6 +223,25 @@ class ProjHeartbeatRecord:
             demo_url=row["demo_url"],
             proj_status=row["proj_status"]
         )
+    
+    def compare_to_new(self, new: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
+        diffs: dict[str, tuple[str, str]] = {}
+        if self.title != new.title:
+            diffs["title"] = (self.title, new.title)
+        if self.description != new.description:
+            diffs["description"] = (self.description, new.description)
+        if self.hours != new.hours:
+            diffs["hours"] = (str(self.hours), str(new.hours))
+        if self.repo_url != new.repo_url:
+            diffs["repo_url"] = (self.repo_url, new.repo_url)
+        if self.demo_url != new.demo_url:
+            diffs["demo_url"] = (self.demo_url, new.demo_url)
+        if self.proj_status != new.proj_status:
+            diffs["proj_status"] = (self.proj_status, new.proj_status)
+        return diffs
+    
+    def compare_to_old(self, old: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
+        return old.compare_to_new(self)
 
 def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
