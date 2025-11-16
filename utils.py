@@ -248,3 +248,13 @@ def consume_second[**P, A, B, T](func: Callable[Concatenate[A, P], T]) -> Callab
     def inner(a: A, _: B, *args: P.args, **kwargs: P.kwargs) -> T:
         return func(a, *args, **kwargs)
     return inner
+
+def duplicate_second[**P, A, B, T](func: Callable[Concatenate[A, B, B, P], T]) -> Callable[Concatenate[A, B, P], T]:
+    def inner(a: A, b: B, *args: P.args, **kwargs: P.kwargs) -> T:
+        return func(a, b, b, *args, **kwargs)
+    return inner
+
+def swap[**P, A, B, C, T](func: Callable[Concatenate[A, C, B, P], T]) -> Callable[Concatenate[A, B, C, P], T]:
+    def inner(a: A, b: B, c: C, *args: P.args, **kwargs: P.kwargs) -> T:
+        return func(a, c, b, *args, **kwargs)
+    return inner
