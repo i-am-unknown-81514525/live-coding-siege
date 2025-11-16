@@ -49,10 +49,10 @@ namespace = [
 ]
 module = "siege"
 
-[bot.group.hackatime]
+[bot.group.blank]
 allowed = ["U092BGL0UUQ"]
 authorized = ["U092BGL0UUQ"]
 namespace = [
     "channel:C09KTR863L3", # Internal 1
 ]
-module = "hackatime"
+module = "live_blank"
