@@ -10,7 +10,7 @@ from slack_sdk.socket_mode import SocketModeClient
 
 from schema.siege import SiegeProject, SiegeUser
 from live_base import LiveModuleBase, GameInstance
-import api
+import api, utils
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "siege.db"
@@ -96,6 +96,31 @@ def get_user_id_from_proj() -> list[int]:
         rows = cursor.fetchall()
         return [row["user_id"] for row in rows]
 
+def get_user_proj(user_id: int, week: int | None) -> int | None:
+    if week is None:
+        week = utils.guess_week()
+    return {proj.week: proj.id for proj in api.get_user(user_id).projects}.get(week)
+
+def fetch_linked_users(game_id: int) -> list[int]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT user_id FROM game_link WHERE game_id = ?
+        """, (game_id,))
+        rows = cursor.fetchall()
+        return [row["user_id"] for row in rows]
+
+def fetch_all_user_link(used_ids: list[int]) -> list[int]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        placeholder = ",".join("?" for _ in used_ids)
+        query = f"""
+        SELECT DISTINCT game_id FROM game_link WHERE user_id IN ({placeholder})
+        """
+        cursor.execute(query, used_ids)
+        rows = cursor.fetchall()
+        return [row["game_id"] for row in rows]
+
 class Siege(LiveModuleBase):
     def __init__(self, instance: GameInstance):
         super().__init__(instance)
@@ -119,6 +144,11 @@ def proj_loop():
             push_proj(projs)
         except Exception as e:
             logging.warning(f"Faile to fetch project", exc_info=True)
+        try:
+            game_req_update = fetch_all_user_link(list(set(proj.user.id for proj in projs)))
+            ...
+        except Exception as e:
+            logging.warning(f"Faile to push update on game", exc_info=True)
         curr = time.perf_counter()
         logging.info(f"Fetched and processed {len(projs)} projects in {curr-start}s (Loop time: {PROJ_LOOP_TIME}s)")
         sleep_time = PROJ_LOOP_TIME - (curr - start)
