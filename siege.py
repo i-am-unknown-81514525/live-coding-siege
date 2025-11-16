@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from slack_sdk.socket_mode import SocketModeClient
 
 from schema.siege import SiegeProject, SiegeUser
+from live_base import LiveModuleBase, GameInstance
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "siege.db"
@@ -87,3 +88,20 @@ def push_link(game_id: int, user_id: int) -> None:
 
 def start(client: SocketModeClient):
     init_db()
+
+class Siege(LiveModuleBase):
+    def __init__(self, instance: GameInstance):
+        super().__init__(instance)
+
+    def get_ticket(self, user: str) -> int:
+        return 1
+
+    def get_tickets(self, users: list[str]) -> dict[str, int]:
+        return {user: 1 for user in users}
+
+    def refresh_tickets(self, users: list[str]) -> dict[str, int]:
+        return self.get_tickets(users)
+
+
+def get_module(instance: GameInstance) -> Siege:
+    return Siege(instance)
