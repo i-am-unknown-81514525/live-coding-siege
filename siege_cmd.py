@@ -544,12 +544,15 @@ def get_proj_details(ctx: Context, public: bool):
         proj_id = int(ctx.value)
     except ValueError:
         return ctx.private_send(text="Invalid project id.")
-    proj = get_project(proj_id)
-    siege.push_proj([proj])
+    message_lines = []
+    try:
+        proj = get_project(proj_id)
+        siege.push_proj([proj])
+    except Exception:
+        message_lines.append("Project can no longer be discovered from the API, the project might be hidden or deleted.")
     heartbeats = list(reversed(siege.retrieve_all_proj_record(proj_id)))
     if not heartbeats:
         return ctx.private_send(text="No heartbeat data found for this project.")
-    message_lines = []
     message_lines.append(
         f"""*{_time_to_slack(heartbeats[0].measurement_time)}*: Project first discovered\n> Repo URL: {"None" if not heartbeats[0].repo_url else f"<{heartbeats[0].repo_url}|{_parse_repo(heartbeats[0].repo_url)}>" }\n> Demo URL: {heartbeats[0].demo_url or "None"}\n> Status: {heartbeats[0].proj_status}\n> Hours: {heartbeats[0].hours}\n> Project Name: \"{heartbeats[0].title}\"\n> Description: \"{heartbeats[0].description}\""""
     )
