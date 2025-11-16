@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
 from api import get_project, get_user
+import live_base
 from schema.siege import SiegeProject
 from utils import guess_week
 from dataclasses import dataclass
@@ -118,6 +119,7 @@ def start_game(
     start_time: datetime,
     client_secret: str,
     server_secret: str,
+    mode: str,
 ) -> int:
     """Creates a new game and its initial 'GAME_START' transaction."""
     with get_db_connection() as conn:
@@ -130,7 +132,7 @@ def start_game(
             # This case should not be reached if the insert is successful and RETURNING is supported.
             raise RuntimeError("Failed to create a new game record.")
         game_id = row["id"]
-        _add_transaction(conn, game_id, "GAME_START", client_secret, server_secret)
+        _add_transaction(conn, game_id, "GAME_START", client_secret, server_secret, details={"mode": mode})
         conn.commit()
         return game_id
 
@@ -415,171 +417,171 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
         conn.commit()
 
 
-def auto_add(game_id: int, user_id: str, week: int | None = None):
-    week_num = week or guess_week()
-    projs = get_user(user_id).projects
-    proj = [proj for proj in projs if proj.week == week_num]
-    if proj:
-        full_proj = get_project(proj[0].id)
-        add_game_participant(
-            game_id, user_id, h_now=full_proj.hours, proj_id=proj[0].id
-        )
-    else:
-        add_game_participant(game_id, user_id, h_now=0, proj_id=None)
+# def auto_add(game_id: int, user_id: str, week: int | None = None):
+#     week_num = week or guess_week()
+#     projs = get_user(user_id).projects
+#     proj = [proj for proj in projs if proj.week == week_num]
+#     if proj:
+#         full_proj = get_project(proj[0].id)
+#         add_game_participant(
+#             game_id, user_id, h_now=full_proj.hours, proj_id=proj[0].id
+#         )
+#     else:
+#         add_game_participant(game_id, user_id, h_now=0, proj_id=None)
 
 
-def auto_add_no_siege(game_id, user_id):
-    add_game_participant(game_id, user_id, 0, None)
+# def auto_add_no_siege(game_id, user_id):
+#     add_game_participant(game_id, user_id, 0, None)
 
-def reset_game_participant(game_id: int, user_id: str, week: int | None = None):
-    week_num = week or guess_week()
-    projs = get_user(user_id).projects
-    proj = [proj for proj in projs if proj.week == week_num]
-    if proj:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """SELECT proj_id WHERE game_id = ? AND user_id = ?""",
-                (game_id, user_id)
-            )
-            result = cursor.fetchone()
-            if result and result[0] == proj[0].id:
-                update_time(game_id, user_id)
-                return
-            cursor = conn.cursor()
-            cursor.execute("""
-                        INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                        ON CONFLICT (game_id, user_id) DO UPDATE SET
-                            h_curr = excluded.h_curr
-                            h_start = excluded.h_start
-                            proj_id = excluded.proj_id
-                            h_lastcheck = CURRENT_TIMESTAMP
-                            h_penalty = 0
-                        """
-            )
-            conn.commit()
-            update_time(game_id, user_id)
-
-
-def add_game_participant(
-    game_id: int, user_id: str, h_now: float | None, proj_id: int | None
-):
-    """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
-    # TODO: the h_penalty thing, I hope I remember and also don't have to make 2 function for it
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(game_id, user_id) DO UPDATE SET
-                h_curr = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN excluded.h_curr ELSE game_participant.h_curr END,
-                h_start = CASE WHEN excluded.h_start IS NOT NULL AND (game_participant.h_start IS NULL OR game_participant.proj_id != excluded.proj_id) THEN excluded.h_start ELSE game_participant.h_start END,
-                proj_id = CASE WHEN excluded.proj_id IS NOT NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
-                h_lastcheck = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN CURRENT_TIMESTAMP ELSE game_participant.h_lastcheck END
-            """,
-            (game_id, user_id, h_now, h_now, proj_id),
-        )
-        conn.commit()
-    if proj_id is not None:
-        update_time(game_id, user_id)
+# def reset_game_participant(game_id: int, user_id: str, week: int | None = None):
+#     week_num = week or guess_week()
+#     projs = get_user(user_id).projects
+#     proj = [proj for proj in projs if proj.week == week_num]
+#     if proj:
+#         with get_db_connection() as conn:
+#             cursor = conn.cursor()
+#             cursor.execute(
+#                 """SELECT proj_id WHERE game_id = ? AND user_id = ?""",
+#                 (game_id, user_id)
+#             )
+#             result = cursor.fetchone()
+#             if result and result[0] == proj[0].id:
+#                 update_time(game_id, user_id)
+#                 return
+#             cursor = conn.cursor()
+#             cursor.execute("""
+#                         INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+#                         ON CONFLICT (game_id, user_id) DO UPDATE SET
+#                             h_curr = excluded.h_curr
+#                             h_start = excluded.h_start
+#                             proj_id = excluded.proj_id
+#                             h_lastcheck = CURRENT_TIMESTAMP
+#                             h_penalty = 0
+#                         """
+#             )
+#             conn.commit()
+#             update_time(game_id, user_id)
 
 
-@dataclass
-class HourStatus:
-    h_start: Final[float]
-    h_curr: Final[float]
-    h_penalty: Final[float]
+# def add_game_participant(
+#     game_id: int, user_id: str, h_now: float | None, proj_id: int | None
+# ):
+#     """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
+#     # TODO: the h_penalty thing, I hope I remember and also don't have to make 2 function for it
+#     with get_db_connection() as conn:
+#         cursor = conn.cursor()
+#         cursor.execute(
+#             """
+#             INSERT INTO game_participant (game_id, user_id, h_start, h_curr, proj_id, h_lastcheck) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+#             ON CONFLICT(game_id, user_id) DO UPDATE SET
+#                 h_curr = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN excluded.h_curr ELSE game_participant.h_curr END,
+#                 h_start = CASE WHEN excluded.h_start IS NOT NULL AND (game_participant.h_start IS NULL OR game_participant.proj_id != excluded.proj_id) THEN excluded.h_start ELSE game_participant.h_start END,
+#                 proj_id = CASE WHEN excluded.proj_id IS NOT NULL THEN excluded.proj_id ELSE game_participant.proj_id END,
+#                 h_lastcheck = CASE WHEN excluded.h_curr IS NOT NULL AND (excluded.h_curr > game_participant.h_curr OR game_participant.proj_id != excluded.proj_id) THEN CURRENT_TIMESTAMP ELSE game_participant.h_lastcheck END
+#             """,
+#             (game_id, user_id, h_now, h_now, proj_id),
+#         )
+#         conn.commit()
+#     if proj_id is not None:
+#         update_time(game_id, user_id)
 
 
-def get_time(game_id: int, user_id: str) -> HourStatus | None:
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """SELECT  h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""",
-            (game_id, user_id),
-        )
-        result = cursor.fetchone()
-        if not result:
-            return None
-        last_h_now, h_start, h_penalty = result
-        return HourStatus(h_start, last_h_now, h_penalty)
+# @dataclass
+# class HourStatus:
+#     h_start: Final[float]
+#     h_curr: Final[float]
+#     h_penalty: Final[float]
 
 
-def update_time(game_id: int, user_id: str) -> HourStatus | None:
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """SELECT proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""",
-            (game_id, user_id),
-        )
-        result = cursor.fetchone()
-        if not result:
-            return None
-        proj_id, last_check_time, last_h_now, h_start, h_penalty = result
-        h_now = get_project(proj_id).hours
-        last_check_time = arrow.get(last_check_time)
-        curr = arrow.now()
-        dt = curr - last_check_time
-        h_diff = h_now - last_h_now
-        c_diff = dt.total_seconds() / 3600
-        ALLOWED_LEEWAY = 0.15
-        penalty_addition = 0
-        if c_diff + ALLOWED_LEEWAY < h_diff:
-            penalty_addition = h_diff - c_diff
-        cursor.execute(
-            """UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""",
-            (h_now, penalty_addition, game_id, user_id),
-        )
-        conn.commit()
-        return HourStatus(h_start, h_now, h_penalty + penalty_addition)
+# def get_time(game_id: int, user_id: str) -> HourStatus | None:
+#     with get_db_connection() as conn:
+#         cursor = conn.cursor()
+#         cursor.execute(
+#             """SELECT  h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""",
+#             (game_id, user_id),
+#         )
+#         result = cursor.fetchone()
+#         if not result:
+#             return None
+#         last_h_now, h_start, h_penalty = result
+#         return HourStatus(h_start, last_h_now, h_penalty)
 
-def update_time_multi(game_id: int, user_ids: list[str]) -> dict[str, HourStatus]:
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            f"""SELECT user_id, proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id IN ({
-                ",".join(["?" for v in range(len(user_ids))])
-                })""",
-            (game_id, *user_ids)
-        )
-        data: dict[str, tuple[str, arrow.Arrow, float, float, float]] = {}
-        threads: list[tuple[str, concurrent.futures.Future[SiegeProject]]] = []
-        ret: dict[str, HourStatus] = {}
-        with concurrent.futures.ThreadPoolExecutor() as execotor:
-            for row in cursor.fetchall():
-                user_id, proj_id, last_check_time, last_h_now, h_start, h_penalty = row
-                data[user_id] = (proj_id, arrow.get(last_check_time), last_h_now, h_start, h_penalty)
-                thread = execotor.submit(get_project, proj_id)
-                threads.append((user_id, thread))
-            # logging.info(data)
-            for user_id, thread in threads:
-                try:
-                    proj_id, last_check_time, last_h_now, h_start, h_penalty = data[user_id]
-                    h_now = thread.result(10).hours
-                    last_check_time = arrow.get(last_check_time)
-                    curr = arrow.now()
-                    dt = curr - last_check_time
-                    h_diff = h_now - last_h_now
-                    c_diff = dt.total_seconds() / 3600
-                    ALLOWED_LEEWAY = 0.15
-                    penalty_addition = 0
-                    if c_diff + ALLOWED_LEEWAY < h_diff:
-                        penalty_addition = h_diff - c_diff
-                    cursor.execute(
-                        """UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""",
-                        (h_now, penalty_addition, game_id, user_id),
-                    )
-                    conn.commit()
-                    ret[user_id] = HourStatus(h_start, h_now, h_penalty + penalty_addition)
-                except:
-                    logging.warning(f"Failed to fetch project time for {user_id}", exc_info=True)
-        return ret
+
+# def update_time(game_id: int, user_id: str) -> HourStatus | None:
+#     with get_db_connection() as conn:
+#         cursor = conn.cursor()
+#         cursor.execute(
+#             """SELECT proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id = ? LIMIT 1""",
+#             (game_id, user_id),
+#         )
+#         result = cursor.fetchone()
+#         if not result:
+#             return None
+#         proj_id, last_check_time, last_h_now, h_start, h_penalty = result
+#         h_now = get_project(proj_id).hours
+#         last_check_time = arrow.get(last_check_time)
+#         curr = arrow.now()
+#         dt = curr - last_check_time
+#         h_diff = h_now - last_h_now
+#         c_diff = dt.total_seconds() / 3600
+#         ALLOWED_LEEWAY = 0.15
+#         penalty_addition = 0
+#         if c_diff + ALLOWED_LEEWAY < h_diff:
+#             penalty_addition = h_diff - c_diff
+#         cursor.execute(
+#             """UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""",
+#             (h_now, penalty_addition, game_id, user_id),
+#         )
+#         conn.commit()
+#         return HourStatus(h_start, h_now, h_penalty + penalty_addition)
+
+# def update_time_multi(game_id: int, user_ids: list[str]) -> dict[str, HourStatus]:
+#     with get_db_connection() as conn:
+#         cursor = conn.cursor()
+#         cursor.execute(
+#             f"""SELECT user_id, proj_id, h_lastcheck, h_curr, h_start, h_penalty FROM game_participant WHERE game_id = ? AND user_id IN ({
+#                 ",".join(["?" for v in range(len(user_ids))])
+#                 })""",
+#             (game_id, *user_ids)
+#         )
+#         data: dict[str, tuple[str, arrow.Arrow, float, float, float]] = {}
+#         threads: list[tuple[str, concurrent.futures.Future[SiegeProject]]] = []
+#         ret: dict[str, HourStatus] = {}
+#         with concurrent.futures.ThreadPoolExecutor() as execotor:
+#             for row in cursor.fetchall():
+#                 user_id, proj_id, last_check_time, last_h_now, h_start, h_penalty = row
+#                 data[user_id] = (proj_id, arrow.get(last_check_time), last_h_now, h_start, h_penalty)
+#                 thread = execotor.submit(get_project, proj_id)
+#                 threads.append((user_id, thread))
+#             # logging.info(data)
+#             for user_id, thread in threads:
+#                 try:
+#                     proj_id, last_check_time, last_h_now, h_start, h_penalty = data[user_id]
+#                     h_now = thread.result(10).hours
+#                     last_check_time = arrow.get(last_check_time)
+#                     curr = arrow.now()
+#                     dt = curr - last_check_time
+#                     h_diff = h_now - last_h_now
+#                     c_diff = dt.total_seconds() / 3600
+#                     ALLOWED_LEEWAY = 0.15
+#                     penalty_addition = 0
+#                     if c_diff + ALLOWED_LEEWAY < h_diff:
+#                         penalty_addition = h_diff - c_diff
+#                     cursor.execute(
+#                         """UPDATE game_participant SET h_curr = ?, h_lastcheck = CURRENT_TIMESTAMP, h_penalty = h_penalty + ? WHERE game_id = ? AND user_id = ?""",
+#                         (h_now, penalty_addition, game_id, user_id),
+#                     )
+#                     conn.commit()
+#                     ret[user_id] = HourStatus(h_start, h_now, h_penalty + penalty_addition)
+#                 except:
+#                     logging.warning(f"Failed to fetch project time for {user_id}", exc_info=True)
+#         return ret
         
             
 
 
-def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
-    return base + max(0, addition * int(round(hour / h_per_addition)))
+# def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
+#     return base + max(0, addition * int(round(hour / h_per_addition)))
 
 
 def update_participant_opt_out(game_id: int, user_id: str, is_opted_out: bool):
@@ -1048,6 +1050,85 @@ def has_user(user_id: str) -> bool:
         ).fetchone()
         return row is not None
 
+def get_game_instance(game_id: int) -> live_base.GameInstance:
+    """
+    Query the database and return a populated GameInstance for the given game_id.
+    Raises ValueError if the game does not exist.
+    """
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT channel_id, thread_ts, mode FROM game WHERE id = ? LIMIT 1", (game_id,))
+        row = cur.fetchone()
+        if not row:
+            raise ValueError(f"Game {game_id} not found")
+        channel_id = row["channel_id"]
+        thread_ts = row["thread_ts"]
+        mode = row["mode"]
+
+        cur.execute(
+            "SELECT id, user_id, status, start_time, assigned_duration_seconds "
+            "FROM game_turn WHERE game_id = ? ORDER BY selection_time ASC, id ASC",
+            (game_id,),
+        )
+        turn_rows = cur.fetchall()
+
+    client_secret, server_secret = get_latest_secrets(game_id) or ("", "")
+    managers = list_game_manager(game_id) or []
+    participants = get_huddle_participants(game_id) or []
+
+    turns: list[live_base.Turns] = []
+    for r in turn_rows:
+        start_val = r["start_time"]
+        user_id = r["user_id"]
+        seq_id = r["id"]
+        status = r["status"]
+        duration = r["assigned_duration_seconds"]
+
+        start_ts: float | None = None
+        if start_val:
+            try:
+                start_ts = datetime.fromisoformat(start_val).replace(tzinfo=timezone.utc).timestamp()
+            except Exception:
+                start_ts = None
+
+        turns.append(
+            live_base.Turns(
+                used_id=user_id,
+                seq_id=seq_id,
+                status=status,
+                time_start=start_ts,
+                duration=duration,
+            )
+        )
+
+    return live_base.GameInstance(
+        game_id=game_id,
+        client_secret=client_secret,
+        server_secret=server_secret,
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        turns=turns,
+        managers=managers,
+        participants=participants,
+        mode=mode
+    )
+
+def add_game_participant(
+    game_id: int, user_id: str, ticket_count: int
+):
+    """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
+    # TODO: the h_penalty thing, I hope I remember and also don't have to make 2 function for it
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO game_participant (game_id, user_id, ticket_count) VALUES (?, ?, ?)
+            ON CONFLICT(game_id, user_id) DO UPDATE SET
+                ticket_count = excluded.ticket_count
+            """,
+            (game_id, user_id, ticket_count),
+        )
+        conn.commit()
 
 if __name__ == "__main__":
     init_db()

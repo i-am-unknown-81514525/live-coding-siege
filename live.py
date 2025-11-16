@@ -28,7 +28,7 @@ from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
 from utils import get_group, guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread, require_group
-from db import HourStatus, auto_add, auto_add_no_siege
+from live_base import get_module
 
 
 def int_handler(bits: int) -> Handler[int]:
@@ -84,8 +84,14 @@ def _technical_not_reveal_from_msg(
 @description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
 @get_group
 @require_allowed
-@require_group("siege")
-def init_game(ctx: Context):
+def init_game(ctx: Context, modes: list[str]):
+    picked_mode = ctx.value
+    if picked_mode not in modes:
+        text = f"\"{picked_mode}\" cannot be selected"
+        if picked_mode:
+            text += ", You can only select one of "
+            text += ", ".join(f"\"{mode}\"" for mode in picked_mode)
+        return ctx.private_send(text=text)
     user_id = ctx.author_id
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts or ctx.message_ts
@@ -172,14 +178,14 @@ def init_game(ctx: Context):
         datetime.now(timezone.utc),
         client_secret,
         server_secret,
+        picked_mode
     )
     db.add_game_manager(game_id, user_id)
-    if SIEGE_MODE:
-        week_num = guess_week()
-        for user_id in db.get_huddle_participants(game_id):
-            auto_add(game_id, user_id, week_num)
-    else:
-        auto_add_no_siege(game_id, user_id)
+    instance = db.get_game_instance(game_id)
+    users: list[str] = db.get_huddle_participants(game_id)
+    tickets = get_module(instance).get_tickets(users)
+    for user, ticket in tickets.items():
+        db.add_game_participant(game_id, user, ticket)
 
     ctx.public_send(
         text=f"✨ A new show has started! (ID: {game_id})",
@@ -787,32 +793,30 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
     if ctx.value:
         return
 
-    user = ctx.event.message.user
-    db.auto_add(game_id, user)
-    hour_info = db.update_time(game_id, user)
-    ticket_count = 0
-    if hour_info:
-        ticket_count = db.get_ticket(
-            10, 1, 0.1, hour_info.h_curr - hour_info.h_start - hour_info.h_penalty
-        )
-    else:
-        hour_info = HourStatus(0, 0, 0)
+    user = ctx.author_id
+    instance = db.get_game_instance(game_id)
+    users: list[str] = db.get_huddle_participants(game_id)
+    tickets = get_module(instance).get_tickets(users)
+    for user, ticket in tickets.items():
+        db.add_game_participant(game_id, user, ticket)
+
+    ticket_count = tickets.get(user, "N/A")
 
     coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     ctx.private_send(
-        text=f"You have {ticket_count} tickets. (Start: {hour_info.h_start:.1f}h, Current: {hour_info.h_curr:.1f}h, Penalty: {hour_info.h_penalty:.4f}"
+        text=f"You have {ticket_count} tickets."
     )
 
-@smart_msg_listen("live.reset")
-@description("live.reset", "Reset your siege project record in the database for the game")
-@require_game_thread
-def reset_proj(ctx: MessageContext, game_id: int):
-    if not SIEGE_MODE:
-        return ctx.private_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
-    db.reset_game_participant(game_id, ctx.author_id)
-    ctx.private_send(text="Attempted to reset your project")
+# @smart_msg_listen("live.reset")
+# @description("live.reset", "Reset your siege project record in the database for the game")
+# @require_game_thread
+# def reset_proj(ctx: MessageContext, game_id: int):
+#     if not SIEGE_MODE:
+#         return ctx.private_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
+#     db.reset_game_participant(game_id, ctx.author_id)
+#     ctx.private_send(text="Attempted to reset your project")
     
 
 @smart_msg_listen("live.ticket_list")
@@ -825,29 +829,16 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
     ticket_dt: dict[str, tuple[str, int | None]] = {}
     huddle_participant = db.get_huddle_participants(game_id)
     usernames = db.get_user_names(huddle_participant)
-    for user in huddle_participant:
-        db.auto_add_no_siege(game_id, user)
-    status = db.update_time_multi(game_id, huddle_participant)
+    instance = db.get_game_instance(game_id)
+    users: list[str] = db.get_huddle_participants(game_id)
+    tickets = get_module(instance).get_tickets(users)
+    for user, ticket in tickets.items():
+        db.add_game_participant(game_id, user, ticket)
     for user in huddle_participant:
         username = usernames.get(user, f"`{user}`")
         if username == "UNKNOWN":
             username = f"`{user}`"
-        try:
-            hour_info = status[user]
-            if hour_info:
-                ticket_dt[user] = (
-                    username,
-                    db.get_ticket(
-                        10,
-                        1,
-                        0.1,
-                        hour_info.h_curr - hour_info.h_start - hour_info.h_penalty,
-                    ),
-                )
-            else:
-                ticket_dt[user] = username, None
-        except:
-            ticket_dt[user] = username, None
+        ticket_dt[user] = username, tickets.get(user)
     coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
@@ -898,28 +889,18 @@ def pick_user(ctx: Context, game_id: int):
         if os.getenv("RIG"):
             t = randint(180, 180)
 
-        user_ticket: dict[str, int] = {}
-        for user in eligible_users:
-            db.auto_add_no_siege(game_id, user)
-        if SIEGE_MODE:
-            hour_status = db.update_time_multi(game_id, eligible_users)
-            for user, hours in hour_status.items():
-                user_ticket[user] = db.get_ticket(
-                    10,
-                    1,
-                    0.1,
-                    hours.h_curr - hours.h_start - hours.h_penalty
-                )
-        else:
-            for user in eligible_users:
-                user_ticket[user] = 10
+        instance = db.get_game_instance(game_id)
+        users: list[str] = db.get_huddle_participants(game_id)
+        user_tickets = get_module(instance).get_tickets(users)
+        for user, ticket in user_tickets.items():
+            db.add_game_participant(game_id, user, ticket)
 
         coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
         tickets = []
         for user in eligible_users:
-            tickets += [user] * user_ticket.get(user, 0)
+            tickets += [user] * user_tickets.get(user, 0)
 
         selected_index, duration_seconds = (
             DeterRnd(randint(0, len(tickets) - 1), t).with_seed(seed).retrieve()
@@ -1012,7 +993,7 @@ def pick_user(ctx: Context, game_id: int):
                     f"Client secret: `{client_secret}`\n"
                     f"Previous Server secret: `{_sha3(new_server_secret)}` \n"
                     f"New Server secret hash: `{_sha3(server_secret)}` \n"
-                    f"Eligiable list: {', '.join(f'`{user_id}` ({user_ticket.get(user_id, 0)} tickets)' for user_id in eligible_users)}\n"
+                    f"Eligiable list: {', '.join(f'`{user_id}` ({user_tickets.get(user_id, 0)} tickets)' for user_id in eligible_users)}\n"
                     f"Selected ticket: `{selected_index}` (0-index)"
                 )
             )
@@ -1715,17 +1696,8 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
     print(f"ℹ️ User {user_name} ({user_id}) joined huddle {huddle_id}.")
     game_id = db.get_active_game_in_huddle(huddle_id)
     if game_id is not None:
-        if SIEGE_MODE:
-            user = get_user(user_id)
-            week_num = guess_week()
-            projs = [proj for proj in user.projects if proj.week == week_num]
-            if len(projs) == 0:
-                db.add_game_participant(game_id, user_id, None, None)
-            else:
-                full = get_project(projs[0].id)
-                db.add_game_participant(game_id, user_id, full.hours, full.id)
-        else:
-            db.auto_add_no_siege(game_id, user_id)
+        instance = db.get_game_instance(game_id)
+        db.add_game_participant(game_id, user_id, get_module(instance).get_ticket(user_id))
     coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 

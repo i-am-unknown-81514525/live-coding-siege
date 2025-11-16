@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS "game" (
     "start_time" DATETIME NOT NULL,
     "end_time" DATETIME,
     "status" TEXT NOT NULL CHECK("status" IN ('PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED')),
+    "mode" TEXT NOT NULL,
     FOREIGN KEY("huddle_id") REFERENCES "huddle"("id")
 );
 
@@ -61,13 +62,14 @@ CREATE TABLE IF NOT EXISTS "game_participant" (
     "is_opted_out" BOOLEAN NOT NULL DEFAULT FALSE,
     "successful_rounds" INTEGER NOT NULL DEFAULT 0,
     "consecutive_skips" INTEGER NOT NULL DEFAULT 0,
-    "proj_id" INT NULL,
-    "h_start" REAL NULL,
-    "h_curr" REAL NULL,
-    "h_penalty" REAL DEFAULT 0 NOT NULL, 
-    "h_lastcheck" DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- "proj_id" INT NULL,
+    -- "h_start" REAL NULL,
+    -- "h_curr" REAL NULL,
+    -- "h_penalty" REAL DEFAULT 0 NOT NULL, 
+    -- "h_lastcheck" DATETIME DEFAULT CURRENT_TIMESTAMP,
     -- Hour penalty from adding additional hackatime project causing spike of change
     -- those annomally time will be discarded as they are not consider as part of the project
+    "ticket_count" INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY ("game_id", "user_id"),
     FOREIGN KEY("game_id") REFERENCES "game"("id"),
     FOREIGN KEY("user_id") REFERENCES "user"("slack_id")
