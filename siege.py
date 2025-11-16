@@ -227,7 +227,7 @@ class ProjHeartbeatRecord:
     def compare_to_new(self, new: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
         diffs: dict[str, tuple[str, str]] = {}
         if self.title != new.title:
-            diffs["Title"] = (self.title, new.title)
+            diffs["Project Name"] = (self.title, new.title)
         if self.description != new.description:
             diffs["Description"] = (self.description, new.description)
         if self.hours != new.hours:

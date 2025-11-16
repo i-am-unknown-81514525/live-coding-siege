@@ -24,6 +24,7 @@ from rapidfuzz import fuzz
 import utils
 from schema import dictionary
 import requests
+import siege
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
@@ -529,3 +530,52 @@ def get_define(ctx: Context, public: bool):
     if public:
         return ctx.public_send(text=fetch_dictionary(ctx.value).readable)
     return ctx.private_send(text=fetch_dictionary(ctx.value).readable)
+
+@slash_listen("/proj_details")
+@smart_msg_listen("siege.proj_details ")
+@description("/proj_details <proj_id>", "Peeking at every change you made :)")
+@utils.get_group
+@utils.filter_allowed
+@utils.has_group("siege")
+def get_proj_details(ctx: Context, public: bool):
+    if isinstance(ctx, InteractionContext):
+        public = False
+    try:
+        proj_id = int(ctx.value)
+    except ValueError:
+        return ctx.private_send(text="Invalid project id.")
+    proj = get_project(proj_id)
+    siege.push_proj([proj])
+    heartbeats = siege.retrieve_all_proj_record(proj_id)
+    if not heartbeats:
+        return ctx.private_send(text="No heartbeat data found for this project.")
+    message_lines = []
+    message_lines.append(
+        f"""*{_time_to_slack(heartbeats[0].measurement_time)}*: Project first discovered\n> Repo URL: {"None" if not heartbeats[0].repo_url else f"<{heartbeats[0].repo_url}|{_parse_repo(heartbeats[0].repo_url)}>" }\n> Demo URL: {heartbeats[0].demo_url or "None"}\n> Status: {heartbeats[0].proj_status}\n> Hours: {heartbeats[0].hours}\n> Project Name: \"{heartbeats[0].title}\"\n> Description: \"{heartbeats[0].description}\""""
+    )
+    for curr, next in zip(heartbeats, heartbeats[1:]):
+        diff = curr.compare_to_new(next)
+        if not diff:
+            continue
+        line = f"*{_time_to_slack(next.measurement_time)}*:"
+        for key, (old, new) in diff.items():
+            if key == "Repo URL":
+                old_part = "None"
+                if old:
+                    old_part = f"<{old}|{_parse_repo(old)}>"
+                new_part = "None"
+                if new:
+                    new_part = f"<{new}|{_parse_repo(new)}>"
+                line += f"\n> {key}: {old_part} -> {new_part}"
+            # elif key == "Demo URL":
+            #     line += f"\n> {key}: {old} -> {new}"
+            elif key in ["Project Name", "Description"]:
+                line += f"\n> {key}: \"{old}\" -> \"{new}\""
+            else:
+                line += f"\n> {key}: {old} -> {new}"
+        message_lines.append(line)
+    if public:
+        ctx.public_send(text="\n".join(message_lines))
+    else:
+        ctx.private_send(text="\n".join(message_lines))
+        
