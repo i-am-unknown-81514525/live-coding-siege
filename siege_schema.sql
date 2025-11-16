@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS game_record(
+CREATE TABLE IF NOT EXISTS proj_record(
     proj_id INT not null,
     measuremen_time DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     week_num INT not null,
