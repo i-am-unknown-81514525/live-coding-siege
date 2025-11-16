@@ -8,6 +8,7 @@ import threading
 
 from slack_sdk.socket_mode import SocketModeClient
 
+from live import push_ticket_update_ws
 from schema.siege import SiegeProject, SiegeUser
 from live_base import LiveModuleBase, GameInstance
 import api, utils
@@ -146,7 +147,11 @@ def proj_loop():
             logging.warning(f"Faile to fetch project", exc_info=True)
         try:
             game_req_update = fetch_all_user_link(list(set(proj.user.id for proj in projs)))
-            ...
+            for game_id in game_req_update:
+                try:
+                    push_ticket_update_ws(game_id)
+                except Exception as e:
+                    logging.info(f"Faile to push update on game", exc_info=True)
         except Exception as e:
             logging.warning(f"Faile to push update on game", exc_info=True)
         curr = time.perf_counter()

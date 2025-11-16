@@ -802,8 +802,7 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
 
     ticket_count = tickets.get(user, "N/A")
 
-    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
-    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+    push_ticket_update_ws(game_id)
 
     ctx.private_send(
         text=f"You have {ticket_count} tickets."
@@ -818,6 +817,9 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
 #     db.reset_game_participant(game_id, ctx.author_id)
 #     ctx.private_send(text="Attempted to reset your project")
     
+def push_ticket_update_ws(game_id: int):
+    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
+    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
 @smart_msg_listen("live.ticket_list")
 @description("live.ticket_list", "List everyone tickets")
@@ -839,8 +841,7 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
         if username == "UNKNOWN":
             username = f"`{user}`"
         ticket_dt[user] = username, tickets.get(user)
-    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
-    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+    push_ticket_update_ws(game_id)
 
     structured = "Ticket List\n" + "\n".join(
         f"{username} {ticket_count or 'N/A'}"
@@ -895,8 +896,7 @@ def pick_user(ctx: Context, game_id: int):
         for user, ticket in user_tickets.items():
             db.add_game_participant(game_id, user, ticket)
 
-        coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
-        asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+        push_ticket_update_ws(game_id)
 
         tickets = []
         for user in eligible_users:
@@ -1698,8 +1698,7 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
     if game_id is not None:
         instance = db.get_game_instance(game_id)
         db.add_game_participant(game_id, user_id, get_module(instance).get_ticket(user_id))
-    coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
-    asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+        push_ticket_update_ws(game_id)
 
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)
