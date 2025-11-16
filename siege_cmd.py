@@ -571,6 +571,8 @@ def get_proj_details(ctx: Context, public: bool):
             #     line += f"\n> {key}: {old} -> {new}"
             elif key in ["Project Name", "Description"]:
                 line += f"\n> {key}: \"{old}\" -> \"{new}\""
+            elif key == "Hours":
+                line += f"\n> {key}: {old}h -> {new}h"
             else:
                 line += f"\n> {key}: {old} -> {new}"
         message_lines.append(line)
