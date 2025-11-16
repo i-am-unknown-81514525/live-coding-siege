@@ -1,20 +1,23 @@
 import asyncio
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 import os, logging, secrets, time
 from threading import Timer, Lock
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Concatenate
 
 from slack_sdk.web import WebClient
 import re
 
 import json
+from config import get_config
 from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
 from reg import (
+    InteractionContext,
     action_listen,
     huddle_listen,
+    smart_action_listen,
     smart_msg_listen,
     MessageContext,
     description,
@@ -24,6 +27,7 @@ from crypto.core import DeterRnd, Handler, _sha3, randint
 import db
 import blockkit
 from blockkit import Message, Section, Button
+import utils
 from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
@@ -36,9 +40,9 @@ def int_handler(bits: int) -> Handler[int]:
     return (bits, lambda x: x)
 
 
-AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
-ALLOWLIST = os.environ.get("ALLOWLIST", "").split(",")
-SIEGE_MODE = os.environ.get("SIEGE_MODE", "1") == "1"
+# AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
+# ALLOWLIST = os.environ.get("ALLOWLIST", "").split(",")
+# SIEGE_MODE = os.environ.get("SIEGE_MODE", "1") == "1"
 GLOBAL_LOC_RETRIVAL_LOCK = Lock()
 GAME_LOCK: dict[int, Lock] = {}
 
@@ -49,6 +53,16 @@ def get_game_lock(game_id: int) -> Lock:
         GAME_LOCK[game_id] = Lock()
         return GAME_LOCK[game_id]
 
+def get_game_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T]:
+    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:
+        ret: list[str] = []
+        if ctx.thread_ts:
+            game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
+            if game_id:
+                instance = db.get_game_instance(game_id)
+                ret = [instance.mode]
+        return func(ctx, ret, *args, **kwargs)
+    return inner
 
 @smart_msg_listen("live.test1")
 def test_interactive(ctx: Context):
@@ -112,7 +126,7 @@ def init_game(ctx: Context, modes: list[str]):
         previous_managers = db.list_game_manager(existing_game_id)
         if user_id in previous_managers:
             can_restart = False
-            is_authorized = user_id in AUTHORIZED_USERS
+            is_authorized = user_id in utils.get_config()["bot"]["group"][picked_mode].get("authorized", [])
 
             if is_authorized:
                 if not db.get_game_mgr_active_game(user_id):
@@ -197,38 +211,33 @@ def init_game(ctx: Context, modes: list[str]):
     )
 
 
-@action_listen("restart_game")
-def handle_restart_game(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("restart_game")
+@get_game_group
+@utils.filter_authorised
+@utils.have_any_group()
+def handle_restart_game(ctx: InteractionContext, have_authorised: bool):
     """Handles a manager restarting a completed game."""
-    user_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.thread_ts
+    user_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
 
-    if event.actions[0].value is None:
+    if ctx.value is None:
         logging.warning("Missing game_id in restart_game button")
         return
 
     try:
-        game_id_to_restart = int(event.actions[0].value)
+        game_id_to_restart = int(ctx.value)
     except (ValueError, TypeError):
-        client.chat_postEphemeral(
-            user=user_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Invalid game ID for restart.",
-            thread_ts=thread_ts,
         )
         return
 
-    is_authorized = user_id in AUTHORIZED_USERS
+    is_authorized =have_authorised
     if is_authorized:
         if db.get_game_mgr_active_game(user_id):
-            client.chat_postEphemeral(
-                user=user_id,
-                channel=channel_id,
+            ctx.private_send(
                 text="You are already managing another active game.",
-                thread_ts=thread_ts,
             )
             return
     else:
@@ -236,11 +245,8 @@ def handle_restart_game(event: BlockActionEvent, client: WebClient):
         if user_id not in previous_managers or any(
             db.get_game_mgr_active_game(mgr_id) for mgr_id in previous_managers
         ):
-            client.chat_postEphemeral(
-                user=user_id,
-                channel=channel_id,
+            ctx.private_send(
                 text="Cannot restart: One of the previous managers is busy with another show.",
-                thread_ts=thread_ts,
             )
             return
 
@@ -271,14 +277,13 @@ def handle_restart_game(event: BlockActionEvent, client: WebClient):
         )
         conn.commit()
 
-    client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_ts,
+    ctx.public_send(
         text=f"✨ The show (ID: {game_id_to_restart}) has been restarted by <@{user_id}>!",
         **_technical_not_reveal(client_secret, server_secret).build(),
     )
-    client.chat_postMessage(
-        channel=channel_id, thread_ts=thread_ts, text="Show restarted.", blocks=[]
+    ctx.public_send(
+        text="Show restarted.",
+        blocks=[]
     )
 
 
@@ -825,9 +830,6 @@ def push_ticket_update_ws(game_id: int):
 @description("live.ticket_list", "List everyone tickets")
 @require_game_thread
 def get_ticket_list(ctx: MessageContext, game_id: int):
-    if not SIEGE_MODE:
-        return ctx.public_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
-
     ticket_dt: dict[str, tuple[str, int | None]] = {}
     huddle_participant = db.get_huddle_participants(game_id)
     usernames = db.get_user_names(huddle_participant)

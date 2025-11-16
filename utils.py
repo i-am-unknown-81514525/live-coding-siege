@@ -221,6 +221,29 @@ def have_one_of_groups[**P, T, C: Context](groups: list[str], forwarding: bool =
         return outer_fwd
     return outer_no_fwd
 
+@overload
+def have_any_group[**P, T, C: Context](forwarding: Literal[False] = False) -> Callable[[Callable[Concatenate[C, bool, P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportOverlappingOverload]
+
+@overload
+def have_any_group[**P, T, C: Context](forwarding: Literal[True] = False) -> Callable[[Callable[Concatenate[C, bool, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]]: ... # pyright: ignore[reportArgumentType]
+
+
+def have_any_group[**P, T, C: Context](forwarding: bool = False) -> Callable[[Callable[Concatenate[C, bool, list[str], P], T]], Callable[Concatenate[C, list[str], P], T | None]] | Callable[[Callable[Concatenate[C, bool, P], T]], Callable[Concatenate[C, list[str], P], T | None]]:
+    def outer_fwd(func: Callable[Concatenate[C, bool, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            return func(ctx, bool(inner_group),list(inner_group), *args, **kwargs)
+        return inner
+    
+    def outer_no_fwd(func: Callable[Concatenate[C, bool, P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
+        def inner(ctx: C, inner_group: list[str], *args: P.args, **kwargs: P.kwargs) -> T | None:
+            return func(ctx, bool(inner_group), *args, **kwargs)
+        return inner
+    if forwarding:
+        return outer_fwd
+    if forwarding:
+        return outer_fwd
+    return outer_no_fwd
+
 def consume_second[**P, A, B, T](func: Callable[Concatenate[A, P], T]) -> Callable[Concatenate[A, B, P], T]: # pyright: ignore[reportInvalidTypeVarUse]
     def inner(a: A, _: B, *args: P.args, **kwargs: P.kwargs) -> T:
         return func(a, *args, **kwargs)
