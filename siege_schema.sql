@@ -20,3 +20,10 @@ CREATE TABLE IF NOT EXISTS user_record(
     user_status TEXT not null,
     PRIMARY KEY(user_id, measurement_time)
 );
+
+CREATE TABLE IF NOT EXISTS game_link(
+    game_id INT NOT NULL,
+    user_id INT NOT NULL,
+    initial_tracked DATETIME not mull DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(game_id, user_id)
+)
