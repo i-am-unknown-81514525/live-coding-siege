@@ -71,5 +71,19 @@ def push_user(users: list[SiegeUser]):
             VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?)
             """, (user.id, user.name, user.coins, user.status))
 
+def push_link(game_id: int, user_id: int) -> None:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        INSERT INTO link_record (
+            game_id,
+            user_id
+        )
+        VALUES (?, ?)
+        ON CONFLICT (game_id, user_id) DO NOTHING
+        """, (game_id, user_id))
+        conn.commit()
+
+
 def start(client: SocketModeClient):
     init_db()
