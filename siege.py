@@ -282,15 +282,21 @@ def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
         curr_t = hb.measurement_time
     return max(0, final_h - initial_h - penalty_h)
 
+def get_user_ticket(game_id: int, user_id: int, week_num: int, from_time: Arrow) -> int:
+    heartbeats = retrieve_all_heartbeat_curr_proj_curr_week(user_id, week_num, from_time)
+    return int(analysis_heartbeat_hours(heartbeats)*10) + 10
+
 class Siege(LiveModuleBase):
     def __init__(self, instance: GameInstance):
         super().__init__(instance)
 
     def get_ticket(self, user: str) -> int:
-        return 1
+        week_num = utils.guess_week()
+        return get_user_ticket(self._instance.game_id, int(user), week_num, self._instance.start_time)
 
     def get_tickets(self, users: list[str]) -> dict[str, int]:
-        return {user: 1 for user in users}
+        week_num = utils.guess_week()
+        return {user: get_user_ticket(self._instance.game_id, int(user), week_num, self._instance.start_time) for user in users}
 
     def refresh_tickets(self, users: list[str]) -> dict[str, int]:
         return self.get_tickets(users)

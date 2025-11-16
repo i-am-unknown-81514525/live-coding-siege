@@ -4,6 +4,7 @@ from typing import Literal
 from abc import ABC, abstractmethod
 from importlib import import_module
 from config import get_config
+from arrow import Arrow
 
 @dataclass(frozen=True)
 class Turns:
@@ -25,6 +26,7 @@ class GameInstance:
     managers: list[str]
     participants: list[str]
     mode: str
+    start_time: Arrow
 
 
 class LiveModuleBase(ABC):

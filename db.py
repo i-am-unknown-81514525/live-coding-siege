@@ -35,7 +35,7 @@ def init_db():
     if not os.path.exists(SCHEMA_FILE):
         raise FileNotFoundError(f"Schema file not found at {SCHEMA_FILE}")
 
-    with get_db_connection() as conn:
+    with get_db_connection () as conn:
         with open(SCHEMA_FILE, "r") as f:
             schema_sql = f.read()
 
@@ -1057,13 +1057,14 @@ def get_game_instance(game_id: int) -> live_base.GameInstance:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT channel_id, thread_ts, mode FROM game WHERE id = ? LIMIT 1", (game_id,))
+        cur.execute("SELECT channel_id, thread_ts, mode, start_time FROM game WHERE id = ? LIMIT 1", (game_id,))
         row = cur.fetchone()
         if not row:
             raise ValueError(f"Game {game_id} not found")
         channel_id = row["channel_id"]
         thread_ts = row["thread_ts"]
         mode = row["mode"]
+        start_time = arrow.get(row["start_time"])
 
         cur.execute(
             "SELECT id, user_id, status, start_time, assigned_duration_seconds "
@@ -1110,7 +1111,8 @@ def get_game_instance(game_id: int) -> live_base.GameInstance:
         turns=turns,
         managers=managers,
         participants=participants,
-        mode=mode
+        mode=mode,
+        start_time=start_time
     )
 
 def add_game_participant(
