@@ -342,6 +342,21 @@ class Siege(LiveModuleBase):
         return {user: get_user_ticket(self._instance.game_id, user, week_num, self._instance.start_time) for user in users}
 
     def refresh_tickets(self, users: list[str]) -> dict[str, int]:
+        projs: list[SiegeProject] = []
+        try:
+            projs = api.get_all_projs()
+            push_proj(projs)
+        except Exception as e:
+            logging.warning(f"Faile to fetch project", exc_info=True)
+        try:
+            game_req_update = fetch_all_user_link(list(set(proj.user.id for proj in projs)))
+            for game_id in game_req_update:
+                try:
+                    push_ticket_update_ws(game_id)
+                except Exception as e:
+                    logging.info(f"Faile to push update on game", exc_info=True)
+        except Exception as e:
+            logging.warning(f"Faile to push update on game", exc_info=True)
         return self.get_tickets(users)
 
 def start(client: SocketModeClient):
