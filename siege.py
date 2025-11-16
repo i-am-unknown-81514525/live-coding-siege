@@ -227,17 +227,17 @@ class ProjHeartbeatRecord:
     def compare_to_new(self, new: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
         diffs: dict[str, tuple[str, str]] = {}
         if self.title != new.title:
-            diffs["title"] = (self.title, new.title)
+            diffs["Title"] = (self.title, new.title)
         if self.description != new.description:
-            diffs["description"] = (self.description, new.description)
+            diffs["Description"] = (self.description, new.description)
         if self.hours != new.hours:
-            diffs["hours"] = (str(self.hours), str(new.hours))
+            diffs["Hours"] = (str(self.hours), str(new.hours))
         if self.repo_url != new.repo_url:
-            diffs["repo_url"] = (self.repo_url, new.repo_url)
+            diffs["Repo URL"] = (self.repo_url, new.repo_url)
         if self.demo_url != new.demo_url:
-            diffs["demo_url"] = (self.demo_url, new.demo_url)
+            diffs["Demo URL"] = (self.demo_url, new.demo_url)
         if self.proj_status != new.proj_status:
-            diffs["proj_status"] = (self.proj_status, new.proj_status)
+            diffs["Project Status"] = (self.proj_status, new.proj_status)
         return diffs
     
     def compare_to_old(self, old: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
