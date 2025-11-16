@@ -2,11 +2,15 @@ import os
 from pathlib import Path
 import sqlite3
 from contextlib import contextmanager
+import logging
+import time
+import threading
 
 from slack_sdk.socket_mode import SocketModeClient
 
 from schema.siege import SiegeProject, SiegeUser
 from live_base import LiveModuleBase, GameInstance
+import api
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "siege.db"
@@ -86,9 +90,6 @@ def push_link(game_id: int, user_id: int) -> None:
         conn.commit()
 
 
-def start(client: SocketModeClient):
-    init_db()
-
 class Siege(LiveModuleBase):
     def __init__(self, instance: GameInstance):
         super().__init__(instance)
@@ -102,6 +103,27 @@ class Siege(LiveModuleBase):
     def refresh_tickets(self, users: list[str]) -> dict[str, int]:
         return self.get_tickets(users)
 
+PROJ_LOOP_TIME = 300
+def proj_loop():
+    while True:
+        start = time.perf_counter()
+        projs: list[SiegeProject] = []
+        try:
+            projs = api.get_all_projs()
+            push_proj(projs)
+        except Exception as e:
+            logging.warning(f"Faile to fetch project", exc_info=True)
+        curr = time.perf_counter()
+        logging.info(f"Fetched and processed {len(projs)} projects in {curr-start}s (Loop time: {PROJ_LOOP_TIME}s)")
+        sleep_time = PROJ_LOOP_TIME - (curr - start)
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+
+
+def start(client: SocketModeClient):
+    init_db()
+    thread_proj = threading.Thread(target=proj_loop)
+    thread_proj.start()
 
 def get_module(instance: GameInstance) -> Siege:
     return Siege(instance)
