@@ -59,6 +59,10 @@
             {
                 "command": "/define",
                 "description": "<word> | Get definition of a word"
+            },
+            {
+                "command": "/proj_details",
+                "description": "<proj_id> | View siege project details"
             }
         ]
     },
