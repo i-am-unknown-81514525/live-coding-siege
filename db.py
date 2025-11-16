@@ -125,8 +125,8 @@ def start_game(
     with get_db_connection() as conn:
         cursor = conn.cursor()
         row = cursor.execute(
-            "INSERT INTO game (huddle_id, channel_id, thread_ts, start_time, status) VALUES (?, ?, ?, ?, 'ACTIVE') RETURNING id",
-            (huddle_id, channel_id, thread_ts, start_time.isoformat()),
+            "INSERT INTO game (huddle_id, channel_id, thread_ts, start_time, status, mode) VALUES (?, ?, ?, ?, 'ACTIVE', ?) RETURNING id",
+            (huddle_id, channel_id, thread_ts, start_time.isoformat(), mode),
         ).fetchone()
         if not row:
             # This case should not be reached if the insert is successful and RETURNING is supported.

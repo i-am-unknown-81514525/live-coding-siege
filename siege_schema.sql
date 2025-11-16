@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS proj_record(
     repo_url TEXT null,
     demo_url TEXT null,
     proj_status TEXT NOT NULL,
-    PRIMARY KEY (proj_id, measuremet_time)
+    PRIMARY KEY (proj_id, measurement_time)
 );
 
 CREATE TABLE IF NOT EXISTS user_record(
@@ -24,6 +24,11 @@ CREATE TABLE IF NOT EXISTS user_record(
 CREATE TABLE IF NOT EXISTS game_link(
     game_id INT NOT NULL,
     user_id INT NOT NULL,
-    initial_tracked DATETIME not mull DEFAULT CURRENT_TIMESTAMP,
+    initial_tracked DATETIME not null DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(game_id, user_id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS user_mapping(
+    slack_id TEXT PRIMARY KEY,
+    siege_user_id INT NOT NULL UNIQUE
+);

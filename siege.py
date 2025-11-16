@@ -62,7 +62,7 @@ def push_proj(projs: list[SiegeProject]):
                 demo_url,
                 proj_status
             ) VALUES (?,CURRENT_TIMESTAMP,?,?,?,?,?,?,?,?)""",
-            (proj.id, proj.week, proj.name, proj.description, proj.user.id, proj.hours))
+            (proj.id, proj.week, proj.name, proj.description, proj.user.id, proj.hours, proj.repo_url, proj.demo_url, proj.status))
             conn.commit()
         
 def push_user(users: list[SiegeUser]):
@@ -74,23 +74,37 @@ def push_user(users: list[SiegeUser]):
                 user_id,
                 measurement_time,
                 username,
-                coin_aount,
+                coin_count,
                 user_status
             )
             VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?)
             """, (user.id, user.name, user.coins, user.status))
+            conn.commit()
 
 def push_link(game_id: int, user_id: int) -> None:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-        INSERT INTO link_record (
+        INSERT INTO game_link (
             game_id,
             user_id
         )
         VALUES (?, ?)
         ON CONFLICT (game_id, user_id) DO NOTHING
         """, (game_id, user_id))
+        conn.commit()
+
+def push_mapping(slack_id: str, siege_user_id: int) -> None:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        INSERT INTO user_mapping (
+            slack_id,
+            siege_user_id
+        )
+        VALUES (?, ?)
+        ON CONFLICT (slack_id) DO UPDATE SET siege_user_id=excluded.siege_user_id
+        """, (slack_id, siege_user_id))
         conn.commit()
 
 def get_user_id_from_proj() -> list[int]:
@@ -150,7 +164,7 @@ def proj_loop():
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-USER_LOOP_TIME = 1800
+USER_LOOP_TIME = 450
 IDV_DELAY = 0.5
 def user_loop():
     while True:
@@ -169,6 +183,11 @@ def user_loop():
                 except Exception as e:
                     logging.info(f"Faile to fetch users with user id: {user_id}", exc_info=True)
             push_user(users)
+            for user in users:
+                try:
+                    push_mapping(user.slack_id, user.id)
+                except Exception as e:
+                    logging.info(f"Faile to push mapping for user id: {user.id}", exc_info=True)
         except Exception as e:
             logging.warning(f"Faile to fetch users", exc_info=True)
         curr = time.perf_counter()
@@ -282,21 +301,45 @@ def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
         curr_t = hb.measurement_time
     return max(0, final_h - initial_h - penalty_h)
 
-def get_user_ticket(game_id: int, user_id: int, week_num: int, from_time: Arrow) -> int:
-    heartbeats = retrieve_all_heartbeat_curr_proj_curr_week(user_id, week_num, from_time)
+def get_user_id_from_slack(slack_id: str) -> int | None:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT siege_user_id FROM user_mapping WHERE slack_id = ?
+        """, (slack_id,))
+        row = cursor.fetchone()
+        if row:
+            return row["siege_user_id"]
+        try:
+            user_id = api.get_user(slack_id).id
+            push_mapping(slack_id, user_id)
+            return user_id
+        except Exception:
+            logging.info(f"Faile to fetch user id from slack id: {slack_id}", exc_info=True)
+            return None
+
+def get_user_ticket(game_id: int, user_id: str, week_num: int, from_time: Arrow) -> int:
+    siege_user_id = get_user_id_from_slack(user_id)
+    if siege_user_id is None:
+        return 0
+    heartbeats = retrieve_all_heartbeat_curr_proj_curr_week(siege_user_id, week_num, from_time)
     return int(analysis_heartbeat_hours(heartbeats)*10) + 10
 
 class Siege(LiveModuleBase):
     def __init__(self, instance: GameInstance):
+        for participant in instance.participants:
+            user_id = get_user_id_from_slack(participant)
+            if user_id is not None:
+                push_link(instance.game_id, user_id)
         super().__init__(instance)
 
     def get_ticket(self, user: str) -> int:
         week_num = utils.guess_week()
-        return get_user_ticket(self._instance.game_id, int(user), week_num, self._instance.start_time)
+        return get_user_ticket(self._instance.game_id, user, week_num, self._instance.start_time)
 
     def get_tickets(self, users: list[str]) -> dict[str, int]:
         week_num = utils.guess_week()
-        return {user: get_user_ticket(self._instance.game_id, int(user), week_num, self._instance.start_time) for user in users}
+        return {user: get_user_ticket(self._instance.game_id, user, week_num, self._instance.start_time) for user in users}
 
     def refresh_tickets(self, users: list[str]) -> dict[str, int]:
         return self.get_tickets(users)
@@ -305,6 +348,8 @@ def start(client: SocketModeClient):
     init_db()
     thread_proj = threading.Thread(target=proj_loop)
     thread_proj.start()
+    thread_user = threading.Thread(target=user_loop)
+    thread_user.start()
 
 def get_module(instance: GameInstance) -> Siege:
     return Siege(instance)

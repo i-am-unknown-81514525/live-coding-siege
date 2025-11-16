@@ -27,7 +27,7 @@ from schema.huddle import HuddleChange
 from schema.interactive import BlockActionEvent
 from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
-import server
+import server, siege
 
 load_dotenv()
 ALLOWED = os.environ["ALLOWLIST"].split(",")
@@ -89,6 +89,7 @@ if __name__ == "__main__":
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
     )
     server.start(client)
+    siege.start(client)
     live.load_active_timers(client.web_client)
     client.socket_mode_request_listeners.append(process_message)
     print("Bot is listening for messages...")
