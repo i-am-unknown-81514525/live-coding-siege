@@ -546,7 +546,7 @@ def get_proj_details(ctx: Context, public: bool):
         return ctx.private_send(text="Invalid project id.")
     proj = get_project(proj_id)
     siege.push_proj([proj])
-    heartbeats = siege.retrieve_all_proj_record(proj_id)
+    heartbeats = list(reversed(siege.retrieve_all_proj_record(proj_id)))
     if not heartbeats:
         return ctx.private_send(text="No heartbeat data found for this project.")
     message_lines = []
