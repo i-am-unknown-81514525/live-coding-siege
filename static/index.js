@@ -287,11 +287,11 @@ async function fetchLeaderboard(force_update = false) {
             avatar: avatar
         }));
 
-        leaderboardData.forEach(user => {
-            user.hours = (user.tickets - 10) / 10.0;
-        });
+        // leaderboardData.forEach(user => {
+        //     user.hours = (user.tickets - 10) / 10.0;
+        // });
 
-        return leaderboardData.sort((a, b) => b.hours - a.hours);
+        return leaderboardData.sort((a, b) => b.tickets - a.tickets);
 
     } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -323,7 +323,7 @@ function updateLeaderboard(leaderboardData) {
             <span class="leaderboard-rank">${index + 1}</span>
             <img class="leaderboard-avatar" src="${user.avatar || 'empty.png'}" alt="${user.name}" />
             <span class="leaderboard-name">${user.name}</span>
-            <span class="leaderboard-score">${user.hours.toFixed(1)}h</span>
+            <span class="leaderboard-score">${user.tickets} tickets</span>
         `;
 
         userElement.style.top = `${index * itemHeight}px`;
