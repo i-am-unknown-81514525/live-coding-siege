@@ -160,7 +160,8 @@ def proj_loop():
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-USER_LOOP_TIME = 600
+USER_LOOP_TIME = 1800
+IDV_DELAY = 0.5
 def user_loop():
     while True:
         start = time.perf_counter()
@@ -169,10 +170,14 @@ def user_loop():
         try:
             for user_id in user_id_list:
                 try:
+                    idv_start = time.perf_counter()
                     user = api.get_user(user_id)
                     users.append(user)
+                    idv_curr = time.perf_counter()
+                    if IDV_DELAY - (idv_curr - idv_start) > 0:
+                        time.sleep(IDV_DELAY - (idv_curr - idv_start))
                 except Exception as e:
-                    logging.info(f"Faile to fetch users", exc_info=True)
+                    logging.info(f"Faile to fetch users with user id: {user_id}", exc_info=True)
             push_user(users)
         except Exception as e:
             logging.warning(f"Faile to fetch users", exc_info=True)
