@@ -269,6 +269,32 @@ def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
+def retrieve_all_proj_record(proj_id: int) -> list[ProjHeartbeatRecord]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT
+            proj_id,
+            measurement_time,
+            week_num,
+            title,
+            description,
+            user_id,
+            hours,
+            repo_url,
+            demo_url,
+            proj_status
+        FROM proj_record
+        WHERE proj_id = ?
+        ORDER BY measurement_time DESC
+        """, (proj_id,))
+        rows = cursor.fetchall()
+        records = []
+        for row in rows:
+            record = ProjHeartbeatRecord.from_row(row)
+            records.append(record)
+        return records
+
 def retrieve_all_heartbeat_curr_proj_curr_week(user_id: int, week_num: int, from_time: Arrow) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
