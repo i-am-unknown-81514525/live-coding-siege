@@ -432,7 +432,6 @@ def smart_msg_listen[A: Callable[[MessageContext], Any]](
         handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
 
         def inner(event: MessageEvent, client: WebClient):
-            # TODO: Handle <http://siege.lb|siege.lb>
             if event.message.text is not None:
                 msg_data = replace(event.message, text=_url_fix(event.message.text or ""))
                 event = replace(event, message=msg_data)
@@ -609,7 +608,8 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
                 and (
                         event.message.text.startswith(key) or 
                         event.message.text.startswith(f"<http://{key}|{key}>")  or 
-                        event.message.text.startswith(f"<https://{key}|{key}>")
+                        event.message.text.startswith(f"<https://{key}|{key}>") or 
+                        event.message.text.strip() == key.strip()
                     )
             ):
                 thread = threading.Thread(target=handler, args=(event, client))

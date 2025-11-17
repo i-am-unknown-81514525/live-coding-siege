@@ -796,7 +796,7 @@ def show_game_info(ctx: Context, game_id: int):
         ctx.private_send(text="No performance is currently active.")
 
 
-# @smart_msg_listen("live.ticket")
+@smart_msg_listen("live.ticket ")
 @smart_msg_listen("live.tickets")
 @description("live.tickets", "View your ticket count for the game")
 @require_game_thread
