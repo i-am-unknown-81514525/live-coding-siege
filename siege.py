@@ -243,6 +243,45 @@ class ProjHeartbeatRecord:
     def compare_to_old(self, old: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
         return old.compare_to_new(self)
 
+@dataclass(frozen=True)
+class UserHeartbeatRecord:
+    user_id: int
+    measurement_time: Arrow
+    username: str
+    coin_count: int
+    user_status: str
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> "UserHeartbeatRecord":
+        return cls(
+            user_id=row["user_id"],
+            measurement_time=arrow.get(row["measurement_time"]),
+            username=row["username"],
+            coin_count=row["coin_count"],
+            user_status=row["user_status"]
+        )
+
+def retrieve_all_user_record(user_id: int) -> list[UserHeartbeatRecord]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT
+            user_id,
+            measurement_time,
+            username,
+            coin_count,
+            user_status
+        FROM user_record
+        WHERE user_id = ?
+        ORDER BY measurement_time DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        records = []
+        for row in rows:
+            record = UserHeartbeatRecord.from_row(row)
+            records.append(record)
+        return records
+
 def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
