@@ -16,7 +16,7 @@
 [ ] - Transaction web page + server (address apce)
 [x] - decorator for permission check
 [x] - `Context` for interaction
-[ ] - Slack client transfer to web API so a message is sent on accept/reject
+[x] - Slack client transfer to web API so a message is sent on accept/reject
 [ ] - `live.add_mgr all` for all allowed user
 [ ] - `live.transaction`
 [x] - Fix prefix command get recognised as link

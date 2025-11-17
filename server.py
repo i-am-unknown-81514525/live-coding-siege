@@ -126,7 +126,9 @@ async def client_secret_curr(user_id: typing.Annotated[str, Depends(check_jwt)])
     return {"client_secret": client_secret}
 
 @app.get("/accept")
-async def accept_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
+async def accept_turn(user_id: typing.Annotated[str, Depends(check_jwt)], request: Request):
+    app = request.app
+    client: SocketModeClient = app.state.slack_client
     game_id = await get_result(db.get_game_mgr_active_game, user_id)
     if game_id is None:
         raise HTTPException(404, "Cannot find a game that you are actively managing")
@@ -150,10 +152,23 @@ async def accept_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
             }
         ).encode(),
     )
+
+    instance = await get_result(db.get_game_instance, game_id)
+    try:
+        await get_result(client.web_client.chat_postMessage,
+            channel=instance.channel_id,
+            text=f"Your turn have been marked as *COMPLETED* by the game manager <@{user_id}> via web dashboard)",
+            thread_ts=instance.thread_ts,
+        )
+    except Exception:
+        logging.warning("Error sending message to slack", exc_info=True)
+
     return "ok"
 
 @app.get("/reject")
-async def reject_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
+async def reject_turn(user_id: typing.Annotated[str, Depends(check_jwt)], request: Request):
+    app = request.app
+    client: SocketModeClient = app.state.slack_client
     game_id = await get_result(db.get_game_mgr_active_game, user_id)
     if game_id is None:
         raise HTTPException(404, "Cannot find a game that you are actively manging")
@@ -177,6 +192,15 @@ async def reject_turn(user_id: typing.Annotated[str, Depends(check_jwt)]):
             }
         ).encode(),
     )
+    instance = await get_result(db.get_game_instance, game_id)
+    try:
+        await get_result(client.web_client.chat_postMessage,
+            channel=instance.channel_id,
+            text=f"Your turn have been marked as *FAILED* by the game manager <@{user_id}> via web dashboard)",
+            thread_ts=instance.thread_ts,
+        )
+    except Exception:
+        logging.warning("Error sending message to slack", exc_info=True)
     return "ok"
 
 @app.get("/turn-status")
@@ -318,9 +342,10 @@ async def ticket_ws(
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 
-def start_server():
+def start_server(client: SocketModeClient):
+    app.state.slack_client = client
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 def start(client: SocketModeClient):
-    thread = threading.Thread(target=start_server)
+    thread = threading.Thread(target=start_server, args=(client,))
     thread.start()
