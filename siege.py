@@ -260,6 +260,18 @@ class UserHeartbeatRecord:
             coin_count=row["coin_count"],
             user_status=row["user_status"]
         )
+    
+    def compare_to_new(self, new: "UserHeartbeatRecord") -> dict[str, tuple[str, str]]:
+        diffs: dict[str, tuple[str, str]] = {}
+        if self.username != new.username:
+            diffs["Username"] = (self.username, new.username)
+        if self.coin_count != new.coin_count:
+            diffs["Coin Count"] = (str(self.coin_count), str(new.coin_count))
+        if self.user_status != new.user_status:
+            diffs["User Status"] = (self.user_status, new.user_status)
+        return diffs
+    def compare_to_old(self, old: "UserHeartbeatRecord") -> dict[str, tuple[str, str]]:
+        return old.compare_to_new(self)
 
 def retrieve_all_user_record(user_id: int) -> list[UserHeartbeatRecord]:
     with get_siege_db_connection() as conn:
