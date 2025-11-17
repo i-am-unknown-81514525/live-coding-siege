@@ -9,7 +9,7 @@ from reg import (
     InteractionContext
 )
 import blockkit
-from api import get_project, get_user, get_all_projs, get_coin_leaderboard
+from api import get_project, get_user, get_all_projs, get_coin_leaderboard, get_shop_item
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
@@ -583,4 +583,29 @@ def get_proj_details(ctx: Context, public: bool):
         ctx.public_send(True, text="\n".join(message_lines))
     else:
         ctx.private_send(True, text="\n".join(message_lines))
-        
+
+
+@slash_listen("/siege_shop")
+@smart_msg_listen("siege.shop ")
+@description("/siege_shop", "Time to go shopping!!! This is what you have working toward the whole time! (Or maybe not...)")
+@utils.get_group
+@utils.filter_allowed
+@utils.has_group("siege")
+def get_shop(ctx: Context, public: bool):
+    if isinstance(ctx, InteractionContext):
+        public = False
+    shop_item = get_shop_item()
+    message_lines = [
+        f"*Items*",
+        f"*Cosmetic*"
+    ]
+    for item in shop_item.cosmetics:
+        message_lines.append(f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins with type {item.type.capitalize()}")
+    message_lines.append(f"*Physical*")
+    for item in shop_item.physical_items:
+        message_lines.append(f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins, digital: {item.digital}")
+    if public:
+        ctx.public_send(True, text="\n".join(message_lines))
+    else:
+        ctx.private_send(False, text="\n".join(message_lines))
+
