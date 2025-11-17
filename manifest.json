@@ -63,6 +63,10 @@
             {
                 "command": "/proj_details",
                 "description": "<proj_id> | View siege project details"
+            },
+            {
+                "command": "/siege_shop",
+                "description": "| View Siege Shop items"
             }
         ]
     },
