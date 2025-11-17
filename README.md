@@ -47,55 +47,11 @@ You do `live.init` to start a show, and then use `live.pick` to pick a user, use
 As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashboard on https://livecode.relay7f98.us.to/ (or `http://127.0.0.1:13724` when run locally)
 
 ### Public command list
+Use `siege.helps` or `/help` for the full list
 
-### Live coding command
-
-`live.init` - Start a game show \[Only allowlist user or authorised user\]
-
-`live.pick` - Bot pick a user to do a new turn, or show status if started 
-
-`live.rnd` - Pick a different server secret
-
-`live.turn` - Get turn information
-
-`live.eligible` - List of user for the next turn
-
-`live.members` - List of all user in the huddle
-
-`live.optout` - Optout from the event
-
-`live.reject` - Reject a turn
-
-`live.add_mgr` - Add a game manager 
-
-`live.leave` - Remove yourself as a game manager
-
-`live.force_leave` - Remove yourself as a game manager, and also end the event if you are the only manager
-
-`live.summary` - Generate a summary for the game
-
-`live.export` - Export the status to Olive (for dispatching coins)
-
-`live.end` - End the event
-
-`live.ticket` - Get your ticket count
-
-`live.ticket_list` - Get the ticket list for each person in the huddle
-
-### Siege command
-
-`siege.user <user_id>` - Get info of user
-
-`siege.proj <proj_id>` - Get info of the projects
-
-`siege.global` - Global gambling info
-
-`siege.leaderboard` - Leaderboard, everyone love this, aside from gambling
-
-For the full list, use `siege.helps` or `/help`
-
-### How does it follow the grid theme
-Go to the web dashboard and click the leaderboard text (Yes, it is a button), and it will show a grid of ticket, which see more fun and more represetable for the ticket system
+### How does it follow the space theme
+Every module is rewritten to separate to their own space, with isolated access space for each user (see `config.toml`, `live_blank.py` and `siege.py`)
+THis is mostly backend however, and It would be fair to rehect this
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
