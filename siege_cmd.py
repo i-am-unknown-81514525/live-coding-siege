@@ -586,7 +586,7 @@ def get_proj_details(ctx: Context, public: bool):
 
 
 @slash_listen("/siege_shop")
-@smart_msg_listen("siege.shop ")
+@smart_msg_listen("siege.shop")
 @description("/siege_shop", "Time to go shopping!!! This is what you have working toward the whole time! (Or maybe not...)")
 @utils.get_group
 @utils.filter_allowed
@@ -599,10 +599,10 @@ def get_shop(ctx: Context, public: bool):
         f"*Items*",
         f"*Cosmetic*"
     ]
-    for item in shop_item.cosmetics:
+    for item in sorted(shop_item.cosmetics, key=lambda x: x.id):
         message_lines.append(f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins with type {item.type.capitalize()}")
     message_lines.append(f"*Physical*")
-    for item in shop_item.physical_items:
+    for item in sorted(shop_item.physical_items, key=lambda x: x.id):
         message_lines.append(f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins, digital: {item.digital}")
     if public:
         ctx.public_send(True, text="\n".join(message_lines))
