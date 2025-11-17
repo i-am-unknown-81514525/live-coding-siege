@@ -1,11 +1,12 @@
 from collections.abc import Callable
+import re
 from schema.message import MessageEvent
 from schema.interactive import BlockActionEvent
 from schema.huddle import HuddleChange, HuddleState
 from slack_sdk.web import WebClient
 import threading
 from typing import Any, Sequence, overload
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from abc import ABC, abstractmethod
 
 from slack_sdk.models.blocks import Block
@@ -47,6 +48,17 @@ type CtxFn[C: Context, T] = Callable[[C], T]
 
 #     return decorator
 
+_LEADING_SLACK_LINK_RE = re.compile(r'^<https?://[^>|]+\|([^>]+)>')
+
+def _url_fix(text: str) -> str:
+    """
+    If `text` starts with a Slack-style link like
+    "<http://key|key>" or "<https://key|key>", replace only the first
+    (leading) occurrence with the displayed key (e.g. "key").
+    """
+    if not text:
+        return text
+    return _LEADING_SLACK_LINK_RE.sub(r'\1', text, count=1)
 
 class Context(ABC):
     client: WebClient
@@ -421,6 +433,9 @@ def smart_msg_listen[A: Callable[[MessageContext], Any]](
 
         def inner(event: MessageEvent, client: WebClient):
             # TODO: Handle <http://siege.lb|siege.lb>
+            if event.message.text is not None:
+                msg_data = replace(event.message, text=_url_fix(event.message.text or ""))
+                event = replace(event, message=msg_data)
             ctx = MessageContext(event, client)
             return func(ctx)
 
@@ -591,12 +606,14 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
                 not is_subtype_handler
                 and event.message
                 and event.message.text
-                and event.message.text.startswith(key)
+                and (
+                        event.message.text.startswith(key) or 
+                        event.message.text.startswith(f"<http://{key}|{key}>")  or 
+                        event.message.text.startswith(f"<https://{key}|{key}>")
+                    )
             ):
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()
-
-            # TODO: Handle <http://siege.lb|siege.lb>
 
 
 def action_dispatch(event: BlockActionEvent, client: WebClient) -> None:

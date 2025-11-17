@@ -19,7 +19,7 @@
 [ ] - Slack client transfer to web API so a message is sent on accept/reject
 [ ] - `live.add_mgr all` for all allowed user
 [ ] - `live.transaction`
-[ ] - Fix prefix command get recognised as link
+[x] - Fix prefix command get recognised as link
 [x] - `no_prefix` change to `value` in favuor for `Context` for interaction
 [x] - `siege.define` / `/define` - get dictionary definition of word
 [x] - `.cmd` attr on `Context`
