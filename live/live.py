@@ -32,7 +32,7 @@ from ws_mgr import controller, signals
 import jwt
 from api import get_user, get_project
 from utils import get_group, guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread, require_group
-from live_base import get_module
+from live.live_base import get_module
 
 
 def int_handler(bits: int) -> Handler[int]:

@@ -11,9 +11,9 @@ from arrow import Arrow
 import arrow
 from slack_sdk.socket_mode import SocketModeClient
 
-from live import push_ticket_update_ws
+from live.live import push_ticket_update_ws
 from schema.siege import SiegeProject, SiegeUser
-from live_base import LiveModuleBase, GameInstance
+from live.live_base import LiveModuleBase, GameInstance
 import api, utils
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

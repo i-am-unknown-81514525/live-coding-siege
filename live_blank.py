@@ -1,4 +1,4 @@
-from live_base import LiveModuleBase, GameInstance
+from live.live_base import LiveModuleBase, GameInstance
 
 class Blank(LiveModuleBase):
     def __init__(self, instance: GameInstance):

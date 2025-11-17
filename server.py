@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from fastapi.staticfiles import StaticFiles
 import jwt
 
-from live_base import get_module
+from live.live_base import get_module
 from ws_mgr import controller, schema, signals
 import uvicorn
 import db

@@ -50,7 +50,7 @@ def help(ctx: Context):
 
 # Cmd load
 import siege_cmd
-import live
+import live.live as live
 
 def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     response = SocketModeResponse(envelope_id=req.envelope_id)
