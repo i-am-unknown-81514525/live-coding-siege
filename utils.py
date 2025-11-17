@@ -10,8 +10,8 @@ from typing import overload, Literal
 from config import AllGroupConfig, get_config
 
 
-ALLOWED = os.environ["ALLOWLIST"].split(",")
-AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
+# ALLOWED = os.environ["ALLOWLIST"].split(",")
+# AUTHORIZED_USERS = os.environ.get("AUTHORIZED_USERS", "").split(",")
 
 def check_namespace_match(current: list[str], require: list[str]) -> bool:
     for req in require:

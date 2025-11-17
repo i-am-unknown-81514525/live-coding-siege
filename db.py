@@ -35,7 +35,7 @@ def init_db():
     if not os.path.exists(SCHEMA_FILE):
         raise FileNotFoundError(f"Schema file not found at {SCHEMA_FILE}")
 
-    with get_db_connection () as conn:
+    with get_db_connection() as conn:
         with open(SCHEMA_FILE, "r") as f:
             schema_sql = f.read()
 

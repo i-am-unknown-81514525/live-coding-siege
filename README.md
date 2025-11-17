@@ -29,16 +29,13 @@ Yep I think most of them but not all is necessary :)
 Other
 ```env
 JWT_SECRET= # for web dashboard
-AUTHORIZED_USERS= # comma seperated list of user id that have special ability
-ALLOWLIST= # comman seperated list of user id that can start a show
-SIEGE_MODE=1 # It would query the user on siege API on live coding. Only user with a existing project would be selected, checked on each pick. The hour coded since game started/join is also tracked, checked on each pick for ticket count.
 ```
 
 Optionally
 ```env
 RIG=1
 ```
-This would set so anyone can run `live.init` with no restriction, and also the run time would be < 3 minutes
+This would set the run time would be < 3 minutes
 
 Do `docker compose up -d --build` to start with docker setup, or `uv run main.py`
 
@@ -48,6 +45,12 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 
 ### Public command list
 Use `siege.helps` or `/help` for the full list
+
+### Main change for W11
+- Rewrite permission system to indivdual group based on namespaces
+- Code refactor for better permission check
+- Track all change via Siege API to allow live coding event to get all project time on event start instead of their join time, to be more fair
+- `siege.shop`, `siege.user_details` and `siege.proj_details`
 
 ### How does it follow the space theme
 Every module is rewritten to separate to their own space, with isolated access space for each user (see `config.toml`, `live_blank.py` and `siege.py`)
