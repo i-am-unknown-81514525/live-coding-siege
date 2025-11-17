@@ -70,6 +70,7 @@ If you are lazy like me, check the image below:
 
 <img src="https://github.com/user-attachments/files/23443113/clipboard_2025-11-09_23-44.bmp">
 
+<img width="958" height="1340" alt="8380a6f9fedf1e5e99b357dde5dac8f3dac5240e0ca7eae6b68df95f4c4ef534" src="https://github.com/user-attachments/assets/30bd79bc-ab00-4a0f-b134-7d25698b3b71" />
 
 (Idk why some of the background got significantly whiter than it actually is)
 
