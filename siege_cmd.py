@@ -537,7 +537,7 @@ def get_define(ctx: Context, public: bool):
 @utils.get_group
 @utils.filter_allowed
 @utils.has_group("siege")
-def get_proj_details(ctx: Context, public: bool):
+def get_user_details(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):
         public = False
     try:
@@ -609,3 +609,55 @@ def get_shop(ctx: Context, public: bool):
     else:
         ctx.private_send(False, text="\n".join(message_lines))
 
+@slash_listen("/user_details")
+@smart_msg_listen("siege.user_details ")
+@description("/user_details <user_id>?", "Staring...")
+@utils.get_group
+@utils.filter_allowed
+@utils.has_group("siege")
+def get_proj_details(ctx: Context, public: bool):
+    if isinstance(ctx, InteractionContext):
+        public = False
+    slack_user_id = ctx.author_id
+    left_over = ctx.value
+    if left_over:
+        if re.match(r"<@(U\w+)(\|[0-9a-zA-Z\-_\.]+)?>", left_over):
+            slack_user_id = (
+                left_over.strip().removeprefix("<@").removesuffix(">").split("|")[0]
+            )  # https://stackoverflow.com/questions/29392407/how-to-get-a-slack-user-by-email-using-users-info-api/51469610#51469610
+        else:
+            slack_user_id = left_over
+    message_lines = []
+    user_id: int | None = None
+    try:
+        user = get_user(slack_user_id)
+        user_id = user.id
+        siege.push_user([user])
+    except Exception:
+        message_lines.append("User can no longer be discovered from the API, the user might be hidden or deleted.")
+    if user_id is None:
+       user_id = siege.get_user_id_from_slack(slack_user_id)
+    if user_id is None:
+        message_lines.append("Cannot find user id from slack id.")
+        return ctx.private_send(text="\n".join(message_lines))
+    heartbeats = list(reversed(siege.retrieve_all_user_record(user_id)))
+    if not heartbeats:
+        return ctx.private_send(text="No heartbeat data found for this user.")
+    message_lines.append(
+        f"""*{_time_to_slack(heartbeats[0].measurement_time)}*: User first discovered\n> Username: {heartbeats[0].username}\n> Coins: {heartbeats[0].coin_count}\n> Status: {heartbeats[0].user_status}"""
+    )
+    for curr, next in zip(heartbeats, heartbeats[1:]):
+        diff = curr.compare_to_new(next)
+        if not diff:
+            continue
+        line = f"*{_time_to_slack(next.measurement_time)}*:"
+        for key, (old, new) in diff.items():
+            if key in ["Username"]:
+                line += f"\n> {key}: \"{old}\" -> \"{new}\""
+            else:
+                line += f"\n> {key}: {old} -> {new}"
+        message_lines.append(line)
+    if public:
+        ctx.public_send(True, text="\n".join(message_lines))
+    else:
+        ctx.private_send(True, text="\n".join(message_lines))
