@@ -28,22 +28,25 @@ from schema.interactive import BlockActionEvent
 from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
 import server, siege
+import utils
 
 load_dotenv()
-ALLOWED = os.environ["ALLOWLIST"].split(",")
 
 
 @smart_msg_listen("live.helps")
 @smart_msg_listen("siege.helps")
 @slash_listen("/help")
 @description("/help <prefix>?", "Help command to hopefully answer your random question?")
-def help(ctx: Context):
+@utils.get_group
+@utils.filter_allowed
+@utils.have_any_group()
+def help(ctx: Context, public: bool):
     items = []
     for cmd, description in DESCRIPTION.items():
         if cmd.startswith(ctx.value):
             items.append(f"`{cmd}` - {description}")
     message = f"*Command list{ f" with prefix \"{ctx.value}\"" if ctx.value else "" }*\n" + ("\n".join(items) or "No command exist with the given prefix")
-    if ctx.author_id in ALLOWED:
+    if public:
         ctx.public_send(text=message)
     else:
         ctx.private_send(text=message)
