@@ -25,6 +25,7 @@ import utils
 from schema import dictionary
 import requests
 import siege
+from collections import defaultdict
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
@@ -609,6 +610,7 @@ def get_shop(ctx: Context, public: bool):
     else:
         ctx.private_send(False, text="\n".join(message_lines))
 
+
 @slash_listen("/user_details")
 @smart_msg_listen("siege.user_details ")
 @description("/user_details <user_id>?", "Staring...")
@@ -618,6 +620,7 @@ def get_shop(ctx: Context, public: bool):
 def get_proj_details(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):
         public = False
+
     slack_user_id = ctx.author_id
     left_over = ctx.value
     if left_over:
@@ -627,37 +630,89 @@ def get_proj_details(ctx: Context, public: bool):
             )  # https://stackoverflow.com/questions/29392407/how-to-get-a-slack-user-by-email-using-users-info-api/51469610#51469610
         else:
             slack_user_id = left_over
-    message_lines = []
+    message_lines: list[str] = []
     user_id: int | None = None
     try:
         user = get_user(slack_user_id)
         user_id = user.id
         siege.push_user([user])
     except Exception:
-        message_lines.append("User can no longer be discovered from the API, the user might be hidden or deleted.")
+        message_lines.append("User can no longer be discovered from the API; may be hidden or deleted.")
     if user_id is None:
-       user_id = siege.get_user_id_from_slack(slack_user_id)
+        user_id = siege.get_user_id_from_slack(slack_user_id)
     if user_id is None:
         message_lines.append("Cannot find user id from slack id.")
         return ctx.private_send(text="\n".join(message_lines))
-    heartbeats = list(reversed(siege.retrieve_all_user_record(user_id)))
-    if not heartbeats:
+
+    user_hbs = list(reversed(siege.retrieve_all_user_record(user_id)))
+    if not user_hbs:
         return ctx.private_send(text="No heartbeat data found for this user.")
-    message_lines.append(
-        f"""*{_time_to_slack(heartbeats[0].measurement_time)}*: User first discovered\n> Username: {heartbeats[0].username}\n> Coins: {heartbeats[0].coin_count}\n> Status: {heartbeats[0].user_status}"""
+
+    user_first = user_hbs[0].measurement_time
+
+    timeline: list[tuple[Arrow, str]] = []
+
+    timeline.append(
+        (
+            user_first,
+            f"*{_time_to_slack(user_first)}*: User first discovered\n"
+            f"> Username: {user_hbs[0].username}\n"
+            f"> Coins: {user_hbs[0].coin_count}\n"
+            f"> Status: {user_hbs[0].user_status}",
+        )
     )
-    for curr, next in zip(heartbeats, heartbeats[1:]):
-        diff = curr.compare_to_new(next)
+
+    for prev, curr in zip(user_hbs, user_hbs[1:]):
+        diff = prev.compare_to_new(curr)
         if not diff:
             continue
-        line = f"*{_time_to_slack(next.measurement_time)}*:"
+        line = f"*{_time_to_slack(curr.measurement_time)}*:"
         for key, (old, new) in diff.items():
-            if key in ["Username"]:
+            if key == "Username":
                 line += f"\n> {key}: \"{old}\" -> \"{new}\""
             else:
                 line += f"\n> {key}: {old} -> {new}"
-        message_lines.append(line)
+        timeline.append((curr.measurement_time, line))
+
+    proj_hbs = list(reversed(siege.retrieve_all_user_proj_record(user_id)))
+
+    grouped: dict[int, list[siege.ProjHeartbeatRecord]] = defaultdict(list)
+    for hb in proj_hbs:
+        proj_id = hb.proj_id
+        if proj_id is None:
+            continue
+        grouped[proj_id].append(hb)
+
+    now = Arrow.utcnow()
+    DISAPPEAR_SECS = 15 * 60
+
+    for proj_id, records in grouped.items():
+        records.sort(key=lambda r: r.measurement_time.timestamp())
+        first = records[0]
+        last = records[-1]
+
+        if first.measurement_time > user_first:
+            timeline.append(
+                (
+                    first.measurement_time,
+                    f"*{_time_to_slack(first.measurement_time)}*: Project `{proj_id}` first discovered"
+                    + (f"\n> Project Name: \"{first.title}\"")
+                )
+            )
+
+        if (now.timestamp() - last.measurement_time.timestamp()) >= DISAPPEAR_SECS:
+            timeline.append(
+                (
+                    last.measurement_time,
+                    f"*{_time_to_slack(last.measurement_time)}*: Project `{proj_id}` have been removed"
+                    + (f"\n> Project Name: \"{last.title}\"")
+                )
+            )
+
+    timeline.sort(key=lambda t: t[0].timestamp())
+
+    output = "\n".join(evt for _, evt in timeline)
     if public:
-        ctx.public_send(True, text="\n".join(message_lines))
+        ctx.public_send(True, text=output)
     else:
-        ctx.private_send(True, text="\n".join(message_lines))
+        ctx.private_send(True, text=output)
