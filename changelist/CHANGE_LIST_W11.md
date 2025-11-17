@@ -8,7 +8,7 @@
 [x] - Put hour tracking on siege database
 [x] - Check and fix more rounding issue
 [ ] - Post project change in a separate channel which can be publicly searchable like som bulletin
-[ ] - `siege.shop` ???? (idk if it even necessary but well, it is an api so I must use it)
+[x] - `siege.shop` ???? (idk if it even necessary but well, it is an api so I must use it)
 [ ] - `siege.user_search` for user searching
 [ ] - Improve the timer system?
 [x] - Convert `SIEGE_MODE` to something handled by per game instance
