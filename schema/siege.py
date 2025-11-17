@@ -3,7 +3,7 @@ from enum import StrEnum
 from arrow import Arrow
 import arrow
 import re
-from typing import Self
+from typing import Self, Literal
 
 
 class ProjectStatus(StrEnum):
@@ -218,4 +218,39 @@ class SiegeProject(SiegePartialProject):
             coin_value=float(data["coin_value"]),
             is_update=data["is_update"],
             hours=data["hours"],
+        )
+
+@dataclass(frozen=True, eq=True)
+class SiegeShopItemBase:
+    id: str
+    name: str
+    description: str
+    cost: int
+
+@dataclass(frozen=True, eq=True)
+class SiegeShopItemCosmetic(SiegeShopItemBase):
+    type: Literal["front", "hat"]
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            description=data["description"],
+            cost=data["cost"],
+            type=data["type"],
+        )
+
+@dataclass(frozen=True, eq=True)
+class SiegeShopItemPhysical(SiegeShopItemBase):
+    digital: bool
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            description=data["description"],
+            cost=data["cost"],
+            digital=data["digital"],
         )
