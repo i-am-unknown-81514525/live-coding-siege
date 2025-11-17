@@ -24,3 +24,4 @@
 [x] - `siege.define` / `/define` - get dictionary definition of word
 [x] - `.cmd` attr on `Context`
 [x] - `config.toml` file for permission namespace
+[x] - `siege.user_details` and `siege.proj_details` :)
