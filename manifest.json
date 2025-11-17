@@ -67,6 +67,10 @@
             {
                 "command": "/siege_shop",
                 "description": "| View Siege Shop items"
+            },
+            {
+                "command": "/user_details",
+                "description": "<user_id>? | View siege user details"
             }
         ]
     },
