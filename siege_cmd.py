@@ -101,7 +101,7 @@ def _calc_base(week: int, hours: float) -> float:
 
 
 @slash_listen("/user")
-@smart_msg_listen("siege.user")
+@smart_msg_listen("siege.user ")
 @smart_action_listen("siege_user_view")
 @description("/user <user_id>?", "Shhhh... sneak peek on a siege user, surely no one would notice :)")
 @utils.get_group
