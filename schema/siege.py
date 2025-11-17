@@ -254,3 +254,15 @@ class SiegeShopItemPhysical(SiegeShopItemBase):
             cost=data["cost"],
             digital=data["digital"],
         )
+    
+@dataclass(frozen=True)
+class SiegeShop:
+    cosmetics: frozenset[SiegeShopItemCosmetic]
+    physical_items: frozenset[SiegeShopItemPhysical]
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        return cls(
+            cosmetics=frozenset(map(SiegeShopItemCosmetic.parse, data["cosmetics"])),
+            physical_items=frozenset(map(SiegeShopItemPhysical.parse, data["physical_items"])),
+        )
