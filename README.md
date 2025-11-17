@@ -54,7 +54,7 @@ Use `siege.helps` or `/help` for the full list
 
 ### How does it follow the space theme
 Every module is rewritten to separate to their own space, with isolated access space for each user (see `config.toml`, `live_blank.py` and `siege.py`)
-THis is mostly backend however, and It would be fair to rehect this
+This is mostly backend however, and It would be fair to reject this
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
