@@ -139,6 +139,31 @@ def fetch_all_user_link(used_ids: list[int]) -> list[int]:
         rows = cursor.fetchall()
         return [row["game_id"] for row in rows]
 
+def prox_get_all_projs() -> list[SiegeProject]:
+    result = api.get_all_projs()
+    try:
+        push_proj(result)
+    except Exception as e:
+        logging.warning(f"Failed to push update to db", exc_info=True)
+    return result
+
+def prox_get_project(proj_id: api.ProjAlike) -> SiegeProject:
+    project = api.get_project(proj_id)
+    try:
+        push_proj([project])
+    except Exception as e:
+        logging.warning(f"Failed to push update to db", exc_info=True)
+    return project
+
+def prox_get_user(user_id: api.UserAlike) -> SiegeUser:
+    user = api.get_user(user_id)
+    try:
+        push_user([user])
+    except Exception as e:
+        logging.warning(f"Fail to push update to db", exc_info=True)
+    return user
+
+
 PROJ_LOOP_TIME = 300
 def proj_loop():
     while True:
