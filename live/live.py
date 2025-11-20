@@ -894,13 +894,15 @@ def pick_user(ctx: Context, game_id: int):
 
         seed = f"{client_secret}{server_secret}"
 
-        t = randint(300, 1200)
+        instance = db.get_game_instance(game_id)
+        module = get_module(instance)
+
+        t = randint(module.BOUND[0], module.BOUND[1])
         if os.getenv("RIG"):
             t = randint(180, 180)
 
-        instance = db.get_game_instance(game_id)
         users: list[str] = db.get_huddle_participants(game_id)
-        user_tickets = get_module(instance).get_tickets(users)
+        user_tickets = module.get_tickets(users)
         for user, ticket in user_tickets.items():
             db.add_game_participant(game_id, user, ticket)
 

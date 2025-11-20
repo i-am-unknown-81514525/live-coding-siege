@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from threading import Lock
-from typing import Literal
+from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
 from importlib import import_module
 from config import get_config
@@ -30,6 +30,9 @@ class GameInstance:
 
 
 class LiveModuleBase(ABC):
+
+    BOUND: ClassVar[tuple[int, int]] = (300, 1200)
+
     def __init__(self, instance: GameInstance):
         self._instance = instance
         super().__init__()
