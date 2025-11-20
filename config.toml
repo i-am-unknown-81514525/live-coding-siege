@@ -24,7 +24,7 @@ allowed = [
     "U07BN55GN3D",
     "U08DDHGPBCM",
 ]
-authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D"] 
+authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D", "U0828FYS2UC"] 
 namespace = [
     "r:cmd:siege\\..*",
     "channel:C08SKC6P85V",    # Siege channel
@@ -56,3 +56,12 @@ namespace = [
     "channel:C09KTR863L3", # Internal 1
 ]
 module = "live_blank"
+
+[bot.group.redacted]
+allowed = []
+authorized = ["U092BGL0UUQ"] 
+namespace = [
+    "channel:C09TRDFT5PH",    # Internal 1
+    "channel:C09KTR863L3",    # Internal 2
+]
+module = "event_redacted"
