@@ -31,12 +31,6 @@ Other
 JWT_SECRET= # for web dashboard
 ```
 
-Optionally
-```env
-RIG=1
-```
-This would set the run time would be < 3 minutes
-
 Do `docker compose up -d --build` to start with docker setup, or `uv run main.py`
 
 ### How to use

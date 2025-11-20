@@ -898,8 +898,6 @@ def pick_user(ctx: Context, game_id: int):
         module = get_module(instance)
 
         t = randint(module.BOUND[0], module.BOUND[1])
-        if os.getenv("RIG"):
-            t = randint(180, 180)
 
         users: list[str] = db.get_huddle_participants(game_id)
         user_tickets = module.get_tickets(users)
