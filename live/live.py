@@ -915,10 +915,15 @@ def pick_user(ctx: Context, game_id: int):
         )
         target_user_id = tickets[selected_index]
 
-        duration_minutes = duration_seconds // 60
+        duration_hours = (duration_seconds) // 3600
+        duration_minutes = (duration_seconds % 60) // 60
         remaining_seconds = duration_seconds % 60
 
         duration_text_parts = []
+        if duration_hours > 0:
+            duration_text_parts.append(
+                f"{duration_hours} hour{'s' if duration_hours > 1 else ''}"
+            )
         if duration_minutes > 0:
             duration_text_parts.append(
                 f"{duration_minutes} minute{'s' if duration_minutes > 1 else ''}"
