@@ -9,7 +9,7 @@ from reg import (
     InteractionContext
 )
 import blockkit
-from api import get_project, get_user, get_all_projs, get_coin_leaderboard, get_shop_item
+from api import get_coin_leaderboard, get_shop_item
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
@@ -26,6 +26,7 @@ from schema import dictionary
 import requests
 import siege
 from collections import defaultdict
+from siege import prox_get_all_projs as get_all_projs, prox_get_user as get_user, prox_get_project as get_project
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
