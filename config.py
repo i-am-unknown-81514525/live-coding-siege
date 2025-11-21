@@ -1,6 +1,9 @@
 import functools
 from typing import TypedDict
 import tomllib
+import os
+
+CONFIG_FILE = os.getenv("CONFIG_FILE", "config.toml")
 
 class GroupConfig(TypedDict):
     allowed: list[str]
@@ -18,5 +21,5 @@ class Top(TypedDict):
 
 @functools.cache
 def get_config() -> Top:
-    with open("config.toml", "rb") as f:
+    with open(CONFIG_FILE, "rb") as f:
         return tomllib.load(f) # pyright: ignore[reportReturnType]
