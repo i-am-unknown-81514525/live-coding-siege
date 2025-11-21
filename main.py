@@ -27,7 +27,7 @@ from schema.huddle import HuddleChange
 from schema.interactive import BlockActionEvent
 from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
-import server, siege
+import server, siege, siege_remind
 import utils
 
 load_dotenv()
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     )
     server.start(client)
     siege.start(client)
+    siege_remind.start(client)
     live.load_active_timers(client.web_client)
     client.socket_mode_request_listeners.append(process_message)
     print("Bot is listening for messages...")

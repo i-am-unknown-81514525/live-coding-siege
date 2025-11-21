@@ -62,16 +62,16 @@ class UserFlag:
 
 @dataclass(frozen=True)
 class UserProfile:
-    avatar_hash: str
+    avatar_hash: str | None
     display_name: str
     display_name_normalized: str
-    first_name: str
-    last_name: str
+    first_name: str | None
+    last_name: str | None
     fields: dict[str, UserFieldEntry]
     avatars: UserAvatar
     pronouns: str | None
     phone: str | None
-    team: str
+    team: str | None
     real_name: str
     real_name_normalized: str
     skype: str | None
@@ -83,18 +83,18 @@ class UserProfile:
     @classmethod
     def parse(cls, data: dict):
         return cls(
-            avatar_hash=data["avatar_hash"],
+            avatar_hash=data.get("avatar_hash"),
             display_name=data["display_name"],
             display_name_normalized=data["display_name_normalized"],
-            first_name=data["first_name"],
-            last_name=data["last_name"],
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
             fields={k: UserFieldEntry.parse(v) for k, v in data["fields"].items()}
             if "fields" in data
             else {},
             avatars=UserAvatar.parse(data),
             pronouns=data.get("pronouns"),
             phone=data.get("phone"),
-            team=data["team"],
+            team=data.get("team"),
             real_name=data["real_name"],
             real_name_normalized=data["real_name_normalized"],
             skype=data.get("skype"),

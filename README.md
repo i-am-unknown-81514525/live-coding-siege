@@ -29,6 +29,11 @@ Yep I think most of them but not all is necessary :)
 Other
 ```env
 JWT_SECRET= # for web dashboard
+CONFIG_FILE=config.toml # Optional default to `config.toml`, can be change to point to different config
+
+REMIND_CHANNEL=
+REMIND_THREAD=
+REMIND_USER=
 ```
 
 Do `docker compose up -d --build` to start with docker setup, or `uv run main.py`
