@@ -30,47 +30,58 @@
             },
             {
                 "command": "/global",
-                "description": "| View the total hours everyone have completed this week"
+                "description": "| View the total hours everyone have completed this week",
+                "should_escape": false
             },
             {
                 "command": "/lb",
-                "description": "<lb_option>? | View the total hours everyone have completed this week"
+                "description": "<lb_option>? | View the total hours everyone have completed this week",
+                "should_escape": false
             },
             {
                 "command": "/leaderboard",
-                "description": "<lb_option>? | View the total hours everyone have completed this week"
+                "description": "<lb_option>? | View the total hours everyone have completed this week",
+                "should_escape": false
             },
             {
                 "command": "/stats",
-                "description": "| View stats for each week"
+                "description": "| View stats for each week",
+                "should_escape": false
             },
             {
                 "command": "/siege_stats",
-                "description": "| View stats for each week"
+                "description": "| View stats for each week",
+                "should_escape": false
             },
             {
                 "command": "/help",
-                "description": "<prefix>? | Help command to hopefully answer your random question?"
+                "description": "<prefix>? | Help command to hopefully answer your random question?",
+                "should_escape": false
             },
             {
                 "command": "/searchs",
-                "description": "<keyword>? | Search Siege project by keywords"
+                "description": "<keyword>? | Search Siege project by keywords",
+                "should_escape": false
             },
             {
                 "command": "/define",
-                "description": "<word> | Get definition of a word"
+                "description": "<word> | Get definition of a word",
+                "should_escape": false
             },
             {
                 "command": "/proj_details",
-                "description": "<proj_id> | View siege project details"
+                "description": "<proj_id> | View siege project details",
+                "should_escape": false
             },
             {
                 "command": "/siege_shop",
-                "description": "| View Siege Shop items"
+                "description": "| View Siege Shop items",
+                "should_escape": false
             },
             {
                 "command": "/user_details",
-                "description": "<user_id>? | View siege user details"
+                "description": "<user_id>? | View siege user details",
+                "should_escape": false
             }
         ]
     },
@@ -81,13 +92,16 @@
                 "calls:read",
                 "calls:write",
                 "channels:history",
+                "chat:write",
                 "commands",
+                "files:read",
                 "groups:history",
                 "im:history",
                 "mpim:history",
+                "users.profile:read",
                 "users:read",
                 "workflow.steps:execute",
-                "chat:write"
+                "files:write"
             ]
         }
     },
