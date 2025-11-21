@@ -207,8 +207,10 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
     )
     db.add_game_manager(game_id, user_id)
     instance = db.get_game_instance(game_id)
+    module = get_module(instance)
     users: list[str] = db.get_huddle_participants(game_id)
-    tickets = get_module(instance).get_tickets(users)
+    module.on_create()
+    tickets = module.get_tickets(users)
     for user, ticket in tickets.items():
         db.add_game_participant(game_id, user, ticket)
 
@@ -287,7 +289,14 @@ def handle_restart_game(ctx: InteractionContext, have_authorised: bool):
             conn, game_id_to_restart, "GAME_RESTART", client_secret, server_secret
         )
         conn.commit()
-
+    
+    instance = db.get_game_instance(game_id_to_restart)
+    module = get_module(instance)
+    users: list[str] = db.get_huddle_participants(game_id_to_restart)
+    module.on_restart()
+    tickets = module.get_tickets(users)
+    for user, ticket in tickets.items():
+        db.add_game_participant(game_id_to_restart, user, ticket)
     ctx.public_send(
         text=f"✨ The show (ID: {game_id_to_restart}) has been restarted by <@{user_id}>!",
         **_technical_not_reveal(client_secret, server_secret).build(),
@@ -1134,6 +1143,9 @@ def end_game(ctx: Context, game_id: int):
     summary_message.add_block(blockkit.Divider())
     summary_message.add_block(Section("Thanks for playing! 🎉"))
 
+    module = get_module(db.get_game_instance(game_id))
+    module.on_end()
+
     ctx.public_send(**summary_message.build())
 
 
@@ -1710,8 +1722,10 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
     game_id = db.get_active_game_in_huddle(huddle_id)
     if game_id is not None:
         instance = db.get_game_instance(game_id)
-        db.add_game_participant(game_id, user_id, get_module(instance).get_ticket(user_id))
+        module = get_module(instance)
+        db.add_game_participant(game_id, user_id, module.get_ticket(user_id))
         push_ticket_update_ws(game_id)
+        module.on_join(user_id)
 
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)
@@ -1725,6 +1739,11 @@ def handle_huddle_leave(event: HuddleChange, client: WebClient):
     for huddle_id in huddle_ids:
         db.remove_huddle_participant(huddle_id, user_id)
         print(f"🚪 User {user_name} ({user_id}) left huddle {huddle_id}.")
+        game_id = db.get_active_game_in_huddle(huddle_id)
+        if game_id is not None:
+            instance = db.get_game_instance(game_id)
+            module = get_module(instance)
+            module.on_leave(user_id)
 
 
 def load_active_timers(client: WebClient):

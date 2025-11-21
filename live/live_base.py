@@ -38,6 +38,30 @@ class LiveModuleBase(ABC):
         super().__init__()
     
     @abstractmethod
+    def on_create(self) -> None:
+        pass
+
+    @abstractmethod
+    def on_end(self) -> None:
+        pass
+
+    @abstractmethod
+    def on_restart(self) -> None:
+        pass
+
+    @abstractmethod
+    def on_join(self, user: str) -> None:
+        pass
+    
+    @abstractmethod
+    def on_leave(self, user: str) -> None:
+        pass
+
+    @abstractmethod
+    def on_pick(self, user: str) -> None:
+        pass
+    
+    @abstractmethod
     def get_ticket(self, user: str) -> int: ...
 
     @abstractmethod
