@@ -242,10 +242,10 @@ def get_total_proj_time(ctx: Context):
     result = siege.analyse_hour_by_time_in_week(heartbeats)
     logging.info(result)
     df = pandas.DataFrame({
-        "time": list(result.keys()),
+        "time": [t.datetime for t in result.keys()],
         "hours": list(result.values())
     })
-    plot = sns.lineplot(df, x="time", y="hours", title=f"Global tracked hours in week {week}", labels={"time": "Time", "hours": "Total tracked hours"})
+    plot = sns.lineplot(df, x="time", y="hours")
     iodt = BytesIO()
     fig = plot.get_figure()
     img = b""
