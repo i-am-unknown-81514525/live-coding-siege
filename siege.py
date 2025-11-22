@@ -9,6 +9,7 @@ import threading
 
 from arrow import Arrow
 import arrow
+import polars as pl
 from slack_sdk.socket_mode import SocketModeClient
 
 from live.live import push_ticket_update_ws
@@ -370,6 +371,32 @@ def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
             record = ProjHeartbeatRecord.from_row(row)
             records.append(record)
         return records
+
+def analyse_hour_by_time_in_week(heartbeats: list[ProjHeartbeatRecord]) -> dict[Arrow, float]:
+    if not heartbeats:
+        return {}
+
+    df = pl.DataFrame({
+        "time": [hb.measurement_time.datetime for hb in heartbeats],
+        "user_id": [hb.user_id for hb in heartbeats],
+        "proj_id": [hb.proj_id for hb in heartbeats],
+        "hours": [hb.hours for hb in heartbeats],
+    })
+
+    df = df.sort("time")
+    
+    def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
+        return df.sort("time").group_by_dynamic("time", every="5m").agg([
+            pl.col("hours").max()
+        ])
+    
+    user_dfs = df.group_by("user_id").map_groups(user_df_handler)
+    total_hours_df = user_dfs.group_by("time").agg(pl.sum("hours").fill_null(strategy="forward", limit=3))
+
+    return {
+        arrow.get(row["time"]): row["hours"]
+        for row in total_hours_df.iter_rows(named=True)}
+
 
 def retrieve_all_proj_record(proj_id: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:

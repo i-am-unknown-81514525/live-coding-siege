@@ -12,6 +12,7 @@ dependencies = [
     "cryptography>=46.0.2",
     "fastapi[standard]>=0.119.0",
     "plotly>=6.5.0",
+    "polars>=1.35.2",
     "pyjwt>=2.10.1",
     "python-dotenv>=1.1.1",
     "rapidfuzz>=3.14.3",
