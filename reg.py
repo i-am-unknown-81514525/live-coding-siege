@@ -61,9 +61,9 @@ def _url_fix(text: str) -> str:
         return text
     return _LEADING_SLACK_LINK_RE.sub(r'\1', text, count=1)
 
-def file_upload(files: list[PendingFile], client: WebClient, channels: list[str] | None = None) -> dict[PendingFile, UploadedFile]:
+def file_upload(files: list[PendingFile], client: WebClient, channels: list[str] | None = None, thread_ts: str | None = None) -> dict[PendingFile, UploadedFile]:
     mapping: dict[PendingFile, str] = {file: "".join(random.choices("0123456789abcdef", k=64)) for file in files}
-    uploaded_raw = client.files_upload_v2(file_uploads=[k.export(v) for k, v in mapping.items()], channels=channels)  # pyright: ignore[reportArgumentType]
+    uploaded_raw = client.files_upload_v2(file_uploads=[k.export(v) for k, v in mapping.items()], channels=channels, thread_ts=thread_ts)  # pyright: ignore[reportArgumentType]
     uploaded = [UploadedFile.parse(item) for item in uploaded_raw["files"]] if uploaded_raw.get("files") else [] # pyright: ignore[reportOptionalIterable]
     result: dict[PendingFile, UploadedFile] = {}
     for file in files:
@@ -73,9 +73,9 @@ def file_upload(files: list[PendingFile], client: WebClient, channels: list[str]
                 break
     return result
     
-def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, channels: list[str] | None = None) -> list[Attachment]:
+def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, channels: list[str] | None = None, thread_ts: str | None = None) -> list[Attachment]:
     pending_files = [file for file in files if isinstance(file, PendingFile)]
-    uploaded_files = file_upload(pending_files, client, channels)
+    uploaded_files = file_upload(pending_files, client, channels, thread_ts)
     result: list[Attachment] = []
     for file in files:
         if isinstance(file, UploadedFile):
