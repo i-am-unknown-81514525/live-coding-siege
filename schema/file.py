@@ -3,6 +3,46 @@ from typing import TypedDict
 from io import IOBase
 from os import PathLike
 
+class Attachment(TypedDict):
+    id: str
+    created: int
+    timestamp: int
+    name: str
+    title: str
+    filetype: str
+    mimetype: str
+    pretty_type: str
+    user: str
+    user_team: str
+    editable: bool | None
+    size: int | None
+    mode: str | None
+    is_external: bool | None
+    external_type: str | None
+    is_public: bool | None
+    public_url_shared: bool | None
+    display_as_bot: bool | None
+    username: str | None
+    url_private: str
+    url_private_download: str
+    permalink: str
+    permalink_public: str | None
+    edit_link: str | None
+    preview: str | None
+    preview_highlight: str | None
+    lines: int | None
+    lines_more: int | None
+    preview_is_truncated: bool | None
+    comments_count: int | None
+    is_starred: bool | None
+    shares: dict | None # Idgaf at this point not like I care what inside this
+    channels: list[str] | None
+    groups: list[str] | None
+    ims: list[str] | None
+    has_more_shares: bool | None
+    has_rich_preview: bool | None
+    file_access: str | None
+
 # https://github.com/slackapi/bolt-js/blob/6b0f985287301fd7e4b679822708b46aeca1421a/src/types/view/index.ts#L145 wtf
 # https://docs.slack.dev/messaging/working-with-files/#sdks
 @dataclass(frozen=True)
@@ -91,6 +131,47 @@ class UploadedFile:
             file_access=data.get("file_access"),
         )
     
+    def export(self) -> Attachment:
+        return {
+            "id": self.file_id,
+            "created": self.created,
+            "timestamp": self.timestamp,
+            "name": self.name,
+            "title": self.title,
+            "filetype": self.filetype,
+            "mimetype": self.mimetype,
+            "pretty_type": self.pretty_type,
+            "user": self.user,
+            "user_team": self.user_team,
+            "editable": self.editable,
+            "size": self.size,
+            "mode": self.mode,
+            "is_external": self.is_external,
+            "external_type": self.external_type,
+            "is_public": self.is_public,
+            "public_url_shared": self.public_url_shared,
+            "display_as_bot": self.display_as_bot,
+            "username": self.username,
+            "url_private": self.url_private,
+            "url_private_download": self.url_private_download,
+            "permalink": self.permalink,
+            "permalink_public": self.permalink_public,
+            "edit_link": self.edit_link,
+            "preview": self.preview,
+            "preview_highlight": self.preview_highlight,
+            "lines": self.lines,
+            "lines_more": self.lines_more,
+            "preview_is_truncated": self.preview_is_truncated,
+            "comments_count": self.comments_count,
+            "is_starred": self.is_starred,
+            "shares": self.shares,
+            "channels": self.channels,
+            "groups": self.groups,
+            "ims": self.ims,
+            "has_more_shares": self.has_more_shares,
+            "has_rich_preview": self.has_rich_preview,
+            "file_access": self.file_access,
+        }
 
 class GetURLData(TypedDict):
     filename: str
