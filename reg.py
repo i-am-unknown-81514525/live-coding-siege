@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import os
 import re
 from schema.message import MessageEvent
 from schema.interactive import BlockActionEvent
@@ -215,7 +216,23 @@ class MessageContext(Context):
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         if files:
-            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
+            file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            if "text" in kwargs and isinstance(kwargs["text"], str):
+                for file in file_list:
+                    kwargs["text"] += f"\n{file['permalink']}"
+            elif "blocks" in kwargs and isinstance(kwargs["blocks"], list):
+                for file in file_list:
+                    kwargs["blocks"].append({
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": file["permalink"]
+                        }
+                    })
+            else:
+                kwargs["text"] = ""
+                for file in file_list:
+                    kwargs["text"] += f"\n{file['permalink']}"
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -251,7 +268,7 @@ class MessageContext(Context):
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         if files:
-            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
+            auto_upload(files, self.client, [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None))
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts

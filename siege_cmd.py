@@ -166,6 +166,13 @@ def get_siege_user_info(ctx: Context, public: bool):
         ctx.private_send(**message.build())
 
 
+@smart_msg_listen("internal.test ")
+@utils.get_group
+@utils.filter_authorised
+@utils.require_group("siege", False)
+def test(ctx: Context):
+    return ctx.private_send(False, files=[PendingFile("test.txt", b"Hello world!", "A test file")])
+
 @slash_listen("/proj")
 @slash_listen("/project")
 @smart_msg_listen("siege.proj ")
@@ -260,19 +267,8 @@ def get_total_proj_time(ctx: Context):
     p3 = time.perf_counter()
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
-    uploaded = file_upload([PendingFile(f"w{week}.png", img, "Tracked hour by time in week")], ctx.client, [ctx.channel_id], ctx.thread_ts) if img else {} # os.getenv("UPLOAD_CHANNEL",ctx.channel_id)
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
-    message = blockkit.Message().add_block(blockkit.Section(f"Total global tracked time this week: {total_time:.1f} hours."))
-    # if uploaded:
-    #     for file in uploaded.values():
-    #         logging.info(file)
-    #         message.add_block(
-    #             blockkit.Image(
-    #                 image_url=file.url_private,
-    #                 alt_text=f"Tracked hour by time in week"
-    #             )
-    #         )
-    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", **message.build())
+    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")] if img else [])
 
 
 LEADERBOARD_AMOUNT = 20
