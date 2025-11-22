@@ -254,6 +254,16 @@ def get_total_proj_time(ctx: Context):
         "hours": list(result.values())
     })
     plot = sns.lineplot(df, x="time", y="hours")
+    plot.set_title(f"Tracked hours over time in W{week}")
+    plot.set_xlabel("Time")
+    plot.set_ylabel("Total tracked hours")
+    plot.set_xticklabels(plot.get_xticklabels(), rotation=30, ha="right")
+    plot.set_xlim(min(df["time"]), max(df["time"]))
+    plot.set_ylim(0, max(df["hours"]) * 1.1)
+    plot.locator_params(axis='x', nbins=15)
+    plot.locator_params(axis='y', nbins=15)
+    plot.figure.tight_layout() # type: ignore
+
     iodt = BytesIO()
     fig = plot.get_figure()
     img = b""
