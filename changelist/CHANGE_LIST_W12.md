@@ -1,7 +1,7 @@
 [ ] - Draft REDACTED
 [ ] - Implement REDACTED (Planned release on Wednesday in W13)
 [x] - Add time control on to the specific module
-[ ] - Add `on_join`, `on_leave` and `on_pick` API
+[x] - Add `on_join`, `on_leave` and `on_pick` API
 [ ] - Potential for message customization on live coding
 [ ] - Graph for `siege.global`
 [ ] - Graph for indivdual project

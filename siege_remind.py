@@ -16,7 +16,7 @@ def send_remind(client: BaseSocketModeClient, user:SiegeUser, channel: str, thre
         text=message
     )
 
-USER_LOOP_TIME = 300
+USER_LOOP_TIME = 900
 def remind_loop(client: BaseSocketModeClient):
     while True:
         start = time.perf_counter()

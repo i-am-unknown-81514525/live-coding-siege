@@ -14,6 +14,8 @@ from slack_sdk.models.attachments import Attachment
 from slack_sdk.webhook.client import WebhookClient
 
 from schema.slash_cmd import CommandEvent
+from schema.file import PendingFile, UploadedFile
+import random
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
 ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, WebClient], Any]]] = {}
@@ -59,6 +61,19 @@ def _url_fix(text: str) -> str:
     if not text:
         return text
     return _LEADING_SLACK_LINK_RE.sub(r'\1', text, count=1)
+
+def file_upload(files: list[PendingFile], client: WebClient, channels: list[str] | None = None) -> dict[PendingFile, UploadedFile]:
+    mapping: dict[PendingFile, str] = {file: "".join(random.choices("0123456789abcdef", k=64)) for file in files}
+    uploaded_raw = client.files_upload_v2(file_uploads=[k.export(v) for k, v in mapping.items()], channels=channels)  # pyright: ignore[reportArgumentType]
+    uploaded = [UploadedFile.parse(item) for item in uploaded_raw["files"]] if uploaded_raw.get("files") else [] # pyright: ignore[reportOptionalIterable]
+    result: dict[PendingFile, UploadedFile] = {}
+    for file in files:
+        for up in uploaded:
+            if mapping[file] == up.file_external_id:
+                result[file] = up
+                break
+    return result
+    
 
 class Context(ABC):
     client: WebClient
