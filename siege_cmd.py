@@ -27,10 +27,11 @@ import requests
 import siege
 from collections import defaultdict
 from siege import prox_get_all_projs as get_all_projs, prox_get_user as get_user, prox_get_project as get_project
-import plotly.express as px
-import polars
+import seaborn as sns
+import pandas
 import siege
 from schema.file import PendingFile
+from io import BytesIO
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
@@ -239,18 +240,27 @@ def get_total_proj_time(ctx: Context):
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
     heartbeats = siege.retrieve_all_week_record(week)
     result = siege.analyse_hour_by_time_in_week(heartbeats)
-    df = polars.DataFrame({
+    logging.info(result)
+    df = pandas.DataFrame({
         "time": list(result.keys()),
         "hours": list(result.values())
     })
-    fig = px.line(df, x="time", y="hours", title=f"Global tracked hours in week {week}", labels={"time": "Time", "hours": "Total tracked hours"})
-    img = fig.to_image(format="png")
+    plot = sns.lineplot(df, x="time", y="hours", title=f"Global tracked hours in week {week}", labels={"time": "Time", "hours": "Total tracked hours"})
+    iodt = BytesIO()
+    fig = plot.get_figure()
+    img = b""
+    if fig:
+        try:
+            fig.savefig(iodt, format="png") # type: ignore
+            img = iodt.getvalue()
+        except Exception as e:
+            logging.error(f"Failed to save figure: {e}")
 
     p3 = time.perf_counter()
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
-    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")])
+    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")] if img else [])
 
 
 LEADERBOARD_AMOUNT = 20

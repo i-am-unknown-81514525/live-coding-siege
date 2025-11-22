@@ -384,17 +384,17 @@ def analyse_hour_by_time_in_week(heartbeats: list[ProjHeartbeatRecord]) -> dict[
     })
 
     df = df.sort("time")
-    
+
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
         return df.sort("time").group_by_dynamic("time", every="5m").agg([
             pl.col("hours").max()
         ])
     
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
-    total_hours_df = user_dfs.group_by("time").agg(pl.sum("hours").fill_null(strategy="forward", limit=3))
+    total_hours_df = user_dfs.group_by("time").agg(pl.sum("hours").fill_null(strategy="forward", limit=3)).sort("time")
 
     return {
-        arrow.get(row["time"]): row["hours"]
+        arrow.get(row["time"]): row["hours"][0]
         for row in total_hours_df.iter_rows(named=True)}
 
 
