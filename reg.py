@@ -10,11 +10,10 @@ from dataclasses import dataclass, replace
 from abc import ABC, abstractmethod
 
 from slack_sdk.models.blocks import Block
-from slack_sdk.models.attachments import Attachment
 from slack_sdk.webhook.client import WebhookClient
 
 from schema.slash_cmd import CommandEvent
-from schema.file import PendingFile, UploadedFile
+from schema.file import PendingFile, UploadedFile, Attachment
 import random
 
 MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, WebClient], Any]]] = {}
@@ -74,15 +73,15 @@ def file_upload(files: list[PendingFile], client: WebClient, channels: list[str]
                 break
     return result
     
-def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, channels: list[str] | None = None) -> list[UploadedFile]:
+def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, channels: list[str] | None = None) -> list[Attachment]:
     pending_files = [file for file in files if isinstance(file, PendingFile)]
     uploaded_files = file_upload(pending_files, client, channels)
-    result: list[UploadedFile] = []
+    result: list[Attachment] = []
     for file in files:
         if isinstance(file, UploadedFile):
-            result.append(file)
+            result.append(file.export())
         else:
-            result.append(uploaded_files[file])
+            result.append(uploaded_files[file].export())
     return result
 
 class Context(ABC):
@@ -215,6 +214,8 @@ class MessageContext(Context):
         self, always_thread: bool = False, 
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
+        if files:
+            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -249,6 +250,8 @@ class MessageContext(Context):
         self, always_thread: bool = False, 
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
+        if files:
+            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -317,6 +320,8 @@ class SlashContext(Context):
         self, always_thread: bool = False, 
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
+        if files:
+            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -349,6 +354,8 @@ class SlashContext(Context):
         self, always_thread: bool = False, 
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
+        if files:
+            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -410,6 +417,8 @@ class InteractionContext(Context):
         self, always_thread: bool = False, 
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
+        if files:
+            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -444,6 +453,8 @@ class InteractionContext(Context):
         self, always_thread: bool = False, 
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
+        if files:
+            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
