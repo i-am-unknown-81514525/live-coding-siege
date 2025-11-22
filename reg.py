@@ -344,7 +344,27 @@ class SlashContext(Context):
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         if files:
-            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
+            file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            content: str | None = None
+            if "text" in kwargs and isinstance(kwargs["text"], str):
+                 content = kwargs["text"]
+            blockkit_add = []
+            for file in file_list:
+                logging.info(file)
+                if False: # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
+                    blockkit_add.append({"type": "image", "slack_file":{"url": file["permalink"]}, "alt_text": "Uploaded"})
+                else:
+                    if content is None:
+                        content = ""
+                    content += f"\n{file.get('permalink','')}"
+            if blockkit_add:
+                if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
+                    kwargs["blocks"] = []
+                if content:
+                    kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+            kwargs["text"] = content
+            logging.info(kwargs)
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -441,7 +461,27 @@ class InteractionContext(Context):
         files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         if files:
-            kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
+            file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            content: str | None = None
+            if "text" in kwargs and isinstance(kwargs["text"], str):
+                 content = kwargs["text"]
+            blockkit_add = []
+            for file in file_list:
+                logging.info(file)
+                if False: # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
+                    blockkit_add.append({"type": "image", "slack_file":{"url": file["permalink"]}, "alt_text": "Uploaded"})
+                else:
+                    if content is None:
+                        content = ""
+                    content += f"\n{file.get('permalink','')}"
+            if blockkit_add:
+                if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
+                    kwargs["blocks"] = []
+                if content:
+                    kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+            kwargs["text"] = content
+            logging.info(kwargs)
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
