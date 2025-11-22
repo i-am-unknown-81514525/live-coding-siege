@@ -6,7 +6,8 @@ from reg import (
     description,
     Context,
     slash_listen,
-    InteractionContext
+    InteractionContext,
+    file_upload
 )
 import blockkit
 from api import get_coin_leaderboard, get_shop_item
@@ -240,7 +241,7 @@ def get_total_proj_time(ctx: Context):
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
     heartbeats = siege.retrieve_all_week_record(week)
     result = siege.analyse_hour_by_time_in_week(heartbeats)
-    logging.info(result)
+    # logging.info(result)
     df = pandas.DataFrame({
         "time": [t.datetime for t in result.keys()],
         "hours": list(result.values())
@@ -259,8 +260,19 @@ def get_total_proj_time(ctx: Context):
     p3 = time.perf_counter()
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
+    uploaded = file_upload([PendingFile(f"w{week}.png", img, "Tracked hour by time in week")], ctx.client, [os.getenv("UPLOAD_CHANNEL",ctx.channel_id)]) if img else {}
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
-    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")] if img else [])
+    message = blockkit.Message().add_block(blockkit.Section(f"Total global tracked time this week: {total_time:.1f} hours."))
+    if uploaded:
+        for file in uploaded.values():
+            logging.info(file)
+            message.add_block(
+                blockkit.Image(
+                    image_url=file.url_private,
+                    alt_text=f"Tracked hour by time in week"
+                )
+            )
+    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", **message.build())
 
 
 LEADERBOARD_AMOUNT = 20

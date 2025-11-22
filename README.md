@@ -34,6 +34,7 @@ CONFIG_FILE=config.toml # Optional default to `config.toml`, can be change to po
 REMIND_CHANNEL=
 REMIND_THREAD=
 REMIND_USER=
+UPLOAD_CHANNEL= # A public channel for uploads
 ```
 
 Do `docker compose up -d --build` to start with docker setup, or `uv run main.py`
