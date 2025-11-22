@@ -479,6 +479,24 @@ class Siege(LiveModuleBase):
         except Exception as e:
             logging.warning(f"Faile to push update on game", exc_info=True)
         return self.get_tickets(users)
+    
+    def on_create(self) -> None:
+        return None
+
+    def on_end(self) -> None:
+        return None
+
+    def on_restart(self) -> None:
+        return None
+
+    def on_join(self, user_id: str) -> None:
+        return None
+    
+    def on_leave(self, user_id: str) -> None:
+        return None
+    
+    def on_pick(self, user_id: str) -> None:
+        return None
 
 def start(client: SocketModeClient):
     init_db()

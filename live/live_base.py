@@ -50,15 +50,15 @@ class LiveModuleBase(ABC):
         pass
 
     @abstractmethod
-    def on_join(self, user: str) -> None:
+    def on_join(self, user_id: str) -> None:
         pass
     
     @abstractmethod
-    def on_leave(self, user: str) -> None:
+    def on_leave(self, user_id: str) -> None:
         pass
 
     @abstractmethod
-    def on_pick(self, user: str) -> None:
+    def on_pick(self, user_id: str) -> None:
         pass
     
     @abstractmethod
