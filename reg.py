@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import logging
 import os
 import re
 from schema.message import MessageEvent
@@ -66,6 +67,7 @@ def file_upload(files: list[PendingFile], client: WebClient, channels: list[str]
     mapping: dict[PendingFile, str] = {file: "".join(random.choices("0123456789abcdef", k=64)) for file in files}
     uploaded_raw = client.files_upload_v2(file_uploads=[k.export(v) for k, v in mapping.items()], channels=channels, thread_ts=thread_ts)  # pyright: ignore[reportArgumentType]
     uploaded = [UploadedFile.parse(item) for item in uploaded_raw["files"]] if uploaded_raw.get("files") else [] # pyright: ignore[reportOptionalIterable]
+    # uploaded = [UploadedFile.parse(client.files_sharedPublicURL(file=up.file_id).data.get("file")) for up in uploaded] # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
     result: dict[PendingFile, UploadedFile] = {}
     for file in files:
         for up in uploaded:
@@ -217,22 +219,26 @@ class MessageContext(Context):
     ):
         if files:
             file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            content: str | None = None
             if "text" in kwargs and isinstance(kwargs["text"], str):
-                for file in file_list:
-                    kwargs["text"] += f"\n{file['permalink']}"
-            elif "blocks" in kwargs and isinstance(kwargs["blocks"], list):
-                for file in file_list:
-                    kwargs["blocks"].append({
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": file["permalink"]
-                        }
-                    })
-            else:
-                kwargs["text"] = ""
-                for file in file_list:
-                    kwargs["text"] += f"\n{file['permalink']}"
+                 content = kwargs["text"]
+            blockkit_add = []
+            for file in file_list:
+                logging.info(file)
+                if False: # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
+                    blockkit_add.append({"type": "image", "slack_file":{"url": file["permalink"]}, "alt_text": "Uploaded"})
+                else:
+                    if content is None:
+                        content = ""
+                    content += f"\n{file.get('permalink','')}"
+            if blockkit_add:
+                if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
+                    kwargs["blocks"] = []
+                if content:
+                    kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+            kwargs["text"] = content
+            logging.info(kwargs)
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
