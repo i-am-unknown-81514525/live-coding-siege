@@ -268,7 +268,7 @@ def get_total_proj_time(ctx: Context):
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
-    ctx.private_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")] if img else [])
+    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")] if img else [])
 
 
 LEADERBOARD_AMOUNT = 20
