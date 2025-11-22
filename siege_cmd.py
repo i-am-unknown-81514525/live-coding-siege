@@ -263,15 +263,15 @@ def get_total_proj_time(ctx: Context):
     uploaded = file_upload([PendingFile(f"w{week}.png", img, "Tracked hour by time in week")], ctx.client, [ctx.channel_id]) if img else {} # os.getenv("UPLOAD_CHANNEL",ctx.channel_id)
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
     message = blockkit.Message().add_block(blockkit.Section(f"Total global tracked time this week: {total_time:.1f} hours."))
-    if uploaded:
-        for file in uploaded.values():
-            logging.info(file)
-            message.add_block(
-                blockkit.Image(
-                    image_url=file.url_private,
-                    alt_text=f"Tracked hour by time in week"
-                )
-            )
+    # if uploaded:
+    #     for file in uploaded.values():
+    #         logging.info(file)
+    #         message.add_block(
+    #             blockkit.Image(
+    #                 image_url=file.url_private,
+    #                 alt_text=f"Tracked hour by time in week"
+    #             )
+    #         )
     ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", **message.build())
 
 
