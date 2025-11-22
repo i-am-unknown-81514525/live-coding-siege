@@ -74,6 +74,16 @@ def file_upload(files: list[PendingFile], client: WebClient, channels: list[str]
                 break
     return result
     
+def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, channels: list[str] | None = None) -> list[UploadedFile]:
+    pending_files = [file for file in files if isinstance(file, PendingFile)]
+    uploaded_files = file_upload(pending_files, client, channels)
+    result: list[UploadedFile] = []
+    for file in files:
+        if isinstance(file, UploadedFile):
+            result.append(file)
+        else:
+            result.append(uploaded_files[file])
+    return result
 
 class Context(ABC):
     client: WebClient
@@ -112,6 +122,7 @@ class Context(ABC):
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -129,6 +140,7 @@ class Context(ABC):
     def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -184,6 +196,7 @@ class MessageContext(Context):
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -199,7 +212,8 @@ class MessageContext(Context):
     ) -> Any: ...
 
     def private_send[**P](
-        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+        self, always_thread: bool = False, 
+        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
@@ -216,6 +230,7 @@ class MessageContext(Context):
     def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -231,7 +246,8 @@ class MessageContext(Context):
     ) -> Any: ...
 
     def public_send[**P](
-        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+        self, always_thread: bool = False, 
+        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
@@ -282,6 +298,7 @@ class SlashContext(Context):
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -297,7 +314,8 @@ class SlashContext(Context):
     ) -> Any: ...
 
     def private_send[**P](
-        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+        self, always_thread: bool = False, 
+        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
@@ -312,6 +330,7 @@ class SlashContext(Context):
     def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -327,7 +346,8 @@ class SlashContext(Context):
     ) -> Any: ...
 
     def public_send[**P](
-        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+        self, always_thread: bool = False, 
+        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
@@ -371,6 +391,7 @@ class InteractionContext(Context):
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -386,7 +407,8 @@ class InteractionContext(Context):
     ) -> Any: ...
 
     def private_send[**P](
-        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+        self, always_thread: bool = False, 
+        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
@@ -403,6 +425,7 @@ class InteractionContext(Context):
     def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
@@ -418,7 +441,8 @@ class InteractionContext(Context):
     ) -> Any: ...
 
     def public_send[**P](
-        self, always_thread: bool = False, *args: P.args, **kwargs: P.kwargs
+        self, always_thread: bool = False, 
+        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
     ):
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
