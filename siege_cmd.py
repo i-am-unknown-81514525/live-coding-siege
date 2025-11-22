@@ -229,10 +229,38 @@ def get_siege_proj_info(ctx: Context, public: bool):
         .add_block(blockkit.Actions(buttons))
     )
 
+    heartbeats = siege.retrieve_all_proj_record(proj.id)
+    result = siege.analyse_hour_by_time_in_week(heartbeats)
+    # logging.info(result)
+    df = pandas.DataFrame({
+        "time": [t.datetime for t in result.keys()],
+        "hours": list(result.values())
+    })
+    plot = sns.lineplot(df, x="time", y="hours")
+    plot.locator_params(axis='x', nbins=7)
+    plot.locator_params(axis='y', nbins=15)
+    plot.set_title(f"Tracked hours over time for project {proj.name} (W{proj.week})")
+    plot.set_xlabel("Time")
+    plot.set_ylabel("Total tracked hours")
+    plot.set_xticklabels(plot.get_xticklabels(), rotation=30, ha="right")
+    plot.set_xlim(min(df["time"]), max(df["time"]))
+    plot.set_ylim(0, max(df["hours"]) * 1.1)
+    plot.figure.tight_layout() # type: ignore
+
+    iodt = BytesIO()
+    fig = plot.get_figure()
+    img = b""
+    if fig:
+        try:
+            fig.savefig(iodt, format="png") # type: ignore
+            img = iodt.getvalue()
+        except Exception as e:
+            logging.error(f"Failed to save figure: {e}")
+
     if public and not isinstance(ctx, InteractionContext):
-        ctx.public_send(**message.build(), unfurl_links=False)
+        ctx.public_send(**message.build(), unfurl_links=False, files=[PendingFile(f"proj_{proj.id}.png", img, "Tracked hour by time in week")] if img else [])
     else:
-        ctx.private_send(**message.build(), unfurl_links=False)
+        ctx.private_send(**message.build(), unfurl_links=False, files=[PendingFile(f"proj_{proj.id}.png", img, "Tracked hour by time in week")] if img else [])
 
 @slash_listen("/global")
 @smart_msg_listen("siege.global")
@@ -254,14 +282,14 @@ def get_total_proj_time(ctx: Context):
         "hours": list(result.values())
     })
     plot = sns.lineplot(df, x="time", y="hours")
+    plot.locator_params(axis='x', nbins=7)
+    plot.locator_params(axis='y', nbins=15)
     plot.set_title(f"Tracked hours over time in W{week}")
     plot.set_xlabel("Time")
     plot.set_ylabel("Total tracked hours")
     plot.set_xticklabels(plot.get_xticklabels(), rotation=30, ha="right")
     plot.set_xlim(min(df["time"]), max(df["time"]))
     plot.set_ylim(0, max(df["hours"]) * 1.1)
-    plot.locator_params(axis='x', nbins=15)
-    plot.locator_params(axis='y', nbins=15)
     plot.figure.tight_layout() # type: ignore
 
     iodt = BytesIO()
