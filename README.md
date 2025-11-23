@@ -52,9 +52,17 @@ Use `siege.helps` or `/help` for the full list
 - Track all change via Siege API to allow live coding event to get all project time on event start instead of their join time, to be more fair
 - `siege.shop`, `siege.user_details` and `siege.proj_details`
 
-### How does it follow the space theme
-Every module is rewritten to separate to their own space, with isolated access space for each user (see `config.toml`, `live_blank.py` and `siege.py`)
-This is mostly backend however, and It would be fair to reject this
+### How does it follow the framework theme
+The bot is built based upon a custom slack bot framework which is more useful than slack-bolt in some aspect (built with `slack-sdk` and `blockkit`), which support
+- Huddle event
+- Message event
+- Interaction
+- File sending (Which slack bolt is bad at, literally didn't even mention it in docs from what I can find)
+with a custom permission system.
+This can be used to make other slack bot (given you don't need other capability) by:
+Copying `main.py`(Bot launchor with the module loader), `config.py`(Config loader), `utils.py`(Permission decorator based on context namespace), `reg.py`(Command decorator // `Context` which provide a unified interaction interface to send message public/privately, between message/slash command and interaction) and `schema/`(All the different slack schema for this limited subsrt of capability)
+
+There is also a different, more specific framework, which is in the live module (yes, framework in a framework), which allow custom behaviour of a live coding event and can be customized entirely (See `impl/live_blank.py` and `impl/siege.py`, which one just give everyone a single ticket while in siege is based on the coding time during the huddle)
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
