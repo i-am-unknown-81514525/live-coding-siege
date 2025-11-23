@@ -1,10 +1,10 @@
 import os
 import logging, time
 
-from siege import prox_get_user, retrieve_all_user_proj_record
+from siege.core import prox_get_user, retrieve_all_user_proj_record
 from schema.user import UserProfile
 from slack_sdk.socket_mode.client import BaseSocketModeClient
-from schema.siege import SiegeUser
+from siege.schema.siege import SiegeUser
 
 def send_remind(client: BaseSocketModeClient, user:SiegeUser, channel: str, thread_ts: str, text: str, mention: bool = True):
     user_mention = f"<@{user.slack_id}>"

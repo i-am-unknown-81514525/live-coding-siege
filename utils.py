@@ -3,8 +3,8 @@ from typing import Concatenate
 import os
 import re
 
-from siege_api import get_all_projs
-import db
+from siege.api import get_all_projs
+import live.db as db
 from reg import Context
 from typing import overload, Literal
 from config import AllGroupConfig, get_config
@@ -32,11 +32,6 @@ def get_match_group(current:list[str], configs: AllGroupConfig) -> list[str]:
             ret.append(group_name)
     return ret
 
-def guess_week() -> int:
-    projs = get_all_projs()
-    max_week_num = max(projs, key=lambda p: p.week).week
-    return max_week_num
-
 def get_is_authorized(user_id: str, group: str) -> bool:
     configs = get_config()["bot"]["group"]
     if group not in configs:
@@ -48,15 +43,6 @@ def get_is_allowed(user_id: str, group: str) -> bool:
     if group not in configs:
         return False
     return user_id in configs[group]["allowed"] or user_id in configs[group]["authorized"]
-
-def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
-    @require_game_thread
-    def inner(ctx: C, game_id: int, *args: P.args, **kwargs: P.kwargs) -> T | None:
-        if not db.is_game_manager(game_id, ctx.author_id):
-            ctx.private_send(text=f"Require missing role \"Game manager\" in thread `{ctx.thread_ts}`")
-            return None
-        return func(ctx, game_id, *args, **kwargs)
-    return inner
 
 def require_allowed[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T | None]:
     @filter_allowed
@@ -98,17 +84,6 @@ def filter_authorised[**P, T, C: Context](func: Callable[Concatenate[C, list[str
         return func(ctx, clo, *args, **kwargs)
     return inner
 
-def require_game_thread[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
-    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T | None:
-        if ctx.thread_ts is None:
-            ctx.private_send(text="You can only run this in a thread")
-            return None
-        game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
-        if game_id is None:
-            ctx.private_send(text=f"No game instance exist in thread `{ctx.thread_ts}`")
-            return None
-        return func(ctx, game_id, *args, **kwargs)
-    return inner
 
 def get_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T]:
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:

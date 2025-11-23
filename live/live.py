@@ -24,15 +24,15 @@ from reg import (
     Context
 )
 from crypto.core import DeterRnd, Handler, _sha3, randint
-import db
+import live.db as db
 import blockkit
 from blockkit import Message, Section, Button
 import utils
 from ws_mgr import controller, signals
 import jwt
-from siege_api import get_user, get_project
-from utils import get_group, guess_week, require_allowed, require_authorised, require_game_manager, require_game_thread, require_group
-from live.live_base import get_module
+from utils import get_group, require_allowed, require_authorised, require_group
+from live.base import get_module
+from live.utils import require_game_thread, require_game_manager
 
 
 def int_handler(bits: int) -> Handler[int]:

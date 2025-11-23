@@ -10,7 +10,7 @@ from reg import (
     file_upload
 )
 import blockkit
-from siege_api import get_coin_leaderboard, get_shop_item
+from siege.api import get_coin_leaderboard, get_shop_item
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
@@ -19,18 +19,17 @@ import os
 from arrow import Arrow
 import time
 import logging
-from schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
+from siege.schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
 from collections import Counter
 from rapidfuzz import fuzz
 import utils
-from schema import dictionary
+from siege.schema import dictionary
 import requests
-import siege
+import siege.core as core
 from collections import defaultdict
-from siege import prox_get_all_projs as get_all_projs, prox_get_user as get_user, prox_get_project as get_project
+from siege.core import prox_get_all_projs as get_all_projs, prox_get_user as get_user, prox_get_project as get_project
 import seaborn as sns
 import pandas
-import siege
 from schema.file import PendingFile
 from io import BytesIO
 import matplotlib.pyplot as plt
@@ -230,8 +229,8 @@ def get_siege_proj_info(ctx: Context, public: bool):
         .add_block(blockkit.Actions(buttons))
     )
 
-    heartbeats = siege.retrieve_all_proj_record(proj.id)
-    result = siege.analyse_hour_by_time_in_week(heartbeats)
+    heartbeats = core.retrieve_all_proj_record(proj.id)
+    result = core.analyse_hour_by_time_in_week(heartbeats)
     # logging.info(result)
     df = pandas.DataFrame({
         "time": [t.datetime for t in result.keys()],
@@ -275,8 +274,8 @@ def get_total_proj_time(ctx: Context):
 
     week = max(proj_list, key=lambda x: x.week).week
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
-    heartbeats = siege.retrieve_all_week_record(week)
-    result = siege.analyse_hour_by_time_in_week(heartbeats)
+    heartbeats = core.retrieve_all_week_record(week)
+    result = core.analyse_hour_by_time_in_week(heartbeats)
     # logging.info(result)
     df = pandas.DataFrame({
         "time": [t.datetime for t in result.keys()],
@@ -480,8 +479,8 @@ def generate_graph(ctx: Context, public: bool):
     media: PendingFile | None = None
     match opt:
         case "coin":
-            heartbeats = siege.retrieve_every_user_record()
-            result: dict[Arrow, int] = siege.analyse_coin_count(heartbeats)
+            heartbeats = core.retrieve_every_user_record()
+            result: dict[Arrow, int] = core.analyse_coin_count(heartbeats)
             df = pandas.DataFrame({
                 "time": [t.datetime for t in result.keys()],
                 "coins": list(result.values())
@@ -671,10 +670,10 @@ def get_user_details(ctx: Context, public: bool):
     message_lines = []
     try:
         proj = get_project(proj_id)
-        siege.push_proj([proj])
+        core.push_proj([proj])
     except Exception:
         message_lines.append("Project can no longer be discovered from the API, the project might be hidden or deleted.")
-    heartbeats = list(reversed(siege.retrieve_all_proj_record(proj_id)))
+    heartbeats = list(reversed(core.retrieve_all_proj_record(proj_id)))
     if not heartbeats:
         return ctx.private_send(text="No heartbeat data found for this project.")
     message_lines.append(
@@ -758,16 +757,16 @@ def get_proj_details(ctx: Context, public: bool):
     try:
         user = get_user(slack_user_id)
         user_id = user.id
-        siege.push_user([user])
+        core.push_user([user])
     except Exception:
         message_lines.append("User can no longer be discovered from the API; may be hidden or deleted.")
     if user_id is None:
-        user_id = siege.get_user_id_from_slack(slack_user_id)
+        user_id = core.get_user_id_from_slack(slack_user_id)
     if user_id is None:
         message_lines.append("Cannot find user id from slack id.")
         return ctx.private_send(text="\n".join(message_lines))
 
-    user_hbs = list(reversed(siege.retrieve_all_user_record(user_id)))
+    user_hbs = list(reversed(core.retrieve_all_user_record(user_id)))
     if not user_hbs:
         return ctx.private_send(text="No heartbeat data found for this user.")
 
@@ -797,9 +796,9 @@ def get_proj_details(ctx: Context, public: bool):
                 line += f"\n> {key}: {old} -> {new}"
         timeline.append((curr.measurement_time, line))
 
-    proj_hbs = list(reversed(siege.retrieve_all_user_proj_record(user_id)))
+    proj_hbs = list(reversed(core.retrieve_all_user_proj_record(user_id)))
 
-    grouped: dict[int, list[siege.ProjHeartbeatRecord]] = defaultdict(list)
+    grouped: dict[int, list[core.ProjHeartbeatRecord]] = defaultdict(list)
     for hb in proj_hbs:
         proj_id = hb.proj_id
         if proj_id is None:

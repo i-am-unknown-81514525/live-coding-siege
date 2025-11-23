@@ -1,6 +1,6 @@
 import requests
 import json
-from schema.siege import (
+from siege.schema.siege import (
     SiegePartialUser2,
     SiegeProject,
     SiegeUser,

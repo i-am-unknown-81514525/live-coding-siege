@@ -13,9 +13,10 @@ import polars as pl
 from slack_sdk.socket_mode import SocketModeClient
 
 from live.live import push_ticket_update_ws
-from schema.siege import SiegeProject, SiegeUser
-from live.live_base import LiveModuleBase, GameInstance
-import siege_api, utils
+from siege.schema.siege import SiegeProject, SiegeUser
+from live.base import LiveModuleBase, GameInstance
+import siege.api as api
+import siege.utils as utils
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = Path(BASE_DIR) / "data" / "siege.db"
@@ -118,7 +119,7 @@ def get_user_id_from_proj() -> list[int]:
 def get_user_proj(user_id: int, week: int | None) -> int | None:
     if week is None:
         week = utils.guess_week()
-    return {proj.week: proj.id for proj in siege_api.get_user(user_id).projects}.get(week)
+    return {proj.week: proj.id for proj in api.get_user(user_id).projects}.get(week)
 
 def fetch_linked_users(game_id: int) -> list[int]:
     with get_siege_db_connection() as conn:
@@ -141,23 +142,23 @@ def fetch_all_user_link(used_ids: list[int]) -> list[int]:
         return [row["game_id"] for row in rows]
 
 def prox_get_all_projs() -> list[SiegeProject]:
-    result = siege_api.get_all_projs()
+    result = api.get_all_projs()
     try:
         push_proj(result)
     except Exception as e:
         logging.warning(f"Failed to push update to db", exc_info=True)
     return result
 
-def prox_get_project(proj_id: siege_api.ProjAlike) -> SiegeProject:
-    project = siege_api.get_project(proj_id)
+def prox_get_project(proj_id: api.ProjAlike) -> SiegeProject:
+    project = api.get_project(proj_id)
     try:
         push_proj([project])
     except Exception as e:
         logging.warning(f"Failed to push update to db", exc_info=True)
     return project
 
-def prox_get_user(user_id: siege_api.UserAlike) -> SiegeUser:
-    user = siege_api.get_user(user_id)
+def prox_get_user(user_id: api.UserAlike) -> SiegeUser:
+    user = api.get_user(user_id)
     try:
         push_user([user])
     except Exception as e:
@@ -171,7 +172,7 @@ def proj_loop():
         start = time.perf_counter()
         projs: list[SiegeProject] = []
         try:
-            projs = siege_api.get_all_projs()
+            projs = api.get_all_projs()
             push_proj(projs)
         except Exception as e:
             logging.warning(f"Faile to fetch project", exc_info=True)
@@ -201,7 +202,7 @@ def user_loop():
             for user_id in user_id_list:
                 try:
                     idv_start = time.perf_counter()
-                    user = siege_api.get_user(user_id)
+                    user = api.get_user(user_id)
                     users.append(user)
                     idv_curr = time.perf_counter()
                     if IDV_DELAY - (idv_curr - idv_start) > 0:
@@ -528,7 +529,7 @@ def get_user_id_from_slack(slack_id: str) -> int | None:
         if row:
             return row["siege_user_id"]
         try:
-            user_id = siege_api.get_user(slack_id).id
+            user_id = api.get_user(slack_id).id
             push_mapping(slack_id, user_id)
             return user_id
         except Exception:
@@ -542,64 +543,9 @@ def get_user_ticket(game_id: int, user_id: str, week_num: int, from_time: Arrow)
     heartbeats = retrieve_all_heartbeat_curr_proj_curr_week(siege_user_id, week_num, from_time)
     return int(analysis_heartbeat_hours(heartbeats)*10) + 10
 
-class Siege(LiveModuleBase):
-    def __init__(self, instance: GameInstance):
-        for participant in instance.participants:
-            user_id = get_user_id_from_slack(participant)
-            if user_id is not None:
-                push_link(instance.game_id, user_id)
-        super().__init__(instance)
-
-    def get_ticket(self, user: str) -> int:
-        week_num = utils.guess_week()
-        return get_user_ticket(self._instance.game_id, user, week_num, self._instance.start_time)
-
-    def get_tickets(self, users: list[str]) -> dict[str, int]:
-        week_num = utils.guess_week()
-        return {user: get_user_ticket(self._instance.game_id, user, week_num, self._instance.start_time) for user in users}
-
-    def refresh_tickets(self, users: list[str]) -> dict[str, int]:
-        projs: list[SiegeProject] = []
-        try:
-            projs = siege_api.get_all_projs()
-            push_proj(projs)
-        except Exception as e:
-            logging.warning(f"Faile to fetch project", exc_info=True)
-        try:
-            game_req_update = fetch_all_user_link(list(set(proj.user.id for proj in projs)))
-            for game_id in game_req_update:
-                try:
-                    push_ticket_update_ws(game_id)
-                except Exception as e:
-                    logging.info(f"Faile to push update on game", exc_info=True)
-        except Exception as e:
-            logging.warning(f"Faile to push update on game", exc_info=True)
-        return self.get_tickets(users)
-    
-    def on_create(self) -> None:
-        return None
-
-    def on_end(self) -> None:
-        return None
-
-    def on_restart(self) -> None:
-        return None
-
-    def on_join(self, user_id: str) -> None:
-        return None
-    
-    def on_leave(self, user_id: str) -> None:
-        return None
-    
-    def on_pick(self, user_id: str) -> None:
-        return None
-
 def start(client: SocketModeClient):
     init_db()
     thread_proj = threading.Thread(target=proj_loop)
     thread_proj.start()
     thread_user = threading.Thread(target=user_loop)
     thread_user.start()
-
-def get_module(instance: GameInstance) -> Siege:
-    return Siege(instance)

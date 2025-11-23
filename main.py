@@ -9,7 +9,7 @@ from slack_sdk.socket_mode.client import BaseSocketModeClient
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
-import db
+import live.db as db
 from reg import (
     SlashContext,
     action_dispatch,
@@ -27,7 +27,7 @@ from schema.huddle import HuddleChange
 from schema.interactive import BlockActionEvent
 from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
-import server, siege, siege_remind
+import live.server as server, siege.core as core, siege.remind as remind
 import utils
 
 load_dotenv()
@@ -52,7 +52,7 @@ def help(ctx: Context, public: bool):
         ctx.private_send(text=message)
 
 # Cmd load
-import siege_cmd
+import siege.cmd as cmd
 import live.live as live
 
 def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
@@ -96,11 +96,11 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"Failed to start server:", exc_info=True)
     try:
-        siege.start(client)
+        core.start(client)
     except Exception as e:
         logging.error(f"Failed to start siege module:", exc_info=True)
     try:
-        siege_remind.start(client)
+        remind.start(client)
     except Exception as e:
         logging.error(f"Failed to start siege_remind module:", exc_info=True)
     try:

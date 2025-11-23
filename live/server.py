@@ -14,10 +14,10 @@ from dataclasses import dataclass
 from fastapi.staticfiles import StaticFiles
 import jwt
 
-from live.live_base import get_module
+from live.base import get_module
 from ws_mgr import controller, schema, signals
 import uvicorn
-import db
+import live.db as db
 from slack_sdk.socket_mode import SocketModeClient
 
 

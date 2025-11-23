@@ -10,10 +10,9 @@ from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
 from slack_sdk import WebClient
-from siege_api import get_project, get_user
-import live.live_base as live_base
-from schema.siege import SiegeProject
-from utils import guess_week
+from siege.api import get_project, get_user
+import live.base as base
+from siege.schema.siege import SiegeProject
 from dataclasses import dataclass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1051,7 +1050,7 @@ def has_user(user_id: str) -> bool:
         ).fetchone()
         return row is not None
 
-def get_game_instance(game_id: int, client: WebClient) -> live_base.GameInstance:
+def get_game_instance(game_id: int, client: WebClient) -> base.GameInstance:
     """
     Query the database and return a populated GameInstance for the given game_id.
     Raises ValueError if the game does not exist.
@@ -1078,7 +1077,7 @@ def get_game_instance(game_id: int, client: WebClient) -> live_base.GameInstance
     managers = list_game_manager(game_id) or []
     participants = get_huddle_participants(game_id) or []
 
-    turns: list[live_base.Turns] = []
+    turns: list[base.Turns] = []
     for r in turn_rows:
         start_val = r["start_time"]
         user_id = r["user_id"]
@@ -1094,7 +1093,7 @@ def get_game_instance(game_id: int, client: WebClient) -> live_base.GameInstance
                 start_ts = None
 
         turns.append(
-            live_base.Turns(
+            base.Turns(
                 used_id=user_id,
                 seq_id=seq_id,
                 status=status,
@@ -1103,7 +1102,7 @@ def get_game_instance(game_id: int, client: WebClient) -> live_base.GameInstance
             )
         )
 
-    return live_base.GameInstance(
+    return base.GameInstance(
         game_id=game_id,
         client_secret=client_secret,
         server_secret=server_secret,
