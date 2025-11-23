@@ -33,6 +33,7 @@ import pandas
 import siege
 from schema.file import PendingFile
 from io import BytesIO
+import matplotlib.pyplot as plt
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
@@ -236,19 +237,19 @@ def get_siege_proj_info(ctx: Context, public: bool):
         "time": [t.datetime for t in result.keys()],
         "hours": list(result.values())
     })
-    plot = sns.lineplot(df, x="time", y="hours")
-    plot.locator_params(axis='x', nbins=7)
-    plot.locator_params(axis='y', nbins=15)
-    plot.set_title(f"Tracked hours over time for project {proj.name} (W{proj.week})")
-    plot.set_xlabel("Time")
-    plot.set_ylabel("Total tracked hours")
-    plot.set_xticklabels(plot.get_xticklabels(), rotation=30, ha="right")
-    plot.set_xlim(min(df["time"]), max(df["time"]))
-    plot.set_ylim(0, max(df["hours"]) * 1.1)
-    plot.figure.tight_layout() # type: ignore
+    fig, ax = plt.subplots(figsize=(6, 8))
+    plot = sns.lineplot(df, x="time", y="hours", ax=ax)
+    ax.locator_params(axis='x', nbins=7)
+    ax.locator_params(axis='y', nbins=15)
+    ax.set_title(f"Tracked hours over time for project {proj.name} (W{proj.week})")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Total tracked hours")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+    ax.set_xlim(min(df["time"]), max(df["time"]))
+    ax.set_ylim(0, max(df["hours"]) * 1.1)
+    fig.tight_layout() # type: ignore
 
     iodt = BytesIO()
-    fig = plot.get_figure()
     img = b""
     if fig:
         try:
@@ -281,19 +282,19 @@ def get_total_proj_time(ctx: Context):
         "time": [t.datetime for t in result.keys()],
         "hours": list(result.values())
     })
-    plot = sns.lineplot(df, x="time", y="hours")
-    plot.locator_params(axis='x', nbins=7)
-    plot.locator_params(axis='y', nbins=15)
-    plot.set_title(f"Tracked hours over time in W{week}")
-    plot.set_xlabel("Time")
-    plot.set_ylabel("Total tracked hours")
-    plot.set_xticklabels(plot.get_xticklabels(), rotation=30, ha="right")
-    plot.set_xlim(min(df["time"]), max(df["time"]))
-    plot.set_ylim(0, max(df["hours"]) * 1.1)
-    plot.figure.tight_layout() # type: ignore
+    fig, ax = plt.subplots(figsize=(6, 8))
+    plot = sns.lineplot(df, x="time", y="hours", ax=ax)
+    ax.locator_params(axis='x', nbins=7)
+    ax.locator_params(axis='y', nbins=15)
+    ax.set_title(f"Tracked hours over time in W{week}")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Total tracked hours")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+    ax.set_xlim(min(df["time"]), max(df["time"]))
+    ax.set_ylim(0, max(df["hours"]) * 1.1)
+    fig.tight_layout() # type: ignore
 
     iodt = BytesIO()
-    fig = plot.get_figure()
     img = b""
     if fig:
         try:
