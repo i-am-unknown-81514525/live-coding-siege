@@ -2,7 +2,7 @@
 [x] - Implement REDACTED (Planned release on Wednesday in W13)
 [x] - Add time control on to the specific module
 [x] - Add `on_join`, `on_leave` and `on_pick` API
-[ ] - Potential for message customization on live coding
+[x] - Potential for message customization on live coding (Given client object to do whatever it want to send, but not all customization allowed)
 [x] - Graph for `siege.global`
 [x] - Graph for indivdual project
 [ ] - Graph for global coin
