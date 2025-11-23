@@ -468,6 +468,59 @@ def get_leaderboard(ctx: Context, public: bool):
         ctx.private_send(**message.build())
 
 
+@slash_listen("/graph")
+@smart_msg_listen("siege.graph")
+@description("/graph <graph_opt>?", "We need to remember the history")
+@utils.get_group
+@utils.filter_allowed
+@utils.has_group("siege")
+def generate_graph(ctx: Context, public: bool):
+    opt = ctx.value or ""
+    force_ephemeral: bool = not public
+    media: PendingFile | None = None
+    match opt:
+        case "coin":
+            heartbeats = siege.retrieve_every_user_record()
+            result: dict[Arrow, int] = siege.analyse_coin_count(heartbeats)
+            df = pandas.DataFrame({
+                "time": [t.datetime for t in result.keys()],
+                "coins": list(result.values())
+            })
+            fig, ax = plt.subplots(figsize=(6, 8))
+            plot = sns.lineplot(df, x="time", y="coins", ax=ax)
+            ax.locator_params(axis='x', nbins=7)
+            ax.locator_params(axis='y', nbins=15)
+            ax.set_title("Tracked coin count over time")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Total tracked coins")
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+            ax.set_xlim(min(df["time"]), max(df["time"]))
+            ax.set_ylim(0, max(df["coins"]) * 1.1)
+            fig.tight_layout()
+            iodt = BytesIO()
+            img = b""
+            if fig:
+                try:
+                    fig.savefig(iodt, format="png") # type: ignore
+                    img = iodt.getvalue()
+                except Exception as e:
+                    logging.error(f"Failed to save figure: {e}")
+            media = PendingFile("coin.png", img, "Tracked coin count over time")
+        case _:
+            ...
+
+    if not force_ephemeral:
+        if media:
+            ctx.public_send(files=[media])
+        else:
+            ctx.public_send(text="No graph generated.")
+    else:
+        if media:
+            ctx.private_send(files=[media])
+        else:
+            ctx.private_send(text="No graph generated.")
+
+
 @slash_listen("/stats")
 @slash_listen("/siege_stats")
 @smart_msg_listen("siege.stats")

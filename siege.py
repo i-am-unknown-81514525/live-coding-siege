@@ -320,6 +320,26 @@ def retrieve_all_user_record(user_id: int) -> list[UserHeartbeatRecord]:
             records.append(record)
         return records
 
+def retrieve_every_user_record() -> list[UserHeartbeatRecord]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT
+            user_id,
+            measurement_time,
+            username,
+            coin_count,
+            user_status
+        FROM user_record
+        ORDER BY measurement_time DESC
+        """)
+        rows = cursor.fetchall()
+        records = []
+        for row in rows:
+            record = UserHeartbeatRecord.from_row(row)
+            records.append(record)
+        return records
+
 def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
