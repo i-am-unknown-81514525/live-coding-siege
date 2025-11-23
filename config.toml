@@ -47,7 +47,7 @@ namespace = [
     "slash:/searchs",
     "slash:/define"
 ]
-module = "siege"
+module = "impl.siege"
 
 [bot.group.blank]
 allowed = ["U092BGL0UUQ"]
@@ -55,7 +55,7 @@ authorized = ["U092BGL0UUQ"]
 namespace = [
     "channel:C09KTR863L3", # Internal 1
 ]
-module = "live_blank"
+module = "impl.live_blank"
 
 [bot.group.redacted]
 allowed = []
@@ -64,4 +64,4 @@ namespace = [
     "channel:C09TRDFT5PH",    # Internal 1
     "channel:C09KTR863L3",    # Internal 2
 ]
-module = "event_redacted"
+module = "impl.event_redacted"
