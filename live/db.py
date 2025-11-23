@@ -136,6 +136,20 @@ def start_game(
         conn.commit()
         return game_id
 
+def edit_game(
+    game_id: int,
+    huddle_id: str,
+    channel_id: str,
+    thread_ts: str
+):
+    """Move a game to a new huddle/channel/thread."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE game SET huddle_id = ?, channel_id = ?, thread_ts = ? WHERE id = ?",
+            (huddle_id, channel_id, thread_ts, game_id),
+        )
+        conn.commit()
 
 def add_message_transaction(
     game_id: int, user_id: str, message_text: str, message_id: str

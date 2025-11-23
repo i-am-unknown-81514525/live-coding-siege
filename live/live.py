@@ -388,6 +388,42 @@ def _handle_user_turn_timeout(
     ).build()
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
 
+@smart_msg_listen("live.huddle_rst")
+@description("live.huddle_rst", "Remove bot knowledge of you being in any huddle (If you are currently in a game huddle, it will believe you are not)")
+def huddle_rst(ctx: MessageContext):
+    user_id = ctx.author_id
+    huddles = db.get_user_huddles(user_id)
+    if not huddles:
+        ctx.private_send(text="You are not in any huddle currently.")
+        return
+    for huddle in set(huddles):
+        db.remove_huddle_participant(user_id, huddle)
+    ctx.private_send(text=f"Your {len(set(huddles))} huddle join state have been reset.")
+
+@smart_msg_listen("live.reloc")
+@description("live.reloc", "Relocate the game into different thread, channel and huddle")
+@get_group
+@require_allowed
+@utils.consume_second
+@require_game_manager
+def reloc(ctx: MessageContext, game_id: int):
+    thread_ts = ctx.thread_ts
+    channel_id = ctx.channel_id
+    if not thread_ts:
+        ctx.private_send(text="Cannot locate the thread.")
+        return
+    with get_game_lock(game_id):
+        huddles = db.get_user_huddles(ctx.author_id)
+        if len(huddles) == 0:
+            ctx.private_send(text="You are not in any huddle currently. Therefore the game cannot be relocated.")
+            return
+        if len(set(huddles)) > 1:
+            ctx.private_send(text=f"Potential ambigious relocation: {', '.join(f"\"{huddle}\"" for huddle in set(huddles))}. Only join with a single huddle, or leave the huddle, run `live.huddle_rst` and rejoin.")
+            return
+        huddle_id = huddles[0]
+        db.edit_game(game_id, huddle_id, channel_id, thread_ts)
+    ctx.public_send(text=f"Game relocated to this thread and huddle `{huddle_id}` successfully. (Location: https://hackclub.slack.com/archives/{channel_id}/p{thread_ts.replace('.', '')})")
+    
 
 @smart_msg_listen("live.debug_turn")
 @description("live.debug_turn", "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)")
