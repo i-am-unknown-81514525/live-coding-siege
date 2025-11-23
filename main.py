@@ -91,17 +91,32 @@ if __name__ == "__main__":
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
     )
-    server.start(client)
-    siege.start(client)
-    siege_remind.start(client)
-    live.load_active_timers(client.web_client)
-    client.socket_mode_request_listeners.append(process_message)
-    print("Bot is listening for messages...")
-    client.connect()
-    while True:
-        try:
-            Event().wait()
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
-            logging.error(f"Uncaught exception:", exc_info=True)
+    try:
+        server.start(client)
+    except Exception as e:
+        logging.error(f"Failed to start server:", exc_info=True)
+    try:
+        siege.start(client)
+    except Exception as e:
+        logging.error(f"Failed to start siege module:", exc_info=True)
+    try:
+        siege_remind.start(client)
+    except Exception as e:
+        logging.error(f"Failed to start siege_remind module:", exc_info=True)
+    try:
+        live.load_active_timers(client.web_client)
+    except Exception as e:
+        logging.error(f"Failed to load active timers:", exc_info=True)
+    try:
+        client.socket_mode_request_listeners.append(process_message)
+        print("Bot is listening for messages...")
+        client.connect()
+        while True:
+            try:
+                Event().wait()
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                logging.error(f"Uncaught exception:", exc_info=True)
+    except Exception as e:
+        logging.error(f"Failed to start SocketModeClient:", exc_info=True)
