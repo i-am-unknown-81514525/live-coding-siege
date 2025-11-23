@@ -430,12 +430,12 @@ def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int
     df = df.sort("time")
 
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
-        return df.sort("time").group_by_dynamic("time", every="5m").agg([
+        return df.sort("time").group_by_dynamic("time", every="15m").agg([
             pl.col("coin_count").max()
         ])
     
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
-    total_coin_df = user_dfs.group_by("time").agg(pl.sum("coin_count").fill_null(strategy="forward", limit=3)).sort("time")
+    total_coin_df = user_dfs.group_by("time").agg(pl.sum("coin_count").fill_null(strategy="forward")).sort("time") # , limit=3
 
     return {
         arrow.get(row["time"]): row["coin_count"][0]

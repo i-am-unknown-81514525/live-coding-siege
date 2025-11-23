@@ -82,6 +82,11 @@
                 "command": "/user_details",
                 "description": "<user_id>? | View siege user details",
                 "should_escape": false
+            },
+            {
+                "command": "/graph",
+                "description": "<option>? | Generate various graphs for siege data",
+                "should_escape": false
             }
         ]
     },
