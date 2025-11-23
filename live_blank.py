@@ -13,5 +13,23 @@ class Blank(LiveModuleBase):
     def refresh_tickets(self, users: list[str]) -> dict[str, int]:
         return {user: 1 for user in users}
 
+    def on_create(self) -> None:
+        return None
+
+    def on_end(self) -> None:
+        return None
+
+    def on_restart(self) -> None:
+        return None
+
+    def on_join(self, user_id: str) -> None:
+        return None
+
+    def on_leave(self, user_id: str) -> None:
+        return None
+
+    def on_pick(self, user_id: str) -> None:
+        return None
+
 def get_module(instance: GameInstance) -> LiveModuleBase:
     return Blank(instance)
