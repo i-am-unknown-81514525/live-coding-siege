@@ -29,9 +29,23 @@ from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
 import live.server as server, siege.core as core, siege.remind as remind
 import utils
+from types import ModuleType
+from importlib import import_module
 
 load_dotenv()
 
+START_MODULE = [
+    "live.server",
+    "siege.core",
+    "siege.remind",
+    "live.live"
+]
+LOAD_MODULE = [
+    "siege.cmd",
+    "live.live"
+]
+
+all_module: dict[str, ModuleType] = {}
 
 @smart_msg_listen("live.helps")
 @smart_msg_listen("siege.helps")
@@ -91,22 +105,19 @@ if __name__ == "__main__":
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
     )
-    try:
-        server.start(client)
-    except Exception as e:
-        logging.error(f"Failed to start server:", exc_info=True)
-    try:
-        core.start(client)
-    except Exception as e:
-        logging.error(f"Failed to start siege module:", exc_info=True)
-    try:
-        remind.start(client)
-    except Exception as e:
-        logging.error(f"Failed to start siege_remind module:", exc_info=True)
-    try:
-        live.load_active_timers(client.web_client)
-    except Exception as e:
-        logging.error(f"Failed to load active timers:", exc_info=True)
+    for module_name in START_MODULE:
+        try:
+            module = import_module(module_name)
+            all_module[module_name] = module
+            module.start(client)
+        except Exception as e:
+            logging.error(f"Failed to load start_module {module_name}:", exc_info=True)
+    for module_name in LOAD_MODULE:
+        try:
+            module = import_module(module_name)
+            all_module[module_name] = module
+        except Exception as e:
+            logging.error(f"Failed to load load_module {module_name}:", exc_info=True)
     try:
         client.socket_mode_request_listeners.append(process_message)
         print("Bot is listening for messages...")

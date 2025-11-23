@@ -33,6 +33,7 @@ import jwt
 from utils import get_group, require_allowed, require_authorised, require_group
 from live.base import get_module
 from live.utils import require_game_thread, require_game_manager
+from slack_sdk.socket_mode.client import BaseSocketModeClient
 
 
 def int_handler(bits: int) -> Handler[int]:
@@ -1866,3 +1867,6 @@ def load_active_timers(client: WebClient):
             )
 
     print(f"Finished loading {len(in_progress_turns)} IN_PROGRESS turn timers.")
+
+def start(client: BaseSocketModeClient):
+    load_active_timers(client.web_client)
