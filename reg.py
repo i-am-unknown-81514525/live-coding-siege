@@ -654,6 +654,35 @@ def smart_msg_listen[A: Callable[[MessageContext], Any]](
 
     return decorator
 
+def smart_multi_msg_listen[A: Callable[[MessageContext], Any]](
+    message_keys: list[str]
+) -> Callable[[A], A]:
+    """
+    A decorator factory that registers a function to handle a specific message key.
+
+    Args:
+        message_keys: The keys for the messages that the decorated function will handle.
+    """
+    if not isinstance(message_keys, list) or not all(isinstance(k, str) for k in message_keys):
+        raise TypeError("The message_keys for @smart_multi_msg_listen must be a list of strings.")
+
+    def decorator[F: Callable[[MessageContext], Any]](func: F) -> F:
+        """The actual decorator that performs the registration."""
+        def inner(event: MessageEvent, client: WebClient):
+            if event.message.text is not None:
+                msg_data = replace(
+                    event.message, text=_url_fix(event.message.text or "")
+                )
+                event = replace(event, message=msg_data)
+            ctx = MessageContext(event, client)
+            return func(ctx)
+        for message_key in message_keys:
+            handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
+            handlers.append(inner)
+        setattr(func, "_is_subtype_handler", False)
+        return func  # type: ignore
+
+    return decorator
 
 def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
     """

@@ -21,7 +21,7 @@ from reg import (
     DESCRIPTION,
     description,
     Context,
-    smart_msg_listen,
+    smart_multi_msg_listen,
 )
 
 import utils
@@ -35,12 +35,13 @@ load_dotenv()
 
 START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live"]
 LOAD_MODULE = ["siege.cmd", "live.live"]
+HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
+
 
 all_module: dict[str, ModuleType] = {}
 
 
-@smart_msg_listen("live.helps")
-@smart_msg_listen("siege.helps")
+@smart_multi_msg_listen(HELP_CMD)
 @slash_listen("/help")
 @description(
     "/help <prefix>?", "Help command to hopefully answer your random question?"
