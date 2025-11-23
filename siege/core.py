@@ -524,6 +524,38 @@ def analyse_per_person_coin_count_status(heartbeats: list[UserHeartbeatRecord]) 
 
     return result
 
+def analyse_per_person_proj_hours(heartbeats: list[ProjHeartbeatRecord]) -> dict[int, float]:
+    result: dict[int, float] = {}
+    if not heartbeats:
+        return result
+
+    df = pl.DataFrame(
+        {
+            "time": [hb.measurement_time.datetime for hb in heartbeats],
+            "user_id": [hb.user_id for hb in heartbeats],
+            "proj_id": [hb.proj_id for hb in heartbeats],
+            "hours": [hb.hours for hb in heartbeats],
+        }
+    )
+
+    df = df.sort("time")
+
+    latest_df = df.group_by(["user_id", "proj_id"]).agg(
+        [
+            pl.col("hours").last(),
+        ]
+    )
+
+    total_hours_df = (
+        latest_df.group_by("user_id")
+        .agg(pl.sum("hours"))
+    )
+
+    for row in total_hours_df.iter_rows(named=True):
+        result[row["user_id"]] = row["hours"]
+
+    return result
+
 def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int]:
     if not heartbeats:
         return {}
