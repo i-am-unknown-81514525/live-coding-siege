@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
 from slack_sdk import WebClient
-from api import get_project, get_user
+from siege_api import get_project, get_user
 import live.live_base as live_base
 from schema.siege import SiegeProject
 from utils import guess_week

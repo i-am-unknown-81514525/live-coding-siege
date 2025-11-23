@@ -10,7 +10,7 @@ from reg import (
     file_upload
 )
 import blockkit
-from api import get_coin_leaderboard, get_shop_item
+from siege_api import get_coin_leaderboard, get_shop_item
 import re
 from schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
