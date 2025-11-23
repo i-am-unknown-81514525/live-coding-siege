@@ -32,6 +32,7 @@ from siege.core import (
     prox_get_user as get_user,
     prox_get_project as get_project,
 )
+from siege.utils import guess_week
 import seaborn as sns
 import pandas
 from schema.file import PendingFile
@@ -303,42 +304,14 @@ def get_total_proj_time(ctx: Context):
 
     week = max(proj_list, key=lambda x: x.week).week
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
-    heartbeats = core.retrieve_all_week_record(week)
-    result = core.analyse_hour_by_time_in_week(heartbeats)
-    # logging.info(result)
-    df = pandas.DataFrame(
-        {"time": [t.datetime for t in result.keys()], "hours": list(result.values())}
-    )
-    fig, ax = plt.subplots(figsize=(6, 8))
-    plot = sns.lineplot(df, x="time", y="hours", ax=ax)
-    ax.locator_params(axis="x", nbins=7)
-    ax.locator_params(axis="y", nbins=15)
-    ax.set_title(f"Tracked hours over time in W{week}")
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Total tracked hours")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
-    ax.set_xlim(min(df["time"]), max(df["time"]))
-    ax.set_ylim(0, max(df["hours"]) * 1.1)
-    fig.tight_layout()  # type: ignore
-
-    iodt = BytesIO()
-    img = b""
-    if fig:
-        try:
-            fig.savefig(iodt, format="png")  # type: ignore
-            img = iodt.getvalue()
-        except Exception as e:
-            logging.error(f"Failed to save figure: {e}")
+    
 
     p3 = time.perf_counter()
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
     ctx.public_send(
-        text=f"Total global tracked time this week: {total_time:.1f} hours.",
-        files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")]
-        if img
-        else [],
+        text=f"Total global tracked time this week: {total_time:.1f} hours."
     )
 
 
@@ -512,7 +485,7 @@ def generate_graph(ctx: Context, public: bool):
     media: PendingFile | None = None
     match opt:
         case "coin":
-            heartbeats = core.retrieve_every_user_record()
+            heartbeats: list[core.UserHeartbeatRecord] = core.retrieve_every_user_record()
             result: dict[Arrow, int] = core.analyse_coin_count(heartbeats)
             df = pandas.DataFrame(
                 {
@@ -580,6 +553,34 @@ def generate_graph(ctx: Context, public: bool):
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile("coin_hours.png", img, "Total coins vs total project hours by user")
+        case "global":
+            week = guess_week()
+            proj_heartbeats: list[core.ProjHeartbeatRecord] = core.retrieve_all_week_record(week)
+            proj_hour_result: dict[Arrow, float] = core.analyse_hour_by_time_in_week(proj_heartbeats)
+            df = pandas.DataFrame(
+                {"time": [t.datetime for t in proj_hour_result.keys()], "hours": list(proj_hour_result.values())}
+            )
+            fig, ax = plt.subplots(figsize=(6, 8))
+            plot = sns.lineplot(df, x="time", y="hours", ax=ax)
+            ax.locator_params(axis="x", nbins=7)
+            ax.locator_params(axis="y", nbins=15)
+            ax.set_title(f"Tracked hours over time in W{week}")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Total tracked hours")
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+            ax.set_xlim(min(df["time"]), max(df["time"]))
+            ax.set_ylim(0, max(df["hours"]) * 1.1)
+            fig.tight_layout()  # type: ignore
+
+            iodt = BytesIO()
+            img = b""
+            if fig:
+                try:
+                    fig.savefig(iodt, format="png")  # type: ignore
+                    img = iodt.getvalue()
+                except Exception as e:
+                    logging.error(f"Failed to save figure: {e}")
+            media = PendingFile(f"global_w{week}.png", img, f"Tracked hour by time in week W{week}")
         case _:
             ...
 
