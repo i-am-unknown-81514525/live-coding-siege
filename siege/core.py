@@ -496,6 +496,33 @@ def analyse_hour_by_time_in_week(
         for row in total_hours_df.iter_rows(named=True)
     }
 
+def analyse_per_person_coin_count_status(heartbeats: list[UserHeartbeatRecord]) -> dict[int, tuple[str, int]]:
+    result: dict[int, tuple[str, int]] = {}
+    if not heartbeats:
+        return result
+
+    df = pl.DataFrame(
+        {
+            "time": [hb.measurement_time.datetime for hb in heartbeats],
+            "user_id": [hb.user_id for hb in heartbeats],
+            "status": [hb.user_status for hb in heartbeats],
+            "coin_count": [hb.coin_count for hb in heartbeats],
+        }
+    )
+
+    df = df.sort("time")
+
+    latest_df = df.group_by("user_id").agg(
+        [
+            pl.col("status").last(),
+            pl.col("coin_count").last(),
+        ]
+    )
+
+    for row in latest_df.iter_rows(named=True):
+        result[row["user_id"]] = (row["status"], row["coin_count"])
+
+    return result
 
 def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int]:
     if not heartbeats:
