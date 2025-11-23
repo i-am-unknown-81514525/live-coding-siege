@@ -37,6 +37,18 @@ def guess_week() -> int:
     max_week_num = max(projs, key=lambda p: p.week).week
     return max_week_num
 
+def get_is_authorized(user_id: str, group: str) -> bool:
+    configs = get_config()["bot"]["group"]
+    if group not in configs:
+        return False
+    return user_id in configs[group]["authorized"]
+
+def get_is_allowed(user_id: str, group: str) -> bool:
+    configs = get_config()["bot"]["group"]
+    if group not in configs:
+        return False
+    return user_id in configs[group]["allowed"] or user_id in configs[group]["authorized"]
+
 def require_game_manager[**P, T, C: Context](func: Callable[Concatenate[C, int, P], T]) -> Callable[Concatenate[C, P], T | None]:
     @require_game_thread
     def inner(ctx: C, game_id: int, *args: P.args, **kwargs: P.kwargs) -> T | None:
