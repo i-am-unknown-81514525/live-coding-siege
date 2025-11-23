@@ -220,7 +220,7 @@ class MessageContext(Context):
         if files:
             file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
-            if "text" in kwargs and isinstance(kwargs["text"], str):
+            if "text" in kwargs and isinstance(kwargs["text"], str) and not kwargs.get("blocks"):
                  content = kwargs["text"]
             blockkit_add = []
             for file in file_list:
@@ -231,11 +231,13 @@ class MessageContext(Context):
                     if content is None:
                         content = ""
                     content += f"\n{file.get('permalink','')}"
-            if blockkit_add:
+            if blockkit_add or (content and kwargs.get("blocks")):
                 if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
                     kwargs["blocks"] = []
                 if content:
                     kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+            elif kwargs.get("blocks"):
                 kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
             kwargs["text"] = content
             logging.info(kwargs)
@@ -346,7 +348,7 @@ class SlashContext(Context):
         if files:
             file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
-            if "text" in kwargs and isinstance(kwargs["text"], str):
+            if "text" in kwargs and isinstance(kwargs["text"], str) and not kwargs.get("blocks"):
                  content = kwargs["text"]
             blockkit_add = []
             for file in file_list:
@@ -357,11 +359,13 @@ class SlashContext(Context):
                     if content is None:
                         content = ""
                     content += f"\n{file.get('permalink','')}"
-            if blockkit_add:
+            if blockkit_add or (content and kwargs.get("blocks")):
                 if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
                     kwargs["blocks"] = []
                 if content:
                     kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+            elif kwargs.get("blocks"):
                 kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
             kwargs["text"] = content
             logging.info(kwargs)
@@ -463,7 +467,7 @@ class InteractionContext(Context):
         if files:
             file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
-            if "text" in kwargs and isinstance(kwargs["text"], str):
+            if "text" in kwargs and isinstance(kwargs["text"], str) and not kwargs.get("blocks"):
                  content = kwargs["text"]
             blockkit_add = []
             for file in file_list:
@@ -474,11 +478,13 @@ class InteractionContext(Context):
                     if content is None:
                         content = ""
                     content += f"\n{file.get('permalink','')}"
-            if blockkit_add:
+            if blockkit_add or (content and kwargs.get("blocks")):
                 if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
                     kwargs["blocks"] = []
                 if content:
                     kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+            elif kwargs.get("blocks"):
                 kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
             kwargs["text"] = content
             logging.info(kwargs)
