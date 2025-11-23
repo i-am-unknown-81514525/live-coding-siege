@@ -15,9 +15,8 @@ import live.base as base
 from siege.schema.siege import SiegeProject
 from dataclasses import dataclass
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = Path(BASE_DIR) / "data" / "live_coding.db"
-SCHEMA_FILE = os.path.join(BASE_DIR, "schema.sql")
+DB_FILE = Path() / "data" / "live_coding.db"
+SCHEMA_FILE = os.path.join(Path(), "schema.sql")
 
 
 @contextmanager

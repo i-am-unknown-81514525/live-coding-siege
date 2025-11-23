@@ -18,7 +18,7 @@ from live.base import LiveModuleBase, GameInstance
 import siege.api as api
 import siege.utils as utils
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR =Path()
 DB_FILE = Path(BASE_DIR) / "data" / "siege.db"
 SCHEMA_FILE = os.path.join(BASE_DIR, "siege_schema.sql")
 

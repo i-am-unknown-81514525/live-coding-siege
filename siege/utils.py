@@ -1,4 +1,4 @@
-from siege.core import prox_get_all_projs as get_all_projs
+from siege.api import get_all_projs
 
 def guess_week() -> int:
     projs = get_all_projs()
