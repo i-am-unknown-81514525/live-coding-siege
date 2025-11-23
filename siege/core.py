@@ -459,6 +459,32 @@ def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
+def retrieve_every_proj_record() -> list[ProjHeartbeatRecord]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+        SELECT
+            proj_id,
+            measurement_time,
+            week_num,
+            title,
+            description,
+            user_id,
+            hours,
+            repo_url,
+            demo_url,
+            proj_status
+        FROM proj_record
+        ORDER BY measurement_time DESC
+        """,
+        )
+        rows = cursor.fetchall()
+        records = []
+        for row in rows:
+            record = ProjHeartbeatRecord.from_row(row)
+            records.append(record)
+        return records
 
 def analyse_hour_by_time_in_week(
     heartbeats: list[ProjHeartbeatRecord],

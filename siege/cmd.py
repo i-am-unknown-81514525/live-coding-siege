@@ -540,6 +540,23 @@ def generate_graph(ctx: Context, public: bool):
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile("coin.png", img, "Tracked coin count over time")
+        case "coin_hours":
+            user_result = core.analyse_per_person_coin_count_status(core.retrieve_every_user_record())
+            proj_result = core.analyse_per_person_proj_hours(core.retrieve_every_proj_record())
+            all_user_id = set(user_result.keys()).union(set(proj_result.keys()))
+            data = []
+            for user_id in all_user_id:
+                coin_data = user_result.get(user_id, (0, "new"))
+                proj_data = proj_result.get(user_id, 0)
+                data.append(
+                    {
+                        "user_id": user_id,
+                        "status": coin_data[1],
+                        "coins": coin_data[0],
+                        "hours": proj_data,
+                    }
+                )
+                    
         case _:
             ...
 
