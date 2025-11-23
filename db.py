@@ -9,6 +9,7 @@ import concurrent.futures
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
+from slack_sdk import WebClient
 from api import get_project, get_user
 import live.live_base as live_base
 from schema.siege import SiegeProject
@@ -1050,7 +1051,7 @@ def has_user(user_id: str) -> bool:
         ).fetchone()
         return row is not None
 
-def get_game_instance(game_id: int) -> live_base.GameInstance:
+def get_game_instance(game_id: int, client: WebClient) -> live_base.GameInstance:
     """
     Query the database and return a populated GameInstance for the given game_id.
     Raises ValueError if the game does not exist.
@@ -1112,7 +1113,8 @@ def get_game_instance(game_id: int) -> live_base.GameInstance:
         managers=managers,
         participants=participants,
         mode=mode,
-        start_time=start_time
+        start_time=start_time,
+        client=client
     )
 
 def add_game_participant(

@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from importlib import import_module
 from config import get_config
 from arrow import Arrow
+from slack_sdk.web import WebClient
 
 @dataclass(frozen=True)
 class Turns:
@@ -27,6 +28,7 @@ class GameInstance:
     participants: list[str]
     mode: str
     start_time: Arrow
+    client: WebClient
 
 
 class LiveModuleBase(ABC):

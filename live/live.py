@@ -59,7 +59,7 @@ def get_game_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], 
         if ctx.thread_ts:
             game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
             if game_id:
-                instance = db.get_game_instance(game_id)
+                instance = db.get_game_instance(game_id, ctx.client)
                 ret = [instance.mode]
         return func(ctx, ret, *args, **kwargs)
     return inner
@@ -206,7 +206,7 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
         picked_mode
     )
     db.add_game_manager(game_id, user_id)
-    instance = db.get_game_instance(game_id)
+    instance = db.get_game_instance(game_id, ctx.client)
     module = get_module(instance)
     users: list[str] = db.get_huddle_participants(game_id)
     module.on_create()
@@ -290,7 +290,7 @@ def handle_restart_game(ctx: InteractionContext, have_authorised: bool):
         )
         conn.commit()
     
-    instance = db.get_game_instance(game_id_to_restart)
+    instance = db.get_game_instance(game_id_to_restart, ctx.client)
     module = get_module(instance)
     users: list[str] = db.get_huddle_participants(game_id_to_restart)
     module.on_restart()
@@ -814,7 +814,7 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
         return
 
     user = ctx.author_id
-    instance = db.get_game_instance(game_id)
+    instance = db.get_game_instance(game_id, ctx.client)
     users: list[str] = db.get_huddle_participants(game_id)
     tickets = get_module(instance).get_tickets(users)
     for user, ticket in tickets.items():
@@ -848,7 +848,7 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
     ticket_dt: dict[str, tuple[str, int | None]] = {}
     huddle_participant = db.get_huddle_participants(game_id)
     usernames = db.get_user_names(huddle_participant)
-    instance = db.get_game_instance(game_id)
+    instance = db.get_game_instance(game_id, ctx.client)
     users: list[str] = db.get_huddle_participants(game_id)
     tickets = get_module(instance).get_tickets(users)
     for user, ticket in tickets.items():
@@ -903,7 +903,7 @@ def pick_user(ctx: Context, game_id: int):
 
         seed = f"{client_secret}{server_secret}"
 
-        instance = db.get_game_instance(game_id)
+        instance = db.get_game_instance(game_id, ctx.client)
         module = get_module(instance)
 
         t = randint(module.BOUND[0], module.BOUND[1])
@@ -1143,7 +1143,7 @@ def end_game(ctx: Context, game_id: int):
     summary_message.add_block(blockkit.Divider())
     summary_message.add_block(Section("Thanks for playing! 🎉"))
 
-    module = get_module(db.get_game_instance(game_id))
+    module = get_module(db.get_game_instance(game_id, ctx.client))
     module.on_end()
 
     ctx.public_send(**summary_message.build())
@@ -1721,7 +1721,7 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
     print(f"ℹ️ User {user_name} ({user_id}) joined huddle {huddle_id}.")
     game_id = db.get_active_game_in_huddle(huddle_id)
     if game_id is not None:
-        instance = db.get_game_instance(game_id)
+        instance = db.get_game_instance(game_id, client)
         module = get_module(instance)
         db.add_game_participant(game_id, user_id, module.get_ticket(user_id))
         push_ticket_update_ws(game_id)
@@ -1741,7 +1741,7 @@ def handle_huddle_leave(event: HuddleChange, client: WebClient):
         print(f"🚪 User {user_name} ({user_id}) left huddle {huddle_id}.")
         game_id = db.get_active_game_in_huddle(huddle_id)
         if game_id is not None:
-            instance = db.get_game_instance(game_id)
+            instance = db.get_game_instance(game_id, client)
             module = get_module(instance)
             module.on_leave(user_id)
 

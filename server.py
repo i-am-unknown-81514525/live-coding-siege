@@ -153,7 +153,7 @@ async def accept_turn(user_id: typing.Annotated[str, Depends(check_jwt)], reques
         ).encode(),
     )
 
-    instance = await get_result(db.get_game_instance, game_id)
+    instance = await get_result(db.get_game_instance, game_id, client.web_client)
     try:
         await get_result(client.web_client.chat_postMessage,
             channel=instance.channel_id,
@@ -192,7 +192,7 @@ async def reject_turn(user_id: typing.Annotated[str, Depends(check_jwt)], reques
             }
         ).encode(),
     )
-    instance = await get_result(db.get_game_instance, game_id)
+    instance = await get_result(db.get_game_instance, game_id, client.web_client)
     try:
         await get_result(client.web_client.chat_postMessage,
             channel=instance.channel_id,
@@ -236,16 +236,17 @@ async def get_turn_status(user_id: typing.Annotated[str, Depends(check_jwt)]):
 
 @app.get("/tickets")
 async def get_tickets(
-    user_id: typing.Annotated[str, Depends(check_jwt)],
+    user_id: typing.Annotated[str, Depends(check_jwt)], request: Request
 ) -> dict[str, tuple[str, int, str]]:
     game_id = await get_result(db.get_game_mgr_active_game, user_id)
     if game_id is None:
         raise HTTPException(404, "Cannot find a game that you are actively managing.")
 
     users = await get_result(db.get_huddle_participants, game_id)
+    client = request.app.state.slack_client
 
     result: dict[str, tuple[str, int, str]] = {}
-    instance = await get_result(db.get_game_instance, game_id)
+    instance = await get_result(db.get_game_instance, game_id, client.web_client)
     module = await get_result(get_module, instance)
     user_tickets = await get_result(module.get_tickets, users)
     for user, ticket in user_tickets.items():
