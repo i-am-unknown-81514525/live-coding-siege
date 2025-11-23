@@ -51,7 +51,8 @@ type CtxFn[C: Context, T] = Callable[[C], T]
 
 #     return decorator
 
-_LEADING_SLACK_LINK_RE = re.compile(r'^<https?://[^>|]+\|([^>]+)>')
+_LEADING_SLACK_LINK_RE = re.compile(r"^<https?://[^>|]+\|([^>]+)>")
+
 
 def _url_fix(text: str) -> str:
     """
@@ -61,12 +62,28 @@ def _url_fix(text: str) -> str:
     """
     if not text:
         return text
-    return _LEADING_SLACK_LINK_RE.sub(r'\1', text, count=1)
+    return _LEADING_SLACK_LINK_RE.sub(r"\1", text, count=1)
 
-def file_upload(files: list[PendingFile], client: WebClient, channels: list[str] | None = None, thread_ts: str | None = None) -> dict[PendingFile, UploadedFile]:
-    mapping: dict[PendingFile, str] = {file: "".join(random.choices("0123456789abcdef", k=64)) for file in files}
-    uploaded_raw = client.files_upload_v2(file_uploads=[k.export(v) for k, v in mapping.items()], channels=channels, thread_ts=thread_ts)  # pyright: ignore[reportArgumentType]
-    uploaded = [UploadedFile.parse(item) for item in uploaded_raw["files"]] if uploaded_raw.get("files") else [] # pyright: ignore[reportOptionalIterable]
+
+def file_upload(
+    files: list[PendingFile],
+    client: WebClient,
+    channels: list[str] | None = None,
+    thread_ts: str | None = None,
+) -> dict[PendingFile, UploadedFile]:
+    mapping: dict[PendingFile, str] = {
+        file: "".join(random.choices("0123456789abcdef", k=64)) for file in files
+    }
+    uploaded_raw = client.files_upload_v2(
+        file_uploads=[k.export(v) for k, v in mapping.items()],   # pyright: ignore[reportArgumentType]
+        channels=channels,
+        thread_ts=thread_ts,
+    )
+    uploaded = (
+        [UploadedFile.parse(item) for item in uploaded_raw["files"]]   # pyright: ignore[reportOptionalIterable]
+        if uploaded_raw.get("files")
+        else []
+    )
     # uploaded = [UploadedFile.parse(client.files_sharedPublicURL(file=up.file_id).data.get("file")) for up in uploaded] # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
     result: dict[PendingFile, UploadedFile] = {}
     for file in files:
@@ -75,8 +92,14 @@ def file_upload(files: list[PendingFile], client: WebClient, channels: list[str]
                 result[file] = up
                 break
     return result
-    
-def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, channels: list[str] | None = None, thread_ts: str | None = None) -> list[Attachment]:
+
+
+def auto_upload(
+    files: list[PendingFile | UploadedFile],
+    client: WebClient,
+    channels: list[str] | None = None,
+    thread_ts: str | None = None,
+) -> list[Attachment]:
     pending_files = [file for file in files if isinstance(file, PendingFile)]
     uploaded_files = file_upload(pending_files, client, channels, thread_ts)
     result: list[Attachment] = []
@@ -86,6 +109,7 @@ def auto_upload(files: list[PendingFile | UploadedFile], client: WebClient, chan
         else:
             result.append(uploaded_files[file].export())
     return result
+
 
 class Context(ABC):
     client: WebClient
@@ -185,11 +209,11 @@ class MessageContext(Context):
         if len(r) > 1:
             return r[1].strip()
         return ""
-    
+
     @property
     def cmd(self) -> str:
         return self.event.message.text.split(" ")[0].strip()
-    
+
     @property
     def action_namespace(self) -> str:
         return f"cmd:{self.cmd}"
@@ -214,31 +238,48 @@ class MessageContext(Context):
     ) -> Any: ...
 
     def private_send[**P](
-        self, always_thread: bool = False, 
-        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
+        self,
+        always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
         if files:
-            file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            file_list = auto_upload(
+                files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]
+            )  # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
-            if "text" in kwargs and isinstance(kwargs["text"], str) and not kwargs.get("blocks"):
-                 content = kwargs["text"]
+            if (
+                "text" in kwargs
+                and isinstance(kwargs["text"], str)
+                and not kwargs.get("blocks")
+            ):
+                content = kwargs["text"]
             blockkit_add = []
             for file in file_list:
                 logging.info(file)
-                if False: # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
-                    blockkit_add.append({"type": "image", "slack_file":{"url": file["permalink"]}, "alt_text": "Uploaded"})
+                if False:  # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
+                    blockkit_add.append(
+                        {
+                            "type": "image",
+                            "slack_file": {"url": file["permalink"]},
+                            "alt_text": "Uploaded",
+                        }
+                    )
                 else:
                     if content is None:
                         content = ""
-                    content += f"\n{file.get('permalink','')}"
+                    content += f"\n{file.get('permalink', '')}"
             if blockkit_add or (content and kwargs.get("blocks")):
                 if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
                     kwargs["blocks"] = []
                 if content:
-                    kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
-                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+                    kwargs["blocks"].append(
+                        {"type": "section", "text": {"type": "mrkdwn", "text": content}}
+                    )
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add  # type: ignore
             elif kwargs.get("blocks"):
-                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add  # type: ignore
             kwargs["text"] = content
             logging.info(kwargs)
         thread_ts = self.thread_ts
@@ -272,11 +313,19 @@ class MessageContext(Context):
     ) -> Any: ...
 
     def public_send[**P](
-        self, always_thread: bool = False, 
-        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
+        self,
+        always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
         if files:
-            auto_upload(files, self.client, [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None))
+            auto_upload(
+                files,
+                self.client,
+                [self.channel_id],
+                self.thread_ts or (self.message_ts if always_thread else None),
+            )
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -313,11 +362,11 @@ class SlashContext(Context):
     @property
     def value(self) -> str:
         return self.event.text.strip()
-    
+
     @property
     def cmd(self) -> str:
         return self.event.command.strip()
-    
+
     @property
     def action_namespace(self) -> str:
         return f"slash:{self.cmd}"
@@ -342,31 +391,48 @@ class SlashContext(Context):
     ) -> Any: ...
 
     def private_send[**P](
-        self, always_thread: bool = False, 
-        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
+        self,
+        always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
         if files:
-            file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            file_list = auto_upload(
+                files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]
+            )  # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
-            if "text" in kwargs and isinstance(kwargs["text"], str) and not kwargs.get("blocks"):
-                 content = kwargs["text"]
+            if (
+                "text" in kwargs
+                and isinstance(kwargs["text"], str)
+                and not kwargs.get("blocks")
+            ):
+                content = kwargs["text"]
             blockkit_add = []
             for file in file_list:
                 logging.info(file)
-                if False: # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
-                    blockkit_add.append({"type": "image", "slack_file":{"url": file["permalink"]}, "alt_text": "Uploaded"})
+                if False:  # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
+                    blockkit_add.append(
+                        {
+                            "type": "image",
+                            "slack_file": {"url": file["permalink"]},
+                            "alt_text": "Uploaded",
+                        }
+                    )
                 else:
                     if content is None:
                         content = ""
-                    content += f"\n{file.get('permalink','')}"
+                    content += f"\n{file.get('permalink', '')}"
             if blockkit_add or (content and kwargs.get("blocks")):
                 if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
                     kwargs["blocks"] = []
                 if content:
-                    kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
-                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+                    kwargs["blocks"].append(
+                        {"type": "section", "text": {"type": "mrkdwn", "text": content}}
+                    )
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add  # type: ignore
             elif kwargs.get("blocks"):
-                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add  # type: ignore
             kwargs["text"] = content
             logging.info(kwargs)
         thread_ts = self.thread_ts
@@ -398,8 +464,11 @@ class SlashContext(Context):
     ) -> Any: ...
 
     def public_send[**P](
-        self, always_thread: bool = False, 
-        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
+        self,
+        always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
         if files:
             kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
@@ -407,6 +476,7 @@ class SlashContext(Context):
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
         return self.webhook_client.send(response_type="in_channel", *args, **kwargs)
+
 
 @dataclass
 class InteractionContext(Context):
@@ -416,31 +486,31 @@ class InteractionContext(Context):
     @property
     def author_id(self) -> str:
         return self.event.user.id
-    
+
     @property
     def value(self) -> str:
         return self.event.actions[0].value or ""
-    
+
     @property
     def message_ts(self) -> str | None:
         return self.event.container.message_ts
-    
+
     @property
     def thread_ts(self) -> str | None:
         return self.event.container.thread_ts
-    
+
     @property
     def channel_id(self) -> str:
         return self.event.container.channel_id
-    
+
     @property
     def cmd(self) -> str:
         return self.event.actions[0].action_id
-    
+
     @property
     def action_namespace(self) -> str:
         return f"interation:{self.cmd}"
-    
+
     @overload
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
@@ -461,31 +531,48 @@ class InteractionContext(Context):
     ) -> Any: ...
 
     def private_send[**P](
-        self, always_thread: bool = False, 
-        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
+        self,
+        always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
         if files:
-            file_list = auto_upload(files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]) # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
+            file_list = auto_upload(
+                files, self.client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]
+            )  # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
-            if "text" in kwargs and isinstance(kwargs["text"], str) and not kwargs.get("blocks"):
-                 content = kwargs["text"]
+            if (
+                "text" in kwargs
+                and isinstance(kwargs["text"], str)
+                and not kwargs.get("blocks")
+            ):
+                content = kwargs["text"]
             blockkit_add = []
             for file in file_list:
                 logging.info(file)
-                if False: # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
-                    blockkit_add.append({"type": "image", "slack_file":{"url": file["permalink"]}, "alt_text": "Uploaded"})
+                if False:  # file["mimetype"].startswith("image/") or any(file["permalink"].endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"])
+                    blockkit_add.append(
+                        {
+                            "type": "image",
+                            "slack_file": {"url": file["permalink"]},
+                            "alt_text": "Uploaded",
+                        }
+                    )
                 else:
                     if content is None:
                         content = ""
-                    content += f"\n{file.get('permalink','')}"
+                    content += f"\n{file.get('permalink', '')}"
             if blockkit_add or (content and kwargs.get("blocks")):
                 if "blocks" not in kwargs or not isinstance(kwargs["blocks"], list):
                     kwargs["blocks"] = []
                 if content:
-                    kwargs["blocks"].append({"type": "section", "text": {"type": "mrkdwn", "text": content}})
-                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+                    kwargs["blocks"].append(
+                        {"type": "section", "text": {"type": "mrkdwn", "text": content}}
+                    )
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add  # type: ignore
             elif kwargs.get("blocks"):
-                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add # type: ignore
+                kwargs["blocks"] = kwargs.get("blocks", []) + blockkit_add  # type: ignore
             kwargs["text"] = content
             logging.info(kwargs)
         thread_ts = self.thread_ts
@@ -519,8 +606,11 @@ class InteractionContext(Context):
     ) -> Any: ...
 
     def public_send[**P](
-        self, always_thread: bool = False, 
-        files: list[PendingFile | UploadedFile] | None = None, *args: P.args, **kwargs: P.kwargs
+        self,
+        always_thread: bool = False,
+        files: list[PendingFile | UploadedFile] | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ):
         if files:
             kwargs["attachments"] = auto_upload(files, self.client, [self.channel_id])
@@ -530,7 +620,6 @@ class InteractionContext(Context):
         return self.client.chat_postMessage(
             channel=self.channel_id, thread_ts=thread_ts, *args, **kwargs
         )
-    
 
 
 def smart_msg_listen[A: Callable[[MessageContext], Any]](
@@ -552,7 +641,9 @@ def smart_msg_listen[A: Callable[[MessageContext], Any]](
 
         def inner(event: MessageEvent, client: WebClient):
             if event.message.text is not None:
-                msg_data = replace(event.message, text=_url_fix(event.message.text or ""))
+                msg_data = replace(
+                    event.message, text=_url_fix(event.message.text or "")
+                )
                 event = replace(event, message=msg_data)
             ctx = MessageContext(event, client)
             return func(ctx)
@@ -606,8 +697,9 @@ def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]
 
     return decorator
 
+
 def smart_action_listen[A: Callable[[InteractionContext], Any]](
-    action_id: str
+    action_id: str,
 ) -> Callable[[A], A]:
     """
     A decorator factory registers a function to handle a specific action
@@ -620,16 +712,19 @@ def smart_action_listen[A: Callable[[InteractionContext], Any]](
 
     def decorator[F: Callable[[InteractionContext], Any]](func: F) -> F:
         handler = ACTION_HANDLERS.setdefault(action_id, [])
+
         def inner(event: BlockActionEvent, client: WebClient):
             ctx = InteractionContext(event, client)
             return func(ctx)
+
         handler.append(inner)
         return func
 
     return decorator
 
+
 def smart_action_prefix_listen[A: Callable[[InteractionContext], Any]](
-    action_id_prefix: str
+    action_id_prefix: str,
 ) -> Callable[[A], A]:
     """
     A decorator factory registers a function to handle a specific action prefix
@@ -642,15 +737,16 @@ def smart_action_prefix_listen[A: Callable[[InteractionContext], Any]](
 
     def decorator[F: Callable[[InteractionContext], Any]](func: F) -> F:
         handler = ACTION_PREFIX_HANDLERS.setdefault(action_id_prefix, [])
+
         def inner(event: BlockActionEvent, client: WebClient):
             ctx = InteractionContext(event, client)
             return func(ctx)
+
         handler.append(inner)
         return func
 
-    return decorator       
+    return decorator
 
-    
 
 def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
     """
@@ -661,9 +757,12 @@ def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
         description: The description for the command
     """
     DESCRIPTION[cmd] = description
+
     def decorator[F: Callable](func: F) -> F:
         return func
+
     return decorator
+
 
 def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
     """
@@ -725,11 +824,11 @@ def message_dispatch(event: MessageEvent, client: WebClient) -> None:
                 and event.message
                 and event.message.text
                 and (
-                        event.message.text.startswith(key) or 
-                        event.message.text.startswith(f"<http://{key}|{key}>")  or 
-                        event.message.text.startswith(f"<https://{key}|{key}>") or 
-                        event.message.text.strip() == key.strip()
-                    )
+                    event.message.text.startswith(key)
+                    or event.message.text.startswith(f"<http://{key}|{key}>")
+                    or event.message.text.startswith(f"<https://{key}|{key}>")
+                    or event.message.text.strip() == key.strip()
+                )
             ):
                 thread = threading.Thread(target=handler, args=(event, client))
                 thread.start()

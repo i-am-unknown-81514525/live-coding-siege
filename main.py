@@ -21,7 +21,7 @@ from reg import (
     DESCRIPTION,
     description,
     Context,
-    smart_msg_listen
+    smart_msg_listen,
 )
 
 import utils
@@ -33,23 +33,18 @@ from schema.slash_cmd import CommandEvent
 
 load_dotenv()
 
-START_MODULE = [
-    "live.server",
-    "siege.core",
-    "siege.remind",
-    "live.live"
-]
-LOAD_MODULE = [
-    "siege.cmd",
-    "live.live"
-]
+START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live"]
+LOAD_MODULE = ["siege.cmd", "live.live"]
 
 all_module: dict[str, ModuleType] = {}
+
 
 @smart_msg_listen("live.helps")
 @smart_msg_listen("siege.helps")
 @slash_listen("/help")
-@description("/help <prefix>?", "Help command to hopefully answer your random question?")
+@description(
+    "/help <prefix>?", "Help command to hopefully answer your random question?"
+)
 @utils.get_group
 @utils.filter_allowed
 @utils.have_any_group()
@@ -58,11 +53,15 @@ def help(ctx: Context, public: bool):
     for cmd, description in DESCRIPTION.items():
         if cmd.startswith(ctx.value):
             items.append(f"`{cmd}` - {description}")
-    message = f"*Command list{ f" with prefix \"{ctx.value}\"" if ctx.value else "" }*\n" + ("\n".join(items) or "No command exist with the given prefix")
+    message = (
+        f"*Command list{f' with prefix "{ctx.value}"' if ctx.value else ''}*\n"
+        + ("\n".join(items) or "No command exist with the given prefix")
+    )
     if public:
         ctx.public_send(text=message)
     else:
         ctx.private_send(text=message)
+
 
 def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     response = SocketModeResponse(envelope_id=req.envelope_id)

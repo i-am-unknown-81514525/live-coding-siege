@@ -7,7 +7,7 @@ from reg import (
     Context,
     slash_listen,
     InteractionContext,
-    file_upload
+    file_upload,
 )
 import blockkit
 from siege.api import get_coin_leaderboard, get_shop_item
@@ -27,7 +27,11 @@ from siege.schema import dictionary
 import requests
 import siege.core as core
 from collections import defaultdict
-from siege.core import prox_get_all_projs as get_all_projs, prox_get_user as get_user, prox_get_project as get_project
+from siege.core import (
+    prox_get_all_projs as get_all_projs,
+    prox_get_user as get_user,
+    prox_get_project as get_project,
+)
 import seaborn as sns
 import pandas
 from schema.file import PendingFile
@@ -111,7 +115,10 @@ def _calc_base(week: int, hours: float) -> float:
 @slash_listen("/user")
 @smart_msg_listen("siege.user ")
 @smart_action_listen("siege_user_view")
-@description("/user <user_id>?", "Shhhh... sneak peek on a siege user, surely no one would notice :)")
+@description(
+    "/user <user_id>?",
+    "Shhhh... sneak peek on a siege user, surely no one would notice :)",
+)
 @utils.get_group
 @utils.filter_allowed
 @utils.has_group("siege")
@@ -171,13 +178,19 @@ def get_siege_user_info(ctx: Context, public: bool):
 @utils.filter_authorised
 @utils.require_group("siege", False)
 def test(ctx: Context):
-    return ctx.private_send(False, files=[PendingFile("test.txt", b"Hello world!", "A test file")])
+    return ctx.private_send(
+        False, files=[PendingFile("test.txt", b"Hello world!", "A test file")]
+    )
+
 
 @slash_listen("/proj")
 @slash_listen("/project")
 @smart_msg_listen("siege.proj ")
 @smart_action_prefix_listen("siege_proj_view")
-@description("/proj <proj_id>", "Let me check a project coin value... What??? Someone got 607 coins in a week?")
+@description(
+    "/proj <proj_id>",
+    "Let me check a project coin value... What??? Someone got 607 coins in a week?",
+)
 @utils.get_group
 @utils.filter_allowed
 @utils.has_group("siege")
@@ -232,35 +245,51 @@ def get_siege_proj_info(ctx: Context, public: bool):
     heartbeats = core.retrieve_all_proj_record(proj.id)
     result = core.analyse_hour_by_time_in_week(heartbeats)
     # logging.info(result)
-    df = pandas.DataFrame({
-        "time": [t.datetime for t in result.keys()],
-        "hours": list(result.values())
-    })
+    df = pandas.DataFrame(
+        {"time": [t.datetime for t in result.keys()], "hours": list(result.values())}
+    )
     fig, ax = plt.subplots(figsize=(6, 8))
     plot = sns.lineplot(df, x="time", y="hours", ax=ax)
-    ax.locator_params(axis='x', nbins=7)
-    ax.locator_params(axis='y', nbins=15)
+    ax.locator_params(axis="x", nbins=7)
+    ax.locator_params(axis="y", nbins=15)
     ax.set_title(f"Tracked hours over time for project {proj.name} (W{proj.week})")
     ax.set_xlabel("Time")
     ax.set_ylabel("Total tracked hours")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
     ax.set_xlim(min(df["time"]), max(df["time"]))
     ax.set_ylim(0, max(df["hours"]) * 1.1)
-    fig.tight_layout() # type: ignore
+    fig.tight_layout()  # type: ignore
 
     iodt = BytesIO()
     img = b""
     if fig:
         try:
-            fig.savefig(iodt, format="png") # type: ignore
+            fig.savefig(iodt, format="png")  # type: ignore
             img = iodt.getvalue()
         except Exception as e:
             logging.error(f"Failed to save figure: {e}")
 
     if public and not isinstance(ctx, InteractionContext):
-        ctx.public_send(**message.build(), unfurl_links=False, files=[PendingFile(f"proj_{proj.id}.png", img, "Tracked hour by time in week")] if img else [])
+        ctx.public_send(
+            **message.build(),
+            unfurl_links=False,
+            files=[
+                PendingFile(f"proj_{proj.id}.png", img, "Tracked hour by time in week")
+            ]
+            if img
+            else [],
+        )
     else:
-        ctx.private_send(**message.build(), unfurl_links=False, files=[PendingFile(f"proj_{proj.id}.png", img, "Tracked hour by time in week")] if img else [])
+        ctx.private_send(
+            **message.build(),
+            unfurl_links=False,
+            files=[
+                PendingFile(f"proj_{proj.id}.png", img, "Tracked hour by time in week")
+            ]
+            if img
+            else [],
+        )
+
 
 @slash_listen("/global")
 @smart_msg_listen("siege.global")
@@ -277,27 +306,26 @@ def get_total_proj_time(ctx: Context):
     heartbeats = core.retrieve_all_week_record(week)
     result = core.analyse_hour_by_time_in_week(heartbeats)
     # logging.info(result)
-    df = pandas.DataFrame({
-        "time": [t.datetime for t in result.keys()],
-        "hours": list(result.values())
-    })
+    df = pandas.DataFrame(
+        {"time": [t.datetime for t in result.keys()], "hours": list(result.values())}
+    )
     fig, ax = plt.subplots(figsize=(6, 8))
     plot = sns.lineplot(df, x="time", y="hours", ax=ax)
-    ax.locator_params(axis='x', nbins=7)
-    ax.locator_params(axis='y', nbins=15)
+    ax.locator_params(axis="x", nbins=7)
+    ax.locator_params(axis="y", nbins=15)
     ax.set_title(f"Tracked hours over time in W{week}")
     ax.set_xlabel("Time")
     ax.set_ylabel("Total tracked hours")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
     ax.set_xlim(min(df["time"]), max(df["time"]))
     ax.set_ylim(0, max(df["hours"]) * 1.1)
-    fig.tight_layout() # type: ignore
+    fig.tight_layout()  # type: ignore
 
     iodt = BytesIO()
     img = b""
     if fig:
         try:
-            fig.savefig(iodt, format="png") # type: ignore
+            fig.savefig(iodt, format="png")  # type: ignore
             img = iodt.getvalue()
         except Exception as e:
             logging.error(f"Failed to save figure: {e}")
@@ -306,7 +334,12 @@ def get_total_proj_time(ctx: Context):
 
     total_time = sum(map(lambda x: x.hours, curr_week_proj))
     logging.info(f"Request time: {p2 - p1}s, Sorting time: {p3 - p2}s")
-    ctx.public_send(text=f"Total global tracked time this week: {total_time:.1f} hours.", files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")] if img else [])
+    ctx.public_send(
+        text=f"Total global tracked time this week: {total_time:.1f} hours.",
+        files=[PendingFile(f"w{week}.png", img, "Tracked hour by time in week")]
+        if img
+        else [],
+    )
 
 
 LEADERBOARD_AMOUNT = 20
@@ -481,14 +514,16 @@ def generate_graph(ctx: Context, public: bool):
         case "coin":
             heartbeats = core.retrieve_every_user_record()
             result: dict[Arrow, int] = core.analyse_coin_count(heartbeats)
-            df = pandas.DataFrame({
-                "time": [t.datetime for t in result.keys()],
-                "coins": list(result.values())
-            })
+            df = pandas.DataFrame(
+                {
+                    "time": [t.datetime for t in result.keys()],
+                    "coins": list(result.values()),
+                }
+            )
             fig, ax = plt.subplots(figsize=(6, 8))
             plot = sns.lineplot(df, x="time", y="coins", ax=ax)
-            ax.locator_params(axis='x', nbins=7)
-            ax.locator_params(axis='y', nbins=15)
+            ax.locator_params(axis="x", nbins=7)
+            ax.locator_params(axis="y", nbins=15)
             ax.set_title("Tracked coin count over time")
             ax.set_xlabel("Time")
             ax.set_ylabel("Total tracked coins")
@@ -500,7 +535,7 @@ def generate_graph(ctx: Context, public: bool):
             img = b""
             if fig:
                 try:
-                    fig.savefig(iodt, format="png") # type: ignore
+                    fig.savefig(iodt, format="png")  # type: ignore
                     img = iodt.getvalue()
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
@@ -558,12 +593,15 @@ def get_stats(ctx: Context, public: bool):
     else:
         ctx.private_send(False, text="\n".join(total_msg))
 
+
 def _cmp(search: str, term: str) -> float:
     if len(search) < 3 or len(term) < 3:
         return 0
     return fuzz.partial_ratio(search, term) / 100
 
+
 SIMILARITY_THRESHOLD = 0.9
+
 
 @slash_listen("/searchs")
 @smart_msg_listen("siege.search ")
@@ -575,16 +613,42 @@ SIMILARITY_THRESHOLD = 0.9
 def search_project(ctx: Context, public: bool):
     req = ctx.value.lower()
     all_projs = get_all_projs()
-    def full_info(proj: SiegeProject) -> Literal["project name", "description", "repo user", "repo", None, "user id", "project id", "display name", "user name"]:
-        if req in proj.name.lower() or _cmp(req, proj.name.lower()) > SIMILARITY_THRESHOLD:
+
+    def full_info(
+        proj: SiegeProject,
+    ) -> Literal[
+        "project name",
+        "description",
+        "repo user",
+        "repo",
+        None,
+        "user id",
+        "project id",
+        "display name",
+        "user name",
+    ]:
+        if (
+            req in proj.name.lower()
+            or _cmp(req, proj.name.lower()) > SIMILARITY_THRESHOLD
+        ):
             return "project name"
-        if req in proj.description.lower() or _cmp(req, proj.description.lower()) > SIMILARITY_THRESHOLD:
+        if (
+            req in proj.description.lower()
+            or _cmp(req, proj.description.lower()) > SIMILARITY_THRESHOLD
+        ):
             return "description"
         if proj.repo_url:
             parsed = _parse_repo(proj.repo_url)
-            if req in _parse_repo_user_from_shorthand(parsed).lower() or _cmp(req, _parse_repo_user_from_shorthand(parsed).lower()) > SIMILARITY_THRESHOLD:
+            if (
+                req in _parse_repo_user_from_shorthand(parsed).lower()
+                or _cmp(req, _parse_repo_user_from_shorthand(parsed).lower())
+                > SIMILARITY_THRESHOLD
+            ):
                 return "repo user"
-            if req in parsed.split("/")[1].lower() or _cmp(req, parsed.split("/")[1].lower()) > SIMILARITY_THRESHOLD:
+            if (
+                req in parsed.split("/")[1].lower()
+                or _cmp(req, parsed.split("/")[1].lower()) > SIMILARITY_THRESHOLD
+            ):
                 return "repo"
         try:
             if int(req) == proj.user.id or int(req) == proj.id:
@@ -594,12 +658,30 @@ def search_project(ctx: Context, public: bool):
                     return "project id"
         except:
             ...
-        if req in proj.user.display_name.lower() or _cmp(req, proj.user.display_name.lower() ) > SIMILARITY_THRESHOLD:
+        if (
+            req in proj.user.display_name.lower()
+            or _cmp(req, proj.user.display_name.lower()) > SIMILARITY_THRESHOLD
+        ):
             return "display name"
-        if req in proj.user.name.lower()  or _cmp(req, proj.user.name.lower() ) > SIMILARITY_THRESHOLD:
+        if (
+            req in proj.user.name.lower()
+            or _cmp(req, proj.user.name.lower()) > SIMILARITY_THRESHOLD
+        ):
             return "user name"
-    
-    def retrieve(proj: SiegeProject, key: Literal["project name", "description", "repo user", "repo", "user id", "project id", "display name", "user name"]):
+
+    def retrieve(
+        proj: SiegeProject,
+        key: Literal[
+            "project name",
+            "description",
+            "repo user",
+            "repo",
+            "user id",
+            "project id",
+            "display name",
+            "user name",
+        ],
+    ):
         match key:
             case "project name":
                 return proj.name
@@ -617,30 +699,38 @@ def search_project(ctx: Context, public: bool):
                 return proj.id
             case "user name":
                 return proj.user.name
-    
+
     filtered = list(filter(lambda proj: full_info(proj) is not None, all_projs))
 
     base = f"Founded {len(filtered)} matched project"
     if req:
-        base += f" with keyword \"{req}\""
+        base += f' with keyword "{req}"'
     if len(filtered) > 50:
         base += " (Only showing 50 results)"
     base += "\n"
-    base += "\n".join(f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours:.1f}h" + (f" matched by {full_info(p)} - {
-        str(retrieve(p, full_info(p) or "project name"))[:150]
-    }" if req else "") for p in filtered[:50])
+    base += "\n".join(
+        f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours:.1f}h"
+        + (
+            f" matched by {full_info(p)} - {
+                str(retrieve(p, full_info(p) or 'project name'))[:150]
+            }"
+            if req
+            else ""
+        )
+        for p in filtered[:50]
+    )
 
     if public:
         ctx.public_send(text=base)
     else:
         ctx.private_send(text=base)
 
+
 def fetch_dictionary(word: str) -> dictionary.DictError | dictionary.DictResult:
     req = requests.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}")
     if not req.ok:
         return dictionary.DictError.parse(req.json())
     return dictionary.DictResult.parse(req.json()[0])
-
 
 
 @slash_listen("/define")
@@ -653,6 +743,7 @@ def get_define(ctx: Context, public: bool):
     if public:
         return ctx.public_send(text=fetch_dictionary(ctx.value).readable)
     return ctx.private_send(text=fetch_dictionary(ctx.value).readable)
+
 
 @slash_listen("/proj_details")
 @smart_msg_listen("siege.proj_details ")
@@ -672,12 +763,14 @@ def get_user_details(ctx: Context, public: bool):
         proj = get_project(proj_id)
         core.push_proj([proj])
     except Exception:
-        message_lines.append("Project can no longer be discovered from the API, the project might be hidden or deleted.")
+        message_lines.append(
+            "Project can no longer be discovered from the API, the project might be hidden or deleted."
+        )
     heartbeats = list(reversed(core.retrieve_all_proj_record(proj_id)))
     if not heartbeats:
         return ctx.private_send(text="No heartbeat data found for this project.")
     message_lines.append(
-        f"""*{_time_to_slack(heartbeats[0].measurement_time)}*: Project first discovered\n> Repo URL: {"None" if not heartbeats[0].repo_url else f"<{heartbeats[0].repo_url}|{_parse_repo(heartbeats[0].repo_url)}>" }\n> Demo URL: {heartbeats[0].demo_url or "None"}\n> Status: {heartbeats[0].proj_status}\n> Hours: {heartbeats[0].hours}\n> Project Name: \"{heartbeats[0].title}\"\n> Description: \"{heartbeats[0].description}\""""
+        f"""*{_time_to_slack(heartbeats[0].measurement_time)}*: Project first discovered\n> Repo URL: {"None" if not heartbeats[0].repo_url else f"<{heartbeats[0].repo_url}|{_parse_repo(heartbeats[0].repo_url)}>"}\n> Demo URL: {heartbeats[0].demo_url or "None"}\n> Status: {heartbeats[0].proj_status}\n> Hours: {heartbeats[0].hours}\n> Project Name: \"{heartbeats[0].title}\"\n> Description: \"{heartbeats[0].description}\""""
     )
     for curr, next in zip(heartbeats, heartbeats[1:]):
         diff = curr.compare_to_new(next)
@@ -696,7 +789,7 @@ def get_user_details(ctx: Context, public: bool):
             # elif key == "Demo URL":
             #     line += f"\n> {key}: {old} -> {new}"
             elif key in ["Project Name", "Description"]:
-                line += f"\n> {key}: \"{old}\" -> \"{new}\""
+                line += f'\n> {key}: "{old}" -> "{new}"'
             elif key == "Hours":
                 line += f"\n> {key}: {old}h -> {new}h"
             else:
@@ -710,7 +803,10 @@ def get_user_details(ctx: Context, public: bool):
 
 @slash_listen("/siege_shop")
 @smart_msg_listen("siege.shop")
-@description("/siege_shop", "Time to go shopping!!! This is what you have working toward the whole time! (Or maybe not...)")
+@description(
+    "/siege_shop",
+    "Time to go shopping!!! This is what you have working toward the whole time! (Or maybe not...)",
+)
 @utils.get_group
 @utils.filter_allowed
 @utils.has_group("siege")
@@ -718,15 +814,16 @@ def get_shop(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):
         public = False
     shop_item = get_shop_item()
-    message_lines = [
-        f"*Items*",
-        f"*Cosmetic*"
-    ]
+    message_lines = [f"*Items*", f"*Cosmetic*"]
     for item in sorted(shop_item.cosmetics, key=lambda x: x.id):
-        message_lines.append(f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins with type {item.type.capitalize()}")
+        message_lines.append(
+            f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins with type {item.type.capitalize()}"
+        )
     message_lines.append(f"*Physical*")
     for item in sorted(shop_item.physical_items, key=lambda x: x.id):
-        message_lines.append(f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins, digital: {item.digital}")
+        message_lines.append(
+            f"> *{item.name}* (`{item.id}`) - {item.description} for {item.cost} coins, digital: {item.digital}"
+        )
     if public:
         ctx.public_send(True, text="\n".join(message_lines))
     else:
@@ -759,7 +856,9 @@ def get_proj_details(ctx: Context, public: bool):
         user_id = user.id
         core.push_user([user])
     except Exception:
-        message_lines.append("User can no longer be discovered from the API; may be hidden or deleted.")
+        message_lines.append(
+            "User can no longer be discovered from the API; may be hidden or deleted."
+        )
     if user_id is None:
         user_id = core.get_user_id_from_slack(slack_user_id)
     if user_id is None:
@@ -791,7 +890,7 @@ def get_proj_details(ctx: Context, public: bool):
         line = f"*{_time_to_slack(curr.measurement_time)}*:"
         for key, (old, new) in diff.items():
             if key == "Username":
-                line += f"\n> {key}: \"{old}\" -> \"{new}\""
+                line += f'\n> {key}: "{old}" -> "{new}"'
             else:
                 line += f"\n> {key}: {old} -> {new}"
         timeline.append((curr.measurement_time, line))
@@ -818,7 +917,7 @@ def get_proj_details(ctx: Context, public: bool):
                 (
                     first.measurement_time,
                     f"*{_time_to_slack(first.measurement_time)}*: Project `{proj_id}` first discovered"
-                    + (f"\n> Project Name: \"{first.title}\"")
+                    + (f'\n> Project Name: "{first.title}"'),
                 )
             )
 
@@ -827,7 +926,7 @@ def get_proj_details(ctx: Context, public: bool):
                 (
                     last.measurement_time,
                     f"*{_time_to_slack(last.measurement_time)}*: Project `{proj_id}` have been removed"
-                    + (f"\n> Project Name: \"{last.title}\"")
+                    + (f'\n> Project Name: "{last.title}"'),
                 )
             )
 

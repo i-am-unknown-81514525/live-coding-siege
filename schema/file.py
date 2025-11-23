@@ -3,6 +3,7 @@ from typing import TypedDict
 from io import IOBase
 from os import PathLike
 
+
 class Attachment(TypedDict):
     id: str
     created: int
@@ -35,7 +36,7 @@ class Attachment(TypedDict):
     preview_is_truncated: bool | None
     comments_count: int | None
     is_starred: bool | None
-    shares: dict | None # Idgaf at this point not like I care what inside this
+    shares: dict | None  # Idgaf at this point not like I care what inside this
     channels: list[str] | None
     groups: list[str] | None
     ims: list[str] | None
@@ -43,12 +44,13 @@ class Attachment(TypedDict):
     has_rich_preview: bool | None
     file_access: str | None
 
+
 # https://github.com/slackapi/bolt-js/blob/6b0f985287301fd7e4b679822708b46aeca1421a/src/types/view/index.ts#L145 wtf
 # https://docs.slack.dev/messaging/working-with-files/#sdks
 @dataclass(frozen=True)
 class UploadedFile:
-    file_id: str # id
-    file_external_id: str # title, this is internal behaviour for file identification
+    file_id: str  # id
+    file_external_id: str  # title, this is internal behaviour for file identification
     created: int
     timestamp: int
     name: str
@@ -79,7 +81,7 @@ class UploadedFile:
     preview_is_truncated: bool | None
     comments_count: int | None
     is_starred: bool | None
-    shares: dict | None # Idgaf at this point not like I care what inside this
+    shares: dict | None  # Idgaf at this point not like I care what inside this
     channels: list[str] | None
     groups: list[str] | None
     ims: list[str] | None
@@ -130,7 +132,7 @@ class UploadedFile:
             has_rich_preview=data.get("has_rich_preview"),
             file_access=data.get("file_access"),
         )
-    
+
     def export(self) -> Attachment:
         return {
             "id": self.file_id,
@@ -172,6 +174,7 @@ class UploadedFile:
             "has_rich_preview": self.has_rich_preview,
             "file_access": self.file_access,
         }
+
 
 class GetURLData(TypedDict):
     filename: str

@@ -7,6 +7,7 @@ from config import get_config
 from arrow import Arrow
 from slack_sdk.web import WebClient
 
+
 @dataclass(frozen=True)
 class Turns:
     used_id: str
@@ -32,13 +33,12 @@ class GameInstance:
 
 
 class LiveModuleBase(ABC):
-
     BOUND: ClassVar[tuple[int, int]] = (300, 1200)
 
     def __init__(self, instance: GameInstance):
         self._instance = instance
         super().__init__()
-    
+
     @abstractmethod
     def on_create(self) -> None:
         pass
@@ -54,7 +54,7 @@ class LiveModuleBase(ABC):
     @abstractmethod
     def on_join(self, user_id: str) -> None:
         pass
-    
+
     @abstractmethod
     def on_leave(self, user_id: str) -> None:
         pass
@@ -62,7 +62,7 @@ class LiveModuleBase(ABC):
     @abstractmethod
     def on_pick(self, user_id: str) -> None:
         pass
-    
+
     @abstractmethod
     def get_ticket(self, user: str) -> int: ...
 
@@ -71,6 +71,7 @@ class LiveModuleBase(ABC):
 
     @abstractmethod
     def refresh_tickets(self, users: list[str]) -> dict[str, int]: ...
+
 
 def get_module(instance: GameInstance) -> LiveModuleBase:
     config = get_config()["bot"]["group"][instance.mode]

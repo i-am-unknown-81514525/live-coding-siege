@@ -8,10 +8,12 @@ class Readable(ABC):
     @abstractmethod
     def readable(self) -> str: ...
 
+
 class RawDictError(TypedDict):
     title: str
     message: str
     resolution: str
+
 
 @dataclass(frozen=True)
 class License(Readable):
@@ -21,10 +23,11 @@ class License(Readable):
     @property
     def readable(self) -> str:
         return f"<{self.url}|{self.name}>"
-    
+
     @classmethod
     def parse(cls, raw: dict) -> Self:
         return cls(**raw)
+
 
 @dataclass(frozen=True)
 class DictError(Readable):
@@ -35,10 +38,11 @@ class DictError(Readable):
     @property
     def readable(self) -> str:
         return f"*{self.title}*\n{self.message}\n{self.resolution}"
-    
+
     @classmethod
     def parse(cls, raw: RawDictError) -> Self:
         return cls(**raw)
+
 
 @dataclass(frozen=True)
 class WordDef(Readable):
@@ -50,7 +54,7 @@ class WordDef(Readable):
     @classmethod
     def parse(cls, raw: dict) -> Self:
         return cls(**raw)
-    
+
     @property
     def readable(self) -> str:
         text = f"- {self.definition}"
@@ -62,7 +66,6 @@ class WordDef(Readable):
             text += f"\n> *Example:* {self.example}"
         return text
 
-    
 
 @dataclass(frozen=True)
 class WordDefPart(Readable):
@@ -81,14 +84,15 @@ class WordDefPart(Readable):
             antonyms=raw["antonyms"],
             definitions=[WordDef.parse(d) for d in raw["definitions"]],
         )
-    
+
     @property
     def readable(self) -> str:
-        return f"*{self.word} ({self.partOfSpeech})*\n{"\n".join(definition.readable for definition in self.definitions)}"
+        return f"*{self.word} ({self.partOfSpeech})*\n{'\n'.join(definition.readable for definition in self.definitions)}"
+
 
 @dataclass(frozen=True)
 class PhoneticsResult(Readable):
-    text: str | None 
+    text: str | None
     audio: str | None
     sourceUrl: str | None
     license: License | None
@@ -101,11 +105,10 @@ class PhoneticsResult(Readable):
             sourceUrl=raw.get("sourceUrl"),
             license=License.parse(raw["license"]) if raw.get("license") else None,
         )
-    
+
     @property
     def readable(self) -> str:
         return f"{self.text}"
-    
 
 
 @dataclass(frozen=True)
@@ -125,9 +128,9 @@ class DictResult(Readable):
             phonetics=[PhoneticsResult.parse(p) for p in raw["phonetics"]],
             license=License.parse(raw["license"]),
             sourceUrls=raw["sourceUrls"],
-            meanings=[WordDefPart.parse(raw["word"] ,p) for p in raw["meanings"]],
+            meanings=[WordDefPart.parse(raw["word"], p) for p in raw["meanings"]],
         )
-    
+
     @property
     def readable(self) -> str:
-        return f"*{self.word}*{f"({self.phonetic})" if self.phonetic else ""}\n{"\n".join(meaning.readable for meaning in self.meanings)}\n{self.license.readable} from https://dictionaryapi.dev/"
+        return f"*{self.word}*{f'({self.phonetic})' if self.phonetic else ''}\n{'\n'.join(meaning.readable for meaning in self.meanings)}\n{self.license.readable} from https://dictionaryapi.dev/"

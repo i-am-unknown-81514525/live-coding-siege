@@ -220,12 +220,14 @@ class SiegeProject(SiegePartialProject):
             hours=data["hours"],
         )
 
+
 @dataclass(frozen=True, eq=True)
 class SiegeShopItemBase:
     id: str
     name: str
     description: str
     cost: int
+
 
 @dataclass(frozen=True, eq=True)
 class SiegeShopItemCosmetic(SiegeShopItemBase):
@@ -241,6 +243,7 @@ class SiegeShopItemCosmetic(SiegeShopItemBase):
             type=data["type"],
         )
 
+
 @dataclass(frozen=True, eq=True)
 class SiegeShopItemPhysical(SiegeShopItemBase):
     digital: bool
@@ -254,7 +257,8 @@ class SiegeShopItemPhysical(SiegeShopItemBase):
             cost=data["cost"],
             digital=data["digital"],
         )
-    
+
+
 @dataclass(frozen=True)
 class SiegeShop:
     cosmetics: frozenset[SiegeShopItemCosmetic]
@@ -264,5 +268,7 @@ class SiegeShop:
     def parse(cls, data: dict) -> Self:
         return cls(
             cosmetics=frozenset(map(SiegeShopItemCosmetic.parse, data["cosmetics"])),
-            physical_items=frozenset(map(SiegeShopItemPhysical.parse, data["physical_items"])),
+            physical_items=frozenset(
+                map(SiegeShopItemPhysical.parse, data["physical_items"])
+            ),
         )

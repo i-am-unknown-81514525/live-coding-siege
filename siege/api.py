@@ -6,7 +6,7 @@ from siege.schema.siege import (
     SiegeUser,
     SiegePartialProject,
     SiegePartialUser,
-    SiegeShop
+    SiegeShop,
 )
 import bs4, re, os, logging
 
@@ -94,6 +94,7 @@ def get_all_projs() -> list[SiegeProject]:
     logging.info(f"GET {url} {response.status_code}")
     data = response.json().get("projects", [])
     return list(map(SiegeProject.parse, data))
+
 
 def get_shop_item() -> SiegeShop:
     url = "https://siege.hackclub.com/api/public-beta/shop"

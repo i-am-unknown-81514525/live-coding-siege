@@ -21,7 +21,7 @@ from reg import (
     smart_msg_listen,
     MessageContext,
     description,
-    Context
+    Context,
 )
 from crypto.core import DeterRnd, Handler, _sha3, randint
 import live.db as db
@@ -47,6 +47,7 @@ def int_handler(bits: int) -> Handler[int]:
 GLOBAL_LOC_RETRIVAL_LOCK = Lock()
 GAME_LOCK: dict[int, Lock] = {}
 
+
 def get_game_lock(game_id: int) -> Lock:
     with GLOBAL_LOC_RETRIVAL_LOCK:
         if game_id in GAME_LOCK:
@@ -54,7 +55,10 @@ def get_game_lock(game_id: int) -> Lock:
         GAME_LOCK[game_id] = Lock()
         return GAME_LOCK[game_id]
 
-def get_game_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, P], T]:
+
+def get_game_group[**P, T, C: Context](
+    func: Callable[Concatenate[C, list[str], P], T],
+) -> Callable[Concatenate[C, P], T]:
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:
         ret: list[str] = []
         if ctx.thread_ts:
@@ -63,15 +67,21 @@ def get_game_group[**P, T, C: Context](func: Callable[Concatenate[C, list[str], 
                 instance = db.get_game_instance(game_id, ctx.client)
                 ret = [instance.mode]
         return func(ctx, ret, *args, **kwargs)
+
     return inner
 
-def filter_by_value[**P, T, C: Context](func: Callable[Concatenate[C, list[str], P], T]) -> Callable[Concatenate[C, list[str], P], T]:
+
+def filter_by_value[**P, T, C: Context](
+    func: Callable[Concatenate[C, list[str], P], T],
+) -> Callable[Concatenate[C, list[str], P], T]:
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         ret: list[str] = []
         if ctx.value.strip() in groups:
             ret = [ctx.value.strip()]
         return func(ctx, ret, *args, **kwargs)
+
     return inner
+
 
 @smart_msg_listen("live.test1")
 def test_interactive(ctx: Context):
@@ -104,7 +114,10 @@ def _technical_not_reveal_from_msg(
 
 
 @smart_msg_listen("live.init")
-@description("live.init", "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)")
+@description(
+    "live.init",
+    "Start the game (Stonemason only) or revive an existing game if it doesn't cause database state conflict (Game manager only)",
+)
 @get_group
 @require_allowed
 @utils.duplicate_second
@@ -114,15 +127,15 @@ def _technical_not_reveal_from_msg(
 def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
     picked_mode = ctx.value
     if picked_mode not in modes:
-        text = f"\"{picked_mode}\" cannot be selected"
+        text = f'"{picked_mode}" cannot be selected'
         if picked_mode:
             text += ", You can only select one of "
-            text += ", ".join(f"\"{mode}\"" for mode in picked_mode)
+            text += ", ".join(f'"{mode}"' for mode in picked_mode)
         return ctx.private_send(text=text)
     user_id = ctx.author_id
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts or ctx.message_ts
-    
+
     if not thread_ts:
         ctx.public_send(text="Unable to locate the thread")
         return
@@ -131,9 +144,7 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
     if existing_game_id:
         game_is_active = db.get_active_game_by_thread(channel_id, thread_ts) is not None
         if game_is_active:
-            ctx.public_send(
-                text="A magic show is already active in this thread."
-            )
+            ctx.public_send(text="A magic show is already active in this thread.")
             return
 
         previous_managers = db.list_game_manager(existing_game_id)
@@ -204,7 +215,7 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
         datetime.now(timezone.utc),
         client_secret,
         server_secret,
-        picked_mode
+        picked_mode,
     )
     db.add_game_manager(game_id, user_id)
     instance = db.get_game_instance(game_id, ctx.client)
@@ -247,7 +258,7 @@ def handle_restart_game(ctx: InteractionContext, have_authorised: bool):
         )
         return
 
-    is_authorized =have_authorised
+    is_authorized = have_authorised
     if is_authorized:
         if db.get_game_mgr_active_game(user_id):
             ctx.private_send(
@@ -290,7 +301,7 @@ def handle_restart_game(ctx: InteractionContext, have_authorised: bool):
             conn, game_id_to_restart, "GAME_RESTART", client_secret, server_secret
         )
         conn.commit()
-    
+
     instance = db.get_game_instance(game_id_to_restart, ctx.client)
     module = get_module(instance)
     users: list[str] = db.get_huddle_participants(game_id_to_restart)
@@ -302,10 +313,7 @@ def handle_restart_game(ctx: InteractionContext, have_authorised: bool):
         text=f"✨ The show (ID: {game_id_to_restart}) has been restarted by <@{user_id}>!",
         **_technical_not_reveal(client_secret, server_secret).build(),
     )
-    ctx.public_send(
-        text="Show restarted.",
-        blocks=[]
-    )
+    ctx.public_send(text="Show restarted.", blocks=[])
 
 
 def _handle_manager_action_timeout(
@@ -389,8 +397,12 @@ def _handle_user_turn_timeout(
     ).build()
     client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, **message_payload)
 
+
 @smart_msg_listen("live.huddle_rst")
-@description("live.huddle_rst", "Remove bot knowledge of you being in any huddle (If you are currently in a game huddle, it will believe you are not)")
+@description(
+    "live.huddle_rst",
+    "Remove bot knowledge of you being in any huddle (If you are currently in a game huddle, it will believe you are not)",
+)
 def huddle_rst(ctx: MessageContext):
     user_id = ctx.author_id
     huddles = db.get_user_huddles(user_id)
@@ -399,10 +411,15 @@ def huddle_rst(ctx: MessageContext):
         return
     for huddle in set(huddles):
         db.remove_huddle_participant(user_id, huddle)
-    ctx.private_send(text=f"Your {len(set(huddles))} huddle join state have been reset.")
+    ctx.private_send(
+        text=f"Your {len(set(huddles))} huddle join state have been reset."
+    )
+
 
 @smart_msg_listen("live.reloc")
-@description("live.reloc", "Relocate the game into different thread, channel and huddle")
+@description(
+    "live.reloc", "Relocate the game into different thread, channel and huddle"
+)
 @get_group
 @require_allowed
 @utils.consume_second
@@ -416,18 +433,27 @@ def reloc(ctx: MessageContext, game_id: int):
     with get_game_lock(game_id):
         huddles = db.get_user_huddles(ctx.author_id)
         if len(huddles) == 0:
-            ctx.private_send(text="You are not in any huddle currently. Therefore the game cannot be relocated.")
+            ctx.private_send(
+                text="You are not in any huddle currently. Therefore the game cannot be relocated."
+            )
             return
         if len(set(huddles)) > 1:
-            ctx.private_send(text=f"Potential ambigious relocation: {', '.join(f"\"{huddle}\"" for huddle in set(huddles))}. Only join with a single huddle, or leave the huddle, run `live.huddle_rst` and rejoin.")
+            ctx.private_send(
+                text=f"Potential ambigious relocation: {', '.join(f'"{huddle}"' for huddle in set(huddles))}. Only join with a single huddle, or leave the huddle, run `live.huddle_rst` and rejoin."
+            )
             return
         huddle_id = huddles[0]
         db.edit_game(game_id, huddle_id, channel_id, thread_ts)
-    ctx.public_send(text=f"Game relocated to this thread and huddle `{huddle_id}` successfully. (Location: https://hackclub.slack.com/archives/{channel_id}/p{thread_ts.replace('.', '')})")
-    
+    ctx.public_send(
+        text=f"Game relocated to this thread and huddle `{huddle_id}` successfully. (Location: https://hackclub.slack.com/archives/{channel_id}/p{thread_ts.replace('.', '')})"
+    )
+
 
 @smart_msg_listen("live.debug_turn")
-@description("live.debug_turn", "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)")
+@description(
+    "live.debug_turn",
+    "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)",
+)
 @get_group
 @require_authorised
 @require_group("siege")
@@ -759,7 +785,6 @@ def leave(ctx: MessageContext, game_id: int):
 @require_group("siege")
 @require_game_thread
 def takeover(ctx: MessageContext, game_id: int):
-
     user_id = ctx.author_id
     db.add_game_manager(game_id, user_id)
 
@@ -769,7 +794,10 @@ def takeover(ctx: MessageContext, game_id: int):
 
 
 @smart_msg_listen("live.rm_mgr")
-@description("live.rm_mgr", "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))")
+@description(
+    "live.rm_mgr",
+    "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))",
+)
 @get_group
 @require_authorised
 @require_group("siege")
@@ -861,9 +889,8 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
 
     push_ticket_update_ws(game_id)
 
-    ctx.private_send(
-        text=f"You have {ticket_count} tickets."
-    )
+    ctx.private_send(text=f"You have {ticket_count} tickets.")
+
 
 # @smart_msg_listen("live.reset")
 # @description("live.reset", "Reset your siege project record in the database for the game")
@@ -873,10 +900,12 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
 #         return ctx.private_send(text="`SIEGE_MODE` is off, therefore ticket is insignificant here")
 #     db.reset_game_participant(game_id, ctx.author_id)
 #     ctx.private_send(text="Attempted to reset your project")
-    
+
+
 def push_ticket_update_ws(game_id: int):
     coro = controller.connection_manager.send(f"ticket/{game_id}", b"UPDATE")
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
+
 
 @smart_msg_listen("live.ticket_list")
 @description("live.ticket_list", "List everyone tickets")
@@ -909,13 +938,15 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
 
 
 @smart_msg_listen("live.pick")
-@description("live.pick", "Pick a user to start a turn, or switch state for the corresponding state of the game (Game manager only)")
+@description(
+    "live.pick",
+    "Pick a user to start a turn, or switch state for the corresponding state of the game (Game manager only)",
+)
 @require_game_manager
 def pick_user(ctx: Context, game_id: int):
     channel_id = ctx.channel_id
 
     with get_game_lock(game_id):
-
         active_turn_message = _build_active_turn_message(game_id, is_public=False)
         if active_turn_message:
             ctx.public_send(**active_turn_message.build())
@@ -1309,7 +1340,9 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
 
 
 @smart_msg_listen("live.client_secret")
-@description("live.client_secret", "The current client secret (Just look at the screen)")
+@description(
+    "live.client_secret", "The current client secret (Just look at the screen)"
+)
 @require_game_thread
 def show_client_secret(ctx: MessageContext, game_id: int):
     (client_secret, _) = db.get_latest_secrets(game_id) or ("N/A", "N/A")
@@ -1651,7 +1684,10 @@ async def _dispatch_async(coro: Awaitable[Any]):
 
 
 @smart_msg_listen("live.mgr_secret")
-@description("live.mgr_secret", "Show manager secret for authentication on https://livecode.relay7f98.us.to for web dashboard")
+@description(
+    "live.mgr_secret",
+    "Show manager secret for authentication on https://livecode.relay7f98.us.to for web dashboard",
+)
 @require_game_manager
 def show_mgr_secret(ctx: MessageContext, game_id: int):
     user_id = ctx.event.message.user
@@ -1750,7 +1786,9 @@ def handle_huddle_start_message(ctx: MessageContext):
 @huddle_listen(HuddleState.IN_HUDDLE)
 def handle_huddle_join(event: HuddleChange, client: WebClient):
     user_id = event.user.id
-    user_name = event.user.profile.display_name or event.user.real_name or event.user.name
+    user_name = (
+        event.user.profile.display_name or event.user.real_name or event.user.name
+    )
     huddle_id = event.call_id
     db.upsert_huddle(huddle_id, "UNKNOWN", datetime.now(timezone.utc))
     db.upsert_user(user_id, user_name, event.user.profile.avatars.image_512)
@@ -1867,6 +1905,7 @@ def load_active_timers(client: WebClient):
             )
 
     print(f"Finished loading {len(in_progress_turns)} IN_PROGRESS turn timers.")
+
 
 def start(client: BaseSocketModeClient):
     db.init_db()

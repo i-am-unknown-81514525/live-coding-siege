@@ -18,7 +18,7 @@ from live.base import LiveModuleBase, GameInstance
 import siege.api as api
 import siege.utils as utils
 
-BASE_DIR =Path()
+BASE_DIR = Path()
 DB_FILE = Path(BASE_DIR) / "data" / "siege.db"
 SCHEMA_FILE = os.path.join(BASE_DIR, "siege_schema.sql")
 
@@ -47,11 +47,13 @@ def init_db():
         conn.commit()
     print("Siege Database initialized successfully.")
 
+
 def push_proj(projs: list[SiegeProject]):
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         for proj in projs:
-            cursor.execute("""
+            cursor.execute(
+                """
             INSERT INTO proj_record (
                 proj_id,
                 measurement_time,
@@ -64,14 +66,27 @@ def push_proj(projs: list[SiegeProject]):
                 demo_url,
                 proj_status
             ) VALUES (?,CURRENT_TIMESTAMP,?,?,?,?,?,?,?,?)""",
-            (proj.id, proj.week, proj.name, proj.description, proj.user.id, proj.hours, proj.repo_url, proj.demo_url, proj.status))
+                (
+                    proj.id,
+                    proj.week,
+                    proj.name,
+                    proj.description,
+                    proj.user.id,
+                    proj.hours,
+                    proj.repo_url,
+                    proj.demo_url,
+                    proj.status,
+                ),
+            )
             conn.commit()
-        
+
+
 def push_user(users: list[SiegeUser]):
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         for user in users:
-            cursor.execute("""
+            cursor.execute(
+                """
             INSERT INTO user_record (
                 user_id,
                 measurement_time,
@@ -80,34 +95,45 @@ def push_user(users: list[SiegeUser]):
                 user_status
             )
             VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?)
-            """, (user.id, user.name, user.coins, user.status))
+            """,
+                (user.id, user.name, user.coins, user.status),
+            )
             conn.commit()
+
 
 def push_link(game_id: int, user_id: int) -> None:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT INTO game_link (
             game_id,
             user_id
         )
         VALUES (?, ?)
         ON CONFLICT (game_id, user_id) DO NOTHING
-        """, (game_id, user_id))
+        """,
+            (game_id, user_id),
+        )
         conn.commit()
+
 
 def push_mapping(slack_id: str, siege_user_id: int) -> None:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         INSERT INTO user_mapping (
             slack_id,
             siege_user_id
         )
         VALUES (?, ?)
         ON CONFLICT (slack_id) DO UPDATE SET siege_user_id=excluded.siege_user_id
-        """, (slack_id, siege_user_id))
+        """,
+            (slack_id, siege_user_id),
+        )
         conn.commit()
+
 
 def get_user_id_from_proj() -> list[int]:
     with get_siege_db_connection() as conn:
@@ -116,19 +142,25 @@ def get_user_id_from_proj() -> list[int]:
         rows = cursor.fetchall()
         return [row["user_id"] for row in rows]
 
+
 def get_user_proj(user_id: int, week: int | None) -> int | None:
     if week is None:
         week = utils.guess_week()
     return {proj.week: proj.id for proj in api.get_user(user_id).projects}.get(week)
 
+
 def fetch_linked_users(game_id: int) -> list[int]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT user_id FROM game_link WHERE game_id = ?
-        """, (game_id,))
+        """,
+            (game_id,),
+        )
         rows = cursor.fetchall()
         return [row["user_id"] for row in rows]
+
 
 def fetch_all_user_link(used_ids: list[int]) -> list[int]:
     with get_siege_db_connection() as conn:
@@ -141,6 +173,7 @@ def fetch_all_user_link(used_ids: list[int]) -> list[int]:
         rows = cursor.fetchall()
         return [row["game_id"] for row in rows]
 
+
 def prox_get_all_projs() -> list[SiegeProject]:
     result = api.get_all_projs()
     try:
@@ -149,6 +182,7 @@ def prox_get_all_projs() -> list[SiegeProject]:
         logging.warning(f"Failed to push update to db", exc_info=True)
     return result
 
+
 def prox_get_project(proj_id: api.ProjAlike) -> SiegeProject:
     project = api.get_project(proj_id)
     try:
@@ -156,6 +190,7 @@ def prox_get_project(proj_id: api.ProjAlike) -> SiegeProject:
     except Exception as e:
         logging.warning(f"Failed to push update to db", exc_info=True)
     return project
+
 
 def prox_get_user(user_id: api.UserAlike) -> SiegeUser:
     user = api.get_user(user_id)
@@ -167,6 +202,8 @@ def prox_get_user(user_id: api.UserAlike) -> SiegeUser:
 
 
 PROJ_LOOP_TIME = 300
+
+
 def proj_loop():
     while True:
         start = time.perf_counter()
@@ -177,7 +214,9 @@ def proj_loop():
         except Exception as e:
             logging.warning(f"Faile to fetch project", exc_info=True)
         try:
-            game_req_update = fetch_all_user_link(list(set(proj.user.id for proj in projs)))
+            game_req_update = fetch_all_user_link(
+                list(set(proj.user.id for proj in projs))
+            )
             for game_id in game_req_update:
                 try:
                     push_ticket_update_ws(game_id)
@@ -186,13 +225,18 @@ def proj_loop():
         except Exception as e:
             logging.warning(f"Faile to push update on game", exc_info=True)
         curr = time.perf_counter()
-        logging.info(f"Fetched and processed {len(projs)} projects in {curr-start}s (Loop time: {PROJ_LOOP_TIME}s)")
+        logging.info(
+            f"Fetched and processed {len(projs)} projects in {curr - start}s (Loop time: {PROJ_LOOP_TIME}s)"
+        )
         sleep_time = PROJ_LOOP_TIME - (curr - start)
         if sleep_time > 0:
             time.sleep(sleep_time)
 
+
 USER_LOOP_TIME = 450
 IDV_DELAY = 0.5
+
+
 def user_loop():
     while True:
         start = time.perf_counter()
@@ -208,20 +252,27 @@ def user_loop():
                     if IDV_DELAY - (idv_curr - idv_start) > 0:
                         time.sleep(IDV_DELAY - (idv_curr - idv_start))
                 except Exception as e:
-                    logging.info(f"Faile to fetch users with user id: {user_id}", exc_info=True)
+                    logging.info(
+                        f"Faile to fetch users with user id: {user_id}", exc_info=True
+                    )
             push_user(users)
             for user in users:
                 try:
                     push_mapping(user.slack_id, user.id)
                 except Exception as e:
-                    logging.info(f"Faile to push mapping for user id: {user.id}", exc_info=True)
+                    logging.info(
+                        f"Faile to push mapping for user id: {user.id}", exc_info=True
+                    )
         except Exception as e:
             logging.warning(f"Faile to fetch users", exc_info=True)
         curr = time.perf_counter()
-        logging.info(f"Fetched and processed {len(users)} users in {curr-start}s (Loop time: {USER_LOOP_TIME}s)")
+        logging.info(
+            f"Fetched and processed {len(users)} users in {curr - start}s (Loop time: {USER_LOOP_TIME}s)"
+        )
         sleep_time = USER_LOOP_TIME - (curr - start)
         if sleep_time > 0:
             time.sleep(sleep_time)
+
 
 @dataclass(frozen=True)
 class ProjHeartbeatRecord:
@@ -248,9 +299,9 @@ class ProjHeartbeatRecord:
             hours=row["hours"],
             repo_url=row["repo_url"],
             demo_url=row["demo_url"],
-            proj_status=row["proj_status"]
+            proj_status=row["proj_status"],
         )
-    
+
     def compare_to_new(self, new: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
         diffs: dict[str, tuple[str, str]] = {}
         if self.title != new.title:
@@ -266,9 +317,10 @@ class ProjHeartbeatRecord:
         if self.proj_status != new.proj_status:
             diffs["Project Status"] = (self.proj_status, new.proj_status)
         return diffs
-    
+
     def compare_to_old(self, old: "ProjHeartbeatRecord") -> dict[str, tuple[str, str]]:
         return old.compare_to_new(self)
+
 
 @dataclass(frozen=True)
 class UserHeartbeatRecord:
@@ -285,9 +337,9 @@ class UserHeartbeatRecord:
             measurement_time=arrow.get(row["measurement_time"]),
             username=row["username"],
             coin_count=row["coin_count"],
-            user_status=row["user_status"]
+            user_status=row["user_status"],
         )
-    
+
     def compare_to_new(self, new: "UserHeartbeatRecord") -> dict[str, tuple[str, str]]:
         diffs: dict[str, tuple[str, str]] = {}
         if self.username != new.username:
@@ -297,13 +349,16 @@ class UserHeartbeatRecord:
         if self.user_status != new.user_status:
             diffs["User Status"] = (self.user_status, new.user_status)
         return diffs
+
     def compare_to_old(self, old: "UserHeartbeatRecord") -> dict[str, tuple[str, str]]:
         return old.compare_to_new(self)
+
 
 def retrieve_all_user_record(user_id: int) -> list[UserHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT
             user_id,
             measurement_time,
@@ -313,13 +368,16 @@ def retrieve_all_user_record(user_id: int) -> list[UserHeartbeatRecord]:
         FROM user_record
         WHERE user_id = ?
         ORDER BY measurement_time DESC
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         rows = cursor.fetchall()
         records = []
         for row in rows:
             record = UserHeartbeatRecord.from_row(row)
             records.append(record)
         return records
+
 
 def retrieve_every_user_record() -> list[UserHeartbeatRecord]:
     with get_siege_db_connection() as conn:
@@ -341,10 +399,12 @@ def retrieve_every_user_record() -> list[UserHeartbeatRecord]:
             records.append(record)
         return records
 
+
 def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT
             proj_id,
             measurement_time,
@@ -359,7 +419,9 @@ def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
         FROM proj_record
         WHERE user_id = ?
         ORDER BY measurement_time DESC
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         rows = cursor.fetchall()
         records = []
         for row in rows:
@@ -367,10 +429,12 @@ def retrieve_all_user_proj_record(user_id: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
+
 def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT
             proj_id,
             measurement_time,
@@ -385,7 +449,9 @@ def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
         FROM proj_record
         WHERE week_num = ?
         ORDER BY measurement_time DESC
-        """, (week,))
+        """,
+            (week,),
+        )
         rows = cursor.fetchall()
         records = []
         for row in rows:
@@ -393,59 +459,83 @@ def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
-def analyse_hour_by_time_in_week(heartbeats: list[ProjHeartbeatRecord]) -> dict[Arrow, float]:
+
+def analyse_hour_by_time_in_week(
+    heartbeats: list[ProjHeartbeatRecord],
+) -> dict[Arrow, float]:
     if not heartbeats:
         return {}
 
-    df = pl.DataFrame({
-        "time": [hb.measurement_time.datetime for hb in heartbeats],
-        "user_id": [hb.user_id for hb in heartbeats],
-        "proj_id": [hb.proj_id for hb in heartbeats],
-        "hours": [hb.hours for hb in heartbeats],
-    })
+    df = pl.DataFrame(
+        {
+            "time": [hb.measurement_time.datetime for hb in heartbeats],
+            "user_id": [hb.user_id for hb in heartbeats],
+            "proj_id": [hb.proj_id for hb in heartbeats],
+            "hours": [hb.hours for hb in heartbeats],
+        }
+    )
 
     df = df.sort("time")
 
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
-        return df.sort("time").group_by_dynamic("time", every="5m").agg([
-            pl.col("hours").max()
-        ])
-    
+        return (
+            df.sort("time")
+            .group_by_dynamic("time", every="5m")
+            .agg([pl.col("hours").max()])
+        )
+
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
-    total_hours_df = user_dfs.group_by("time").agg(pl.sum("hours").fill_null(strategy="forward", limit=3)).sort("time")
+    total_hours_df = (
+        user_dfs.group_by("time")
+        .agg(pl.sum("hours").fill_null(strategy="forward", limit=3))
+        .sort("time")
+    )
 
     return {
         arrow.get(row["time"]): row["hours"][0]
-        for row in total_hours_df.iter_rows(named=True)}
+        for row in total_hours_df.iter_rows(named=True)
+    }
+
 
 def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int]:
     if not heartbeats:
         return {}
 
-    df = pl.DataFrame({
-        "time": [hb.measurement_time.datetime for hb in heartbeats],
-        "user_id": [hb.user_id for hb in heartbeats],
-        "coin_count": [hb.coin_count for hb in heartbeats],
-    })
+    df = pl.DataFrame(
+        {
+            "time": [hb.measurement_time.datetime for hb in heartbeats],
+            "user_id": [hb.user_id for hb in heartbeats],
+            "coin_count": [hb.coin_count for hb in heartbeats],
+        }
+    )
 
     df = df.sort("time")
 
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
-        return df.sort("time").group_by_dynamic("time", every="15m").agg([
-            pl.col("coin_count").max()
-        ])
-    
+        return (
+            df.sort("time")
+            .group_by_dynamic("time", every="15m")
+            .agg([pl.col("coin_count").max()])
+        )
+
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
-    total_coin_df = user_dfs.group_by("time").agg(pl.sum("coin_count").fill_null(strategy="forward")).sort("time") # , limit=3
+    total_coin_df = (
+        user_dfs.group_by("time")
+        .agg(pl.sum("coin_count").fill_null(strategy="forward"))
+        .sort("time")
+    )  # , limit=3
 
     return {
         arrow.get(row["time"]): row["coin_count"][0]
-        for row in total_coin_df.iter_rows(named=True)}
+        for row in total_coin_df.iter_rows(named=True)
+    }
+
 
 def retrieve_all_proj_record(proj_id: int) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT
             proj_id,
             measurement_time,
@@ -460,7 +550,9 @@ def retrieve_all_proj_record(proj_id: int) -> list[ProjHeartbeatRecord]:
         FROM proj_record
         WHERE proj_id = ?
         ORDER BY measurement_time DESC
-        """, (proj_id,))
+        """,
+            (proj_id,),
+        )
         rows = cursor.fetchall()
         records = []
         for row in rows:
@@ -468,13 +560,17 @@ def retrieve_all_proj_record(proj_id: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
-def retrieve_all_heartbeat_curr_proj_curr_week(user_id: int, week_num: int, from_time: Arrow) -> list[ProjHeartbeatRecord]:
+
+def retrieve_all_heartbeat_curr_proj_curr_week(
+    user_id: int, week_num: int, from_time: Arrow
+) -> list[ProjHeartbeatRecord]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         curr_proj = get_user_proj(user_id, week_num)
         if curr_proj is None:
             return []
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT
             proj_id,
             measurement_time,
@@ -489,13 +585,16 @@ def retrieve_all_heartbeat_curr_proj_curr_week(user_id: int, week_num: int, from
         FROM proj_record
         WHERE user_id = ? AND week_num = ? AND proj_id = ? AND measurement_time >= ?
         ORDER BY measurement_time DESC
-        """, (user_id, week_num, curr_proj, from_time.datetime))
+        """,
+            (user_id, week_num, curr_proj, from_time.datetime),
+        )
         rows = cursor.fetchall()
         records = []
         for row in rows:
             record = ProjHeartbeatRecord.from_row(row)
             records.append(record)
         return records
+
 
 def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
     LEEWAY_HOURS_PER_HEARTBEAT = 0.15
@@ -519,12 +618,16 @@ def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
         curr_t = hb.measurement_time
     return max(0, final_h - initial_h - penalty_h)
 
+
 def get_user_id_from_slack(slack_id: str) -> int | None:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT siege_user_id FROM user_mapping WHERE slack_id = ?
-        """, (slack_id,))
+        """,
+            (slack_id,),
+        )
         row = cursor.fetchone()
         if row:
             return row["siege_user_id"]
@@ -533,15 +636,21 @@ def get_user_id_from_slack(slack_id: str) -> int | None:
             push_mapping(slack_id, user_id)
             return user_id
         except Exception:
-            logging.info(f"Faile to fetch user id from slack id: {slack_id}", exc_info=True)
+            logging.info(
+                f"Faile to fetch user id from slack id: {slack_id}", exc_info=True
+            )
             return None
+
 
 def get_user_ticket(game_id: int, user_id: str, week_num: int, from_time: Arrow) -> int:
     siege_user_id = get_user_id_from_slack(user_id)
     if siege_user_id is None:
         return 0
-    heartbeats = retrieve_all_heartbeat_curr_proj_curr_week(siege_user_id, week_num, from_time)
-    return int(analysis_heartbeat_hours(heartbeats)*10) + 10
+    heartbeats = retrieve_all_heartbeat_curr_proj_curr_week(
+        siege_user_id, week_num, from_time
+    )
+    return int(analysis_heartbeat_hours(heartbeats) * 10) + 10
+
 
 def start(client: SocketModeClient):
     init_db()

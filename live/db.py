@@ -131,16 +131,19 @@ def start_game(
             # This case should not be reached if the insert is successful and RETURNING is supported.
             raise RuntimeError("Failed to create a new game record.")
         game_id = row["id"]
-        _add_transaction(conn, game_id, "GAME_START", client_secret, server_secret, details={"mode": mode})
+        _add_transaction(
+            conn,
+            game_id,
+            "GAME_START",
+            client_secret,
+            server_secret,
+            details={"mode": mode},
+        )
         conn.commit()
         return game_id
 
-def edit_game(
-    game_id: int,
-    huddle_id: str,
-    channel_id: str,
-    thread_ts: str
-):
+
+def edit_game(game_id: int, huddle_id: str, channel_id: str, thread_ts: str):
     """Move a game to a new huddle/channel/thread."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -149,6 +152,7 @@ def edit_game(
             (huddle_id, channel_id, thread_ts, game_id),
         )
         conn.commit()
+
 
 def add_message_transaction(
     game_id: int, user_id: str, message_text: str, message_id: str
@@ -589,8 +593,6 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
 #                 except:
 #                     logging.warning(f"Failed to fetch project time for {user_id}", exc_info=True)
 #         return ret
-        
-            
 
 
 # def get_ticket(base: int, addition: int, h_per_addition: float, hour: float) -> int:
@@ -1063,6 +1065,7 @@ def has_user(user_id: str) -> bool:
         ).fetchone()
         return row is not None
 
+
 def get_game_instance(game_id: int, client: WebClient) -> base.GameInstance:
     """
     Query the database and return a populated GameInstance for the given game_id.
@@ -1070,7 +1073,10 @@ def get_game_instance(game_id: int, client: WebClient) -> base.GameInstance:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT channel_id, thread_ts, mode, start_time FROM game WHERE id = ? LIMIT 1", (game_id,))
+        cur.execute(
+            "SELECT channel_id, thread_ts, mode, start_time FROM game WHERE id = ? LIMIT 1",
+            (game_id,),
+        )
         row = cur.fetchone()
         if not row:
             raise ValueError(f"Game {game_id} not found")
@@ -1101,7 +1107,11 @@ def get_game_instance(game_id: int, client: WebClient) -> base.GameInstance:
         start_ts: float | None = None
         if start_val:
             try:
-                start_ts = datetime.fromisoformat(start_val).replace(tzinfo=timezone.utc).timestamp()
+                start_ts = (
+                    datetime.fromisoformat(start_val)
+                    .replace(tzinfo=timezone.utc)
+                    .timestamp()
+                )
             except Exception:
                 start_ts = None
 
@@ -1126,12 +1136,11 @@ def get_game_instance(game_id: int, client: WebClient) -> base.GameInstance:
         participants=participants,
         mode=mode,
         start_time=start_time,
-        client=client
+        client=client,
     )
 
-def add_game_participant(
-    game_id: int, user_id: str, ticket_count: int
-):
+
+def add_game_participant(game_id: int, user_id: str, ticket_count: int):
     """Adds a user to a game's participant list. Update proper field when e.g. the user don't start with having a project."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -1144,6 +1153,7 @@ def add_game_participant(
             (game_id, user_id, ticket_count),
         )
         conn.commit()
+
 
 def get_participant_ticket_count(game_id: int, user_id: str) -> int | None:
     """Return ticket_count for a given participant in a game, or None if not present."""
@@ -1165,6 +1175,7 @@ def get_all_participant_ticket_counts(game_id: int) -> dict[str, int]:
             (game_id,),
         ).fetchall()
         return {r["user_id"]: (r["ticket_count"] or 0) for r in rows}
+
 
 if __name__ == "__main__":
     init_db()

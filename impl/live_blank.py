@@ -1,5 +1,6 @@
 from live.base import LiveModuleBase, GameInstance
 
+
 class Blank(LiveModuleBase):
     def __init__(self, instance: GameInstance):
         super().__init__(instance)
@@ -30,6 +31,7 @@ class Blank(LiveModuleBase):
 
     def on_pick(self, user_id: str) -> None:
         return None
+
 
 def get_module(instance: GameInstance) -> LiveModuleBase:
     return Blank(instance)
