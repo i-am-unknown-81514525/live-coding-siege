@@ -1,6 +1,8 @@
 import logging
 import os
-from threading import Thread, Event
+from importlib import import_module
+from threading import Event
+from types import ModuleType
 
 from dotenv import load_dotenv
 from slack_sdk import WebClient
@@ -9,7 +11,6 @@ from slack_sdk.socket_mode.client import BaseSocketModeClient
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
-import live.db as db
 from reg import (
     SlashContext,
     action_dispatch,
@@ -22,15 +23,13 @@ from reg import (
     Context,
     smart_msg_listen
 )
+
+import utils
 from schema.base import Recv
 from schema.huddle import HuddleChange
 from schema.interactive import BlockActionEvent
 from schema.message import MessageEvent
 from schema.slash_cmd import CommandEvent
-import live.server as server, siege.core as core, siege.remind as remind
-import utils
-from types import ModuleType
-from importlib import import_module
 
 load_dotenv()
 
@@ -65,10 +64,6 @@ def help(ctx: Context, public: bool):
     else:
         ctx.private_send(text=message)
 
-# Cmd load
-import siege.cmd as cmd
-import live.live as live
-
 def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
     response = SocketModeResponse(envelope_id=req.envelope_id)
     client.send_socket_mode_response(response)
@@ -100,7 +95,6 @@ def process_message(client: BaseSocketModeClient, req: SocketModeRequest):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    db.init_db()
     client = SocketModeClient(
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),

@@ -1869,4 +1869,5 @@ def load_active_timers(client: WebClient):
     print(f"Finished loading {len(in_progress_turns)} IN_PROGRESS turn timers.")
 
 def start(client: BaseSocketModeClient):
+    db.init_db()
     load_active_timers(client.web_client)
