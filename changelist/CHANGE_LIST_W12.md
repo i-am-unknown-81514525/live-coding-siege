@@ -13,3 +13,4 @@
 [ ] - Make so it would start tracking the user if it have been tracked once, instead of just rely on project create history for discovery
 [ ] - `siege.offline_user`, `siege.offline_proj` and `siege.offline_search` to search data only based on the stored heartbeat
 [x] - `live.reloc` and `live.huddle_rst`
+[x] - Build user status/coin/project hours graph
