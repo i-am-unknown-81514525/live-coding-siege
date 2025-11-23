@@ -379,7 +379,9 @@ def retrieve_all_user_record(user_id: int) -> list[UserHeartbeatRecord]:
         return records
 
 
-def retrieve_every_user_record() -> list[UserHeartbeatRecord]:
+def retrieve_every_user_record(since: Arrow | None = None) -> list[UserHeartbeatRecord]:
+    if since is None:
+        since = arrow.get(0)
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -390,8 +392,9 @@ def retrieve_every_user_record() -> list[UserHeartbeatRecord]:
             coin_count,
             user_status
         FROM user_record
+        WHERE measurement_time >= ?
         ORDER BY measurement_time DESC
-        """)
+        """, (since.datetime,))
         rows = cursor.fetchall()
         records = []
         for row in rows:
@@ -459,7 +462,9 @@ def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
-def retrieve_every_proj_record() -> list[ProjHeartbeatRecord]:
+def retrieve_every_proj_record(since: Arrow | None = None) -> list[ProjHeartbeatRecord]:
+    if since is None:
+        since = arrow.get(0)
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -476,8 +481,10 @@ def retrieve_every_proj_record() -> list[ProjHeartbeatRecord]:
             demo_url,
             proj_status
         FROM proj_record
+        WHERE measurement_time >= ?
         ORDER BY measurement_time DESC
         """,
+        (since.datetime,),
         )
         rows = cursor.fetchall()
         records = []

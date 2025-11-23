@@ -541,8 +541,8 @@ def generate_graph(ctx: Context, public: bool):
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile("coin.png", img, "Tracked coin count over time")
         case "coin_hours":
-            user_result = core.analyse_per_person_coin_count_status(core.retrieve_every_user_record())
-            proj_result = core.analyse_per_person_proj_hours(core.retrieve_every_proj_record())
+            user_result = core.analyse_per_person_coin_count_status(core.retrieve_every_user_record(Arrow.now().shift(minutes=-15)))
+            proj_result = core.analyse_per_person_proj_hours(core.retrieve_every_proj_record(Arrow.now().shift(minutes=-15)))
             all_user_id = set(user_result.keys()).union(set(proj_result.keys()))
             data = []
             for user_id in all_user_id:
@@ -551,12 +551,35 @@ def generate_graph(ctx: Context, public: bool):
                 data.append(
                     {
                         "user_id": user_id,
-                        "status": coin_data[1],
-                        "coins": coin_data[0],
+                        "status": coin_data[0],
+                        "coins": coin_data[1],
                         "hours": proj_data,
                     }
                 )
-                    
+            df = pandas.DataFrame(data)
+            fig, ax = plt.subplots(figsize=(6, 8))
+            plot = sns.scatterplot(
+                df,
+                x="hours",
+                y="coins",
+                hue="status",
+                palette={"new": "blue", "working": "green", "out": "orange", "banned": "red"},
+                ax=ax,
+            )
+            ax.set_title("Total coins vs total project hours by user")
+            ax.set_xlabel("Total project hours")
+            ax.set_ylabel("Total coins")
+            ax.set_xlim(0, max(df["hours"]) * 1.1)
+            fig.tight_layout()
+            iodt = BytesIO()
+            img = b""
+            if fig:
+                try:
+                    fig.savefig(iodt, format="png")  # type: ignore
+                    img = iodt.getvalue()
+                except Exception as e:
+                    logging.error(f"Failed to save figure: {e}")
+            media = PendingFile("coin_hours.png", img, "Total coins vs total project hours by user")
         case _:
             ...
 
