@@ -561,12 +561,13 @@ def analyse_per_person_proj_hours(heartbeats: list[ProjHeartbeatRecord]) -> dict
             "user_id": [hb.user_id for hb in heartbeats],
             "proj_id": [hb.proj_id for hb in heartbeats],
             "hours": [hb.hours for hb in heartbeats],
+            "week": [hb.week_num for hb in heartbeats],
         }
     )
 
     df = df.sort("time")
 
-    latest_df = df.group_by(["user_id", "proj_id"]).agg(
+    latest_df = df.group_by(["user_id", "week"]).agg(
         [
             pl.col("hours").last(),
         ]
