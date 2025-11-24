@@ -65,3 +65,11 @@ namespace = [
     "channel:C09KTR863L3",    # Internal 2
 ]
 module = "impl.event_redacted"
+
+[bot.group.irc]
+allowed = ["U_irc_0"]
+authorized = []
+namespace = [
+    "r:irc_channel:.*",
+]
+module = "impl.na" # not available
