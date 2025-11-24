@@ -142,6 +142,12 @@ def get_user_id_from_proj() -> list[int]:
         rows = cursor.fetchall()
         return [row["user_id"] for row in rows]
 
+def get_user_id_from_user() -> list[int]:
+    with get_siege_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""SELECT user_id FROM user_record GROUP BY user_id""")
+        rows = cursor.fetchall()
+        return [row["user_id"] for row in rows]
 
 def get_user_proj(user_id: int, week: int | None) -> int | None:
     if week is None:
@@ -240,7 +246,7 @@ IDV_DELAY = 0.5
 def user_loop():
     while True:
         start = time.perf_counter()
-        user_id_list: list[int] = get_user_id_from_proj()
+        user_id_list: list[int] = list(set(get_user_id_from_proj() + get_user_id_from_user()))
         users: list[SiegeUser] = []
         try:
             for user_id in user_id_list:
