@@ -46,11 +46,11 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 ### Public command list
 Use `siege.helps` or `/help` for the full list
 
-### Main change for W11
-- Rewrite permission system to indivdual group based on namespaces
-- Code refactor for better permission check
-- Track all change via Siege API to allow live coding event to get all project time on event start instead of their join time, to be more fair
-- `siege.shop`, `siege.user_details` and `siege.proj_details`
+### Main change for W12
+- File upload support in framework `Context`
+- Built a bunch of graph
+- REDACTED
+Check `changelist/CHANGE_LIST_W12.md` for full list
 
 ### How does it follow the framework theme
 The bot is built based upon a custom slack bot framework which is more useful than slack-bolt in some aspect (built with `slack-sdk` and `blockkit`), which support
