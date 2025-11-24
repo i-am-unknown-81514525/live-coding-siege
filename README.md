@@ -80,5 +80,9 @@ If you are lazy like me, check the image below:
 
 <img width="958" height="1340" alt="8380a6f9fedf1e5e99b357dde5dac8f3dac5240e0ca7eae6b68df95f4c4ef534" src="https://github.com/user-attachments/assets/30bd79bc-ab00-4a0f-b134-7d25698b3b71" />
 
+<img width="1210" height="828" alt="c9a2f0ded73813c9e79febc35faa035f62c332bc59b253b15fb0c1ffff2054a4" src="https://github.com/user-attachments/assets/5183eb9d-99b1-4bd2-924b-cdab355cadfd" />
+
+<img width="680" height="734" alt="752151953d7aba0b4a9d0752b3da270fb1508d60697856987e556d3ec6d6d8f4" src="https://github.com/user-attachments/assets/49878059-6f0c-4b04-86c1-618d6ea8a727" />
+
 (Idk why some of the background got significantly whiter than it actually is)
 
