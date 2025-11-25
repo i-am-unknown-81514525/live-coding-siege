@@ -61,6 +61,7 @@ The bot is built based upon a custom slack bot framework which is more useful th
 with a custom permission system.
 This can be used to make other slack bot (given you don't need other capability) by:
 Copying `main.py`(Bot launchor with the module loader), `config.py`(Config loader), `utils.py`(Permission decorator based on context namespace), `reg.py`(Command decorator // `Context` which provide a unified interaction interface to send message public/privately, between message/slash command and interaction) and `schema/`(All the different slack schema for this limited subsrt of capability)
+(Side noteL even the platform is made agnositic right now, and the specific implementation is described in `slack/`, (or `irc/` which is WIP for W13))
 
 There is also a different, more specific framework, which is in the live module (yes, framework in a framework), which allow custom behaviour of a live coding event and can be customized entirely (See `impl/live_blank.py` and `impl/siege.py`, which one just give everyone a single ticket while in siege is based on the coding time during the huddle)
 

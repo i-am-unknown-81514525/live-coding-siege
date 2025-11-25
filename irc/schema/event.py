@@ -3,11 +3,14 @@ from frozenlist import FrozenList
 from typing import Self
 import re
 
+_FROZEN = FrozenList()
+_FROZEN.freeze()
+
 @dataclass
 class Event:
-    prefix: str | None # this would exclude the ':'
     cmd: str
-    params: FrozenList[str]
+    prefix: str | None = None # this would exclude the ':'
+    params: FrozenList[str] = _FROZEN
     trailing: str | None = None
 
     @classmethod
@@ -45,3 +48,23 @@ class Event:
             ret += f":{self.trailing}"
         ret += "\r\n"
         return ret
+
+    @classmethod
+    def from_parts(
+        cls,
+        cmd: str,
+        *,
+        prefix: str | None = None,
+        params: list[str] | None = None,
+        trailing: str | None = None
+    ) -> Self:
+        frozen_params = _FROZEN
+        if params is not None:
+            frozen_params = FrozenList(params)
+            frozen_params.freeze()
+        return cls(
+            cmd=cmd,
+            prefix=prefix,
+            params=frozen_params,
+            trailing=trailing
+        )
