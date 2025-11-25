@@ -65,6 +65,9 @@ Copying `main.py`(Bot launchor with the module loader), `config.py`(Config loade
 
 There is also a different, more specific framework, which is in the live module (yes, framework in a framework), which allow custom behaviour of a live coding event and can be customized entirely (See `impl/live_blank.py` and `impl/siege.py`, which one just give everyone a single ticket while in siege is based on the coding time during the huddle)
 
+### How does it follow the winter theme
+We are undergoing(maybe not now? but at the time of writing: 25 November 2025 20:58 UTC) a communication winter, where Slack is not accessible, and a irc server is hosted for temporary communication. THerefore, the bot have adapted so it can handle command from irc chat as well (in `#siege` in `irc.hackclub.com`, might not available at the time of review)
+
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
 If you are lazy like me, check the image below:
@@ -84,6 +87,8 @@ If you are lazy like me, check the image below:
 <img width="1210" height="828" alt="c9a2f0ded73813c9e79febc35faa035f62c332bc59b253b15fb0c1ffff2054a4" src="https://github.com/user-attachments/assets/5183eb9d-99b1-4bd2-924b-cdab355cadfd" />
 
 <img width="680" height="734" alt="752151953d7aba0b4a9d0752b3da270fb1508d60697856987e556d3ec6d6d8f4" src="https://github.com/user-attachments/assets/49878059-6f0c-4b04-86c1-618d6ea8a727" />
+
+<img width="1026" height="174" alt="4718aa2f9752b6b22923bbfeb442014f5028a63910a6faedc7bf5eb0d2937321" src="https://github.com/user-attachments/assets/c7fe2ee8-96f7-4d13-95d9-f7cbe37bbc77" />
 
 (Idk why some of the background got significantly whiter than it actually is)
 
