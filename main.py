@@ -11,6 +11,7 @@ from slack_sdk.socket_mode import SocketModeClient
 from base import ExecutionContext
 
 from irc.client import IRCClient
+from irc.schema.event import Event
 from slack.reg import (
     slash_listen,
     DESCRIPTION,
@@ -35,6 +36,9 @@ CLIENTS = [
         port=6667,
         nickname="livecoding",
         realname="Live Coding Bot",
+        boot_events=[
+            Event.from_parts(cmd="JOIN", params=["#livecoding"])
+        ],
     )
 ]
 START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live"]
