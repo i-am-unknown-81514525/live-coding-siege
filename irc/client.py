@@ -5,6 +5,7 @@ from base import Client
 from irc.schema.event import Event
 import logging
 import time
+import textwrap
 
 
 class IRCClient(Client["IRCClient"]):
@@ -62,3 +63,14 @@ class IRCClient(Client["IRCClient"]):
     def send(self, event: Event):
         logging.info(f"IRC ->: {event.export(with_prefix=True).strip()}")
         self.sock.send(event.export(with_prefix=True).encode("utf-8"))
+
+    def _raw_send_msg(self, channel: str, text: str):
+        privmsg = Event.from_parts(cmd="PRIVMSG", params=[channel], trailing=text)
+        self.send(privmsg)
+    
+    def send_message(self, channel: str, text: str):
+        for line in text.split("\n"):
+            wrapped = textwrap.wrap(line, width=400)
+            for wrap_line in wrapped:
+                self._raw_send_msg(channel, wrap_line)
+                time.sleep(0.2)
