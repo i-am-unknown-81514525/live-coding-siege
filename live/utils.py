@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Concatenate
 from live import db
-from reg import Context
+from slack.reg import Context
 
 
 def require_game_thread[**P, T, C: Context](

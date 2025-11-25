@@ -1,6 +1,7 @@
 import os
 import logging, time
 
+from base import ExecutionContext
 from siege.core import prox_get_user, retrieve_all_user_proj_record
 from schema.user import UserProfile
 from slack_sdk.socket_mode.client import BaseSocketModeClient
@@ -91,6 +92,6 @@ def remind_loop(client: BaseSocketModeClient):
 import threading
 
 
-def start(client: BaseSocketModeClient):
-    thread = threading.Thread(target=remind_loop, args=(client,), daemon=True)
+def start(client: ExecutionContext):
+    thread = threading.Thread(target=remind_loop, args=(client.slack_client.client,), daemon=True)
     thread.start()

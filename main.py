@@ -2,21 +2,15 @@ import logging
 import os
 from importlib import import_module
 
+from threading import Thread
 from types import ModuleType
 
 from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.socket_mode import SocketModeClient
-from slack_sdk.socket_mode.client import BaseSocketModeClient
-from slack_sdk.socket_mode.request import SocketModeRequest
-from slack_sdk.socket_mode.response import SocketModeResponse
+from base import ExecutionContext
 
-from reg import (
-    SlashContext,
-    action_dispatch,
-    huddle_dispatch,
-    message_dispatch,
-    slash_dispatch,
+from slack.reg import (
     slash_listen,
     DESCRIPTION,
     description,
@@ -24,22 +18,28 @@ from reg import (
     smart_multi_msg_listen,
 )
 
+from slack.client import SlackClient
+
 import utils
-from schema.base import Recv
-from schema.huddle import HuddleChange
-from schema.interactive import BlockActionEvent
-from schema.message import MessageEvent
-from schema.slash_cmd import CommandEvent
 
 load_dotenv()
 
-CLIENTS = []
+CLIENTS = [
+    SlackClient(SocketModeClient(
+        app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
+        web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
+    ))
+]
 START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live"]
 LOAD_MODULE = ["siege.cmd", "live.live"]
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
-
+CONTEXT = ExecutionContext(
+    slack_client=CLIENTS[0],
+    irc_client=None,
+)
 
 all_module: dict[str, ModuleType] = {}
+client_thread: list[Thread] = []
 
 
 @smart_multi_msg_listen(HELP_CMD)
@@ -68,15 +68,11 @@ def help(ctx: Context, public: bool):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    client = SocketModeClient(
-        app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
-        web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
-    )
     for module_name in START_MODULE:
         try:
             module = import_module(module_name)
             all_module[module_name] = module
-            module.start(client)
+            module.start(CONTEXT)
         except Exception as e:
             logging.error(f"Failed to load start_module {module_name}:", exc_info=True)
     for module_name in LOAD_MODULE:
@@ -85,4 +81,12 @@ if __name__ == "__main__":
             all_module[module_name] = module
         except Exception as e:
             logging.error(f"Failed to load load_module {module_name}:", exc_info=True)
-    
+    for client in CLIENTS:
+        client_thread.append(client.start_threaded())
+    while True:
+        try:
+            for thread in client_thread:
+                thread.join()
+        except KeyboardInterrupt:
+            break
+        

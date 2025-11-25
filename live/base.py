@@ -3,9 +3,9 @@ from threading import Lock
 from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
 from importlib import import_module
+from base import Client
 from config import get_config
 from arrow import Arrow
-from slack_sdk.web import WebClient
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ class Turns:
 
 
 @dataclass(frozen=True)
-class GameInstance:
+class GameInstance[T]:
     game_id: int
     client_secret: str
     server_secret: str
@@ -29,7 +29,7 @@ class GameInstance:
     participants: list[str]
     mode: str
     start_time: Arrow
-    client: WebClient
+    client: Client[T]
 
 
 class LiveModuleBase(ABC):

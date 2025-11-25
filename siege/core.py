@@ -12,6 +12,7 @@ import arrow
 import polars as pl
 from slack_sdk.socket_mode import SocketModeClient
 
+from base import ExecutionContext
 from live.live import push_ticket_update_ws
 from siege.schema.siege import SiegeProject, SiegeUser
 from live.base import LiveModuleBase, GameInstance
@@ -751,7 +752,7 @@ def get_user_ticket(game_id: int, user_id: str, week_num: int, from_time: Arrow)
     return int(analysis_heartbeat_hours(heartbeats) * 10) + 10
 
 
-def start(client: SocketModeClient):
+def start(client: ExecutionContext):
     init_db()
     thread_proj = threading.Thread(target=proj_loop)
     thread_proj.start()

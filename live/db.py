@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
 from slack_sdk import WebClient
+from base import Client
 from siege.api import get_project, get_user
 import live.base as base
 from siege.schema.siege import SiegeProject
@@ -1066,7 +1067,7 @@ def has_user(user_id: str) -> bool:
         return row is not None
 
 
-def get_game_instance(game_id: int, client: WebClient) -> base.GameInstance:
+def get_game_instance[T](game_id: int, client: Client[T]) -> base.GameInstance[T]:
     """
     Query the database and return a populated GameInstance for the given game_id.
     Raises ValueError if the game does not exist.

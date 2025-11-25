@@ -9,11 +9,12 @@ from slack_sdk.web import WebClient
 import re
 
 import json
+from base import Client, ExecutionContext, ExecutionContext
 from config import get_config
 from schema.message import MessageEvent
 from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
-from reg import (
+from slack.reg import (
     InteractionContext,
     action_listen,
     huddle_listen,
@@ -692,7 +693,7 @@ def confirm_optout(ctx: InteractionContext):
         text="You have opted out of the current show. You will no longer be selected for performances.",
     )
     if ctx.message_ts:
-        ctx.client.chat_update(
+        ctx.client.client.web_client.chat_update(
             channel=channel_id,
             ts=ctx.message_ts,
             text="You have opted out.",
@@ -1784,7 +1785,7 @@ def handle_huddle_start_message(ctx: MessageContext):
 
 
 @huddle_listen(HuddleState.IN_HUDDLE)
-def handle_huddle_join(event: HuddleChange, client: WebClient):
+def handle_huddle_join(event: HuddleChange, client: Client[BaseSocketModeClient]):
     user_id = event.user.id
     user_name = (
         event.user.profile.display_name or event.user.real_name or event.user.name
@@ -1804,7 +1805,7 @@ def handle_huddle_join(event: HuddleChange, client: WebClient):
 
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)
-def handle_huddle_leave(event: HuddleChange, client: WebClient):
+def handle_huddle_leave(event: HuddleChange, client: Client[BaseSocketModeClient]):
     user_id = event.user.id
     user_name = event.user.real_name or event.user.name
     # When a user leaves, the event doesn't specify which huddle.
@@ -1907,6 +1908,6 @@ def load_active_timers(client: WebClient):
     print(f"Finished loading {len(in_progress_turns)} IN_PROGRESS turn timers.")
 
 
-def start(client: BaseSocketModeClient):
+def start(client: ExecutionContext):
     db.init_db()
-    load_active_timers(client.web_client)
+    load_active_timers(client.slack_client.client.web_client)

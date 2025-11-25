@@ -5,7 +5,7 @@ import re
 
 from siege.api import get_all_projs
 import live.db as db
-from reg import Context
+from slack.reg import Context
 from typing import overload, Literal
 from config import AllGroupConfig, get_config
 

@@ -1,5 +1,5 @@
 from typing import Literal
-from reg import (
+from slack.reg import (
     smart_action_listen,
     smart_action_prefix_listen,
     smart_msg_listen,
