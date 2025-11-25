@@ -34,3 +34,14 @@ class Event:
             params=params,
             trailing=trailing
         )
+    
+    def export(self, with_prefix: bool = False) -> str:
+        ret: str = ""
+        if with_prefix and self.prefix is not None:
+            ret += f":{self.prefix} "
+        ret += f"{self.cmd} "
+        ret += " ".join(self.params) + " "
+        if self.trailing is not None:
+            ret += f":{self.trailing}"
+        ret += "\r\n"
+        return ret
