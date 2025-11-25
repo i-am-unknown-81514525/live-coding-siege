@@ -10,6 +10,7 @@ from slack_sdk import WebClient
 from slack_sdk.socket_mode import SocketModeClient
 from base import ExecutionContext
 
+from irc.client import IRCClient
 from slack.reg import (
     slash_listen,
     DESCRIPTION,
@@ -28,14 +29,20 @@ CLIENTS = [
     SlackClient(SocketModeClient(
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
-    ))
+    )),
+    IRCClient(
+        server="irc.hackclub.com",
+        port=6667,
+        nickname="livecoding",
+        realname="Live Coding Bot",
+    )
 ]
 START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live"]
 LOAD_MODULE = ["siege.cmd", "live.live"]
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
 CONTEXT = ExecutionContext(
     slack_client=CLIENTS[0],
-    irc_client=None,
+    irc_client=CLIENTS[1],
 )
 
 all_module: dict[str, ModuleType] = {}
@@ -89,4 +96,4 @@ if __name__ == "__main__":
                 thread.join()
         except KeyboardInterrupt:
             break
-        
+

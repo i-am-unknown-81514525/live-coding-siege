@@ -9,11 +9,12 @@ from slack_sdk.models.blocks import Block
 
 if TYPE_CHECKING:
     import slack.client
+    import irc.client
 
 @dataclass
 class ExecutionContext:
     slack_client: "slack.client.SlackClient"
-    irc_client: object # tbd - the actual irc class
+    irc_client: "irc.client.IRCClient"
 
 class Client[T](ABC):
     def __init__(self, inner: T):
