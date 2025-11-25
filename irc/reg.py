@@ -1,21 +1,22 @@
 import threading
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, TYPE_CHECKING
 
 from slack_sdk.models.blocks import Block
 from base import Client, Context
 from irc.schema.event import Event
 from dataclasses import dataclass
-from irc.client import IRCClient
 from schema.file import Attachment, PendingFile, UploadedFile
 from slack.reg import MessageContext
 
 MESSAGE_HANDLERS: dict[str, list[Callable[["IRCContext"], Any]]] = {}
 
+if TYPE_CHECKING:
+    from irc.client import IRCClient
 
 @dataclass
-class IRCContext(Context[IRCClient]):
+class IRCContext(Context["IRCClient"]):
     event: Event
-    client: IRCClient
+    client: "IRCClient"
 
     @property
     def value(self) -> str:
@@ -84,7 +85,7 @@ def irc_msg_listen[A: Callable[[IRCContext], Any]](cmd: str) -> Callable[[A], A]
         return func
     return decorator
     
-def message_dispatch(event: Event, client: IRCClient) -> None:
+def message_dispatch(event: Event, client: "IRCClient") -> None:
     """
     Dispatches the event to handlers whose key the message text starts with.
     Each handler is run in a separate thread.
