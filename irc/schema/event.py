@@ -15,7 +15,7 @@ class Event:
 
     @classmethod
     def import_event(cls, content: str) -> Self | None:
-        match = re.fullmatch(r"^(?::([^ \r\n:]+) )? ([^ \r\n:]+) ((?:[^ \r\n:]+ +)*)(:([^\r\n]*))?\r\n$", content)
+        match = re.fullmatch(r"^(?::([^ \r\n:]+) )?([^ \r\n:]+) ((?:[^ \r\n:]+ +)*)(:([^\r\n]*))?\r\n$", content)
         if not match:
             return None
         prefix = match.group(1)
