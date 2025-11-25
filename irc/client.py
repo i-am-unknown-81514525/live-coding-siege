@@ -7,6 +7,8 @@ import logging
 import time
 import textwrap
 
+from irc.reg import message_dispatch
+
 
 class IRCClient(Client["IRCClient"]):
     def __init__(self, server: str, port: int, nickname: str, realname: str, boot_events: list[Event] | None = None):
@@ -42,7 +44,10 @@ class IRCClient(Client["IRCClient"]):
                             if line:
                                 event = Event.import_event(line + "\r\n")
                                 if event:
-                                    self.handler(event)
+                                    try:
+                                        self.handler(event)
+                                    except Exception as e:
+                                        logging.warning("Error handling IRC event", exc_info=True)
                 except Exception as e:
                     logging.warning("IRC connection failed", exc_info=True)
                     time.sleep(10)
@@ -59,6 +64,8 @@ class IRCClient(Client["IRCClient"]):
             for boot_event in self.boot_events:
                 self.send(boot_event)
             return
+        if event.cmd == "PRIVMSG":
+            message_dispatch(event, self)
         
     def send(self, event: Event):
         logging.info(f"IRC ->: {event.export(with_prefix=True).strip()}")
