@@ -39,7 +39,8 @@ CLIENTS = [
         nickname="livecoding",
         realname="Live Coding Bot",
         boot_events=[
-            Event.from_parts(cmd="JOIN", params=["#livecoding"])
+            Event.from_parts(cmd="JOIN", params=["#livecoding"]),
+            Event.from_parts(cmd="JOIN", params=["#siege"])
         ],
     )
 ]

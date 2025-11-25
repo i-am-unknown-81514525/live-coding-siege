@@ -38,6 +38,7 @@ from schema.file import PendingFile
 from io import BytesIO
 import matplotlib.pyplot as plt
 from base import description
+from irc.reg import irc_msg_listen
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []
@@ -294,6 +295,7 @@ def get_siege_proj_info(ctx: Context, public: bool):
 
 @slash_listen("/global")
 @smart_msg_listen("siege.global")
+@irc_msg_listen("siege.global")
 @description("/global", "Uhh am I gonna get my global bet payout this time :nervous:")
 def get_total_proj_time(ctx: Context):
     p1 = time.perf_counter()
