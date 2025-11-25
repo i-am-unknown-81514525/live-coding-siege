@@ -6,11 +6,12 @@ from irc.schema.event import Event
 
 
 class IRCClient(Client["IRCClient"]):
-    def __init__(self, server: str, port: int, nickname: str, realname: str):
+    def __init__(self, server: str, port: int, nickname: str, realname: str, boot_events: list[Event] | None = None):
         self.server = server
         self.port = port
         self.nickname = nickname
         self.realname = realname
+        self.boot_events = boot_events or []
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         super().__init__(self)
     
@@ -19,7 +20,7 @@ class IRCClient(Client["IRCClient"]):
         bootstrap = [
             Event.from_parts(cmd="NICK", params=[self.nickname]),
             Event.from_parts(cmd="USER", params=[self.nickname, "0", "*"], trailing=self.realname),
-        ]
+        ] + self.boot_events
         for event in bootstrap:
             self.sock.send(event.export(with_prefix=True).encode("utf-8"))
         
