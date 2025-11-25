@@ -52,8 +52,8 @@ class Client[T](ABC):
         thread.start()
         return thread
 
-class Context(ABC):
-    client: Client
+class Context[T: Client](ABC):
+    client: T
 
     @property
     def value(self) -> str: ...
