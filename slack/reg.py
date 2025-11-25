@@ -2,7 +2,7 @@ from collections.abc import Callable
 import logging
 import os
 import re
-from base import Client, Context
+from base import Client, Context, CtxFn
 from schema.message import MessageEvent
 from schema.interactive import BlockActionEvent
 from schema.huddle import HuddleChange, HuddleState
@@ -27,9 +27,6 @@ ACTION_PREFIX_HANDLERS: dict[
 ] = {}
 HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, Client[BaseSocketModeClient]], Any]]] = {}
 SLASH_HANDLER: dict[str, list[Callable[["SlashContext"], Any]]] = {}
-DESCRIPTION: dict[str, str] = {}
-
-type CtxFn[C: Context, T] = Callable[[C], T]
 
 # def msg_listen[A: Callable](
 #     message_key: str, is_subtype: bool = False
@@ -708,20 +705,7 @@ def smart_action_prefix_listen[A: Callable[[InteractionContext], Any]](
     return decorator
 
 
-def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
-    """
-    Mark description for the command
 
-    Args:
-        cmd: Command
-        description: The description for the command
-    """
-    DESCRIPTION[cmd] = description
-
-    def decorator[F: Callable](func: F) -> F:
-        return func
-
-    return decorator
 
 
 def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:

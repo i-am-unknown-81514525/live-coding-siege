@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Sequence, Callable
 from dataclasses import dataclass
 from typing import Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
@@ -10,6 +10,25 @@ from slack_sdk.models.blocks import Block
 if TYPE_CHECKING:
     import slack.client
     import irc.client
+
+type CtxFn[C: Context, T] = Callable[[C], T]
+DESCRIPTION: dict[str, str] = {}
+
+def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
+    """
+    Mark description for the command
+
+    Args:
+        cmd: Command
+        description: The description for the command
+    """
+    DESCRIPTION[cmd] = description
+
+    def decorator[F: Callable](func: F) -> F:
+        return func
+
+    return decorator
+
 
 @dataclass
 class ExecutionContext:

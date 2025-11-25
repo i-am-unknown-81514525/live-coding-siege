@@ -14,10 +14,12 @@ from irc.client import IRCClient
 from irc.schema.event import Event
 from slack.reg import (
     slash_listen,
-    DESCRIPTION,
-    description,
     Context,
     smart_multi_msg_listen,
+)
+from base import (
+    DESCRIPTION,
+    description,
 )
 
 from slack.client import SlackClient

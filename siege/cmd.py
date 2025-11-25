@@ -3,7 +3,6 @@ from slack.reg import (
     smart_action_listen,
     smart_action_prefix_listen,
     smart_msg_listen,
-    description,
     Context,
     slash_listen,
     InteractionContext,
@@ -38,6 +37,7 @@ import pandas
 from schema.file import PendingFile
 from io import BytesIO
 import matplotlib.pyplot as plt
+from base import description
 
 # ALLOWED = os.environ["ALLOWLIST"].split(",")
 # BANNED = []

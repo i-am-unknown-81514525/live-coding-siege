@@ -21,7 +21,6 @@ from slack.reg import (
     smart_action_listen,
     smart_msg_listen,
     MessageContext,
-    description,
     Context,
 )
 from crypto.core import DeterRnd, Handler, _sha3, randint
@@ -35,7 +34,7 @@ from utils import get_group, require_allowed, require_authorised, require_group
 from live.base import get_module
 from live.utils import require_game_thread, require_game_manager
 from slack_sdk.socket_mode.client import BaseSocketModeClient
-
+from base import description
 
 def int_handler(bits: int) -> Handler[int]:
     """A handler for DeterRnd that returns an integer of a specified bit length."""
