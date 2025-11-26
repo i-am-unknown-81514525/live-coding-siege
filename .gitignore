@@ -16,9 +16,9 @@ history/
 *.db*
 
 # Redacted
-redacted_*
-**/redacted_*
-redacted_*/**
-*_redacted*
-**/*_redacted*
-*_redacted/**
+#redacted_*
+#**/redacted_*
+#redacted_*/**
+#*_redacted*
+#**/*_redacted*
+#*_redacted/**
