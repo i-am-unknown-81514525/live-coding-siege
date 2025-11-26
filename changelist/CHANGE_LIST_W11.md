@@ -1,27 +1,27 @@
-[x] - Setup schema for siege project logging
-[x] - Task loop to auto fetch update for projects and user (5m/projs request and also track user)
-[x] - `siege.proj_details` for the summary of work done during the time
-[x] - Modulise the siege part out of live coding 
-[x] - Remove magical theme if necessary (?)
-[ ] - Attempt to connect live coding to hackatime server for generic live coding 
-[x] - Rewrite live coding database schema to remove siege/YSWS specific reference - should only track the ticket hold for each user
-[x] - Put hour tracking on siege database
-[x] - Check and fix more rounding issue
-[ ] - Post project change in a separate channel which can be publicly searchable like som bulletin
-[x] - `siege.shop` ???? (idk if it even necessary but well, it is an api so I must use it)
-[ ] - `siege.user_search` for user searching
-[ ] - Improve the timer system?
-[x] - Convert `SIEGE_MODE` to something handled by per game instance
-[x] - Fix random after doing a statistical analysis of the current one
-[ ] - Transaction web page + server (address apce)
-[x] - decorator for permission check
-[x] - `Context` for interaction
-[x] - Slack client transfer to web API so a message is sent on accept/reject
-[ ] - `live.add_mgr all` for all allowed user
-[ ] - `live.transaction`
-[x] - Fix prefix command get recognised as link
-[x] - `no_prefix` change to `value` in favuor for `Context` for interaction
-[x] - `siege.define` / `/define` - get dictionary definition of word
-[x] - `.cmd` attr on `Context`
-[x] - `config.toml` file for permission namespace
-[x] - `siege.user_details` and `siege.proj_details` :)
+- [x] Setup schema for siege project logging
+- [x] Task loop to auto fetch update for projects and user (5m/projs request and also track user)
+- [x] `siege.proj_details` for the summary of work done during the time
+- [x] Modulise the siege part out of live coding
+- [x] Remove magical theme if necessary (?)
+- [ ] Attempt to connect live coding to hackatime server for generic live coding
+- [x] Rewrite live coding database schema to remove siege/YSWS specific reference - should only track the ticket hold for each user
+- [x] Put hour tracking on siege database
+- [x] Check and fix more rounding issue
+- [ ] Post project change in a separate channel which can be publicly searchable like som bulletin
+- [x] `siege.shop` ???? (idk if it even necessary but well, it is an api so I must use it)
+- [ ] `siege.user_search` for user searching
+- [ ] Improve the timer system?
+- [x] Convert `SIEGE_MODE` to something handled by per game instance
+- [x] Fix random after doing a statistical analysis of the current one
+- [ ] Transaction web page + server (address apce)
+- [x] decorator for permission check
+- [x] `Context` for interaction
+- [x] Slack client transfer to web API so a message is sent on accept/reject
+- [ ] `live.add_mgr all` for all allowed user
+- [ ] `live.transaction`
+- [x] Fix prefix command get recognised as link
+- [x] `no_prefix` change to `value` in favuor for `Context` for interaction
+- [x] `siege.define` / `/define` - get dictionary definition of word
+- [x] `.cmd` attr on `Context`
+- [x] `config.toml` file for permission namespace
+- [x] `siege.user_details` and `siege.proj_details` :)
