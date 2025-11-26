@@ -67,7 +67,7 @@ class IRCContext(Context["IRCClient"]):
 
     def private_send(self, always_thread: bool = False, files: list[PendingFile | UploadedFile] | None = None, *, text: str | None = None, as_user: bool | None = None, attachments: str | Sequence[dict[str, Any] | Attachment] | None = None, blocks: str | Sequence[dict[str, Any] | Block] | None = None, thread_ts: str | None = None, icon_emoji: str | None = None, icon_url: str | None = None, link_names: bool | None = None, username: str | None = None, parse: str | None = None, **kwargs) -> Any:
         return self.client.send_message(
-            channel=self.author_id,
+            channel=self.channel_id,
             text=text or "Cannot render",)
 
 

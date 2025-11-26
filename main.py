@@ -17,6 +17,7 @@ from slack.reg import (
     Context,
     smart_multi_msg_listen,
 )
+from irc.reg import irc_msg_listen
 from base import (
     DESCRIPTION,
     description,
@@ -58,6 +59,7 @@ client_thread: list[Thread] = []
 
 @smart_multi_msg_listen(HELP_CMD)
 @slash_listen("/help")
+@irc_msg_listen("siege.help")
 @description(
     "/help <prefix>?", "Help command to hopefully answer your random question?"
 )

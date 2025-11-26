@@ -117,6 +117,7 @@ def _calc_base(week: int, hours: float) -> float:
 @slash_listen("/user")
 @smart_msg_listen("siege.user ")
 @smart_action_listen("siege_user_view")
+@irc_msg_listen("siege.user ")
 @description(
     "/user <user_id>?",
     "Shhhh... sneak peek on a siege user, surely no one would notice :)",
@@ -152,9 +153,7 @@ def get_siege_user_info(ctx: Context, public: bool):
         for item in sorted(proj_list, key=lambda x: x[0])
     ]
 
-    message = blockkit.Message().add_block(
-        blockkit.Section(
-            f"*User info:*\n"
+    text = (f"*User info:*\n"
             f"*Slack ID:* `{user.slack_id}`\n"
             f"*User ID:* `{user.id}`\n"
             f"*Name:* {user.name}\n"
@@ -162,8 +161,10 @@ def get_siege_user_info(ctx: Context, public: bool):
             f"*Coins:* {user.coins}\n"
             f"*Rank:* {user.rank.readable}\n"
             f"*Status:* {user.status.readable}\n"
-            + (f"*Common identity:* {id_string}" if id_string else "")
-        )
+            + (f"*Common identity:* {id_string}" if id_string else ""))
+
+    message = blockkit.Message(text).add_block(
+        blockkit.Section(text)
     )
 
     if buttons:
@@ -188,6 +189,7 @@ def test(ctx: Context):
 @slash_listen("/proj")
 @slash_listen("/project")
 @smart_msg_listen("siege.proj ")
+@irc_msg_listen("siege.proj ")
 @smart_action_prefix_listen("siege_proj_view")
 @description(
     "/proj <proj_id>",
@@ -222,10 +224,7 @@ def get_siege_proj_info(ctx: Context, public: bool):
         .value(str(proj.user.id))
     ]
 
-    message = (
-        blockkit.Message()
-        .add_block(
-            blockkit.Section(
+    text = (
                 f"*Week {proj.week} - {proj.name}*\n"
                 f"*ID:* `{proj.id}`\n"
                 f"*Status:* {proj.status.readable}\n"
@@ -240,6 +239,11 @@ def get_siege_proj_info(ctx: Context, public: bool):
                     else ""
                 )
             )
+
+    message = (
+        blockkit.Message(text)
+        .add_block(
+            blockkit.Section(text)
         )
         .add_block(blockkit.Actions(buttons))
     )
@@ -324,6 +328,8 @@ LEADERBOARD_AMOUNT = 20
 @slash_listen("/leaderboard")
 @smart_msg_listen("siege.leaderboard")
 @smart_msg_listen("siege.lb")
+@irc_msg_listen("siege.leaderboard")
+@irc_msg_listen("siege.lb")
 @description("/lb <lb_option>?", "The hall of fame!")
 @utils.get_group
 @utils.filter_allowed
@@ -447,7 +453,14 @@ def get_leaderboard(ctx: Context, public: bool):
                 if status == SiegeUserStatus.WORKING:
                     selected.append(proj)
             message = (
-                blockkit.Message()
+                blockkit.Message(
+                    "\n".join(
+                    [
+                        f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours:.1f}h,{proj.coin_value}c, {proj.coin_value / _calc_base(proj.week, proj.hours):.3f}x"
+                        for index, proj in enumerate(selected, start=1)
+                    ]
+                )
+                )
                 .add_block(
                     blockkit.Section(
                         "\n".join(
@@ -601,6 +614,7 @@ def generate_graph(ctx: Context, public: bool):
 @slash_listen("/stats")
 @slash_listen("/siege_stats")
 @smart_msg_listen("siege.stats")
+@irc_msg_listen("siege.stats")
 @description("/stats", "Stats for the Siege YSWS")
 @utils.get_group
 @utils.filter_allowed
@@ -649,6 +663,8 @@ SIMILARITY_THRESHOLD = 0.9
 @slash_listen("/searchs")
 @smart_msg_listen("siege.search ")
 @smart_msg_listen("siege.searchs ")
+@irc_msg_listen("siege.searchs ")
+@irc_msg_listen("siege.search ")
 @description("/searchs <keyword>?", "Search for project by keyword")
 @utils.get_group
 @utils.filter_allowed
@@ -778,6 +794,7 @@ def fetch_dictionary(word: str) -> dictionary.DictError | dictionary.DictResult:
 
 @slash_listen("/define")
 @smart_msg_listen("siege.define ")
+@irc_msg_listen("siege.define ")
 @description("/define <word>", "Get a dictionary definition of a word")
 @utils.get_group
 @utils.filter_allowed
@@ -790,6 +807,7 @@ def get_define(ctx: Context, public: bool):
 
 @slash_listen("/proj_details")
 @smart_msg_listen("siege.proj_details ")
+@irc_msg_listen("siege.proj_details ")
 @description("/proj_details <proj_id>", "Peeking at every change you made :)")
 @utils.get_group
 @utils.filter_allowed
@@ -846,6 +864,7 @@ def get_user_details(ctx: Context, public: bool):
 
 @slash_listen("/siege_shop")
 @smart_msg_listen("siege.shop")
+@irc_msg_listen("siege.shop")
 @description(
     "/siege_shop",
     "Time to go shopping!!! This is what you have working toward the whole time! (Or maybe not...)",
@@ -875,6 +894,7 @@ def get_shop(ctx: Context, public: bool):
 
 @slash_listen("/user_details")
 @smart_msg_listen("siege.user_details ")
+@irc_msg_listen("siege.user_details ")
 @description("/user_details <user_id>?", "Staring...")
 @utils.get_group
 @utils.filter_allowed
