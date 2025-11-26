@@ -1,0 +1,5 @@
+- [x] Refactor framework to support multi-client
+- [x] Add `ìrc` implementation
+- [ ] transaction page
+- [ ] updated timer system
+- [ ] more graph
