@@ -247,7 +247,7 @@ IDV_DELAY = 0.5
 def user_loop():
     while True:
         start = time.perf_counter()
-        user_id_list: list[int] = list(set(get_user_id_from_proj() + get_user_id_from_user()))
+        user_id_list: list[int] = list(sorted(set(get_user_id_from_proj() + get_user_id_from_user())))
         users: list[SiegeUser] = []
         try:
             for user_id in user_id_list:
