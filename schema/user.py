@@ -16,22 +16,22 @@ class UserFieldEntry:
 
 @dataclass(frozen=True)
 class UserAvatar:
-    image_192: str
-    image_24: str
-    image_32: str
-    image_48: str
-    image_512: str
-    image_72: str
+    image_192: str | None
+    image_24: str | None
+    image_32: str | None
+    image_48: str | None
+    image_512: str | None
+    image_72: str | None
 
     @classmethod
     def parse(cls, data: dict):
         return cls(
-            image_192=data["image_192"],
-            image_24=data["image_24"],
-            image_32=data["image_32"],
-            image_48=data["image_48"],
-            image_512=data["image_512"],
-            image_72=data["image_72"],
+            image_192=data.get( "image_192"),
+            image_24=data.get("image_24"),
+            image_32=data.get("image_32"),
+            image_48=data.get("image_48"),
+            image_512=data.get("image_512"),
+            image_72=data.get("image_72"),
         )
 
 
