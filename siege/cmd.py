@@ -606,7 +606,7 @@ def generate_graph(ctx: Context, public: bool):
                 }
             )
             fig, ax = plt.subplots(figsize=(6, 8))
-            plot = sns.barplot(df, x="time", y="count", ax=ax, hue="status",
+            plot = sns.lineplot(df, x="time", y="count", ax=ax, hue="status",
                 palette={"new": "blue", "working": "green", "out": "orange", "banned": "red"},)
             ax.locator_params(axis="x", nbins=7)
             ax.locator_params(axis="y", nbins=15)
