@@ -624,6 +624,27 @@ def analyse_overall_user_status(heartbeats: list[ProjHeartbeatRecord]) -> dict[A
         out[k[0]][k[1]] = v["count"]
     return out
 
+def analyse_overall_user_status_raw(heartbeats: list[ProjHeartbeatRecord]) -> pl.DataFrame:
+    if not heartbeats:
+        return {}
+    df = pl.DataFrame(
+        {
+            "time": [hb.measurement_time for hb in heartbeats],
+            "user_id": [hb.user_id for hb in heartbeats],
+            "status": [hb.proj_status for hb in heartbeats]
+        }
+    )
+
+    df.sort("time")
+
+    def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
+        return (df.sort("time")
+                .group_by_dynamic("time", every="15m")
+                .agg(pl.col("status").last().fill_null(strategy="backward")))
+
+    user_dfs = df.group_by("user_id").map_groups(user_df_handler)
+    total_status_df = user_dfs.group("time", "status").agg(pl.col("user_id").count().alias("count"))
+    return total_status_df
 
 def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int]:
     if not heartbeats:

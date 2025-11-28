@@ -596,6 +596,29 @@ def generate_graph(ctx: Context, public: bool):
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile(f"global_w{week}.png", img, f"Tracked hour by time in week W{week}")
+        case "user_status":
+            df = core.analyse_overall_user_status_raw(core.retrieve_every_user_record()).to_pandas()
+            fig, ax = plt.subplots(figsize=(6, 8))
+            plot = sns.barplot(df, x="time", y="count", ax=ax, hue="status",
+                palette={"new": "blue", "working": "green", "out": "orange", "banned": "red"},)
+            ax.locator_params(axis="x", nbins=7)
+            ax.locator_params(axis="y", nbins=15)
+            ax.set_title(f"User status over time")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("User Count")
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+            ax.set_xlim(min(df["time"]), max(df["time"]))
+            ax.set_ylim(0, max(df["count"]) * 1.1)
+            fig.tight_layout()  # type: ignore
+            iodt = BytesIO()
+            img = b""
+            if fig:
+                try:
+                    fig.savefig(iodt, format="png")  # type: ignore
+                    img = iodt.getvalue()
+                except Exception as e:
+                    logging.error(f"Failed to save figure: {e}")
+            media = PendingFile(f"user_status.png", img, f"User status over time")
         case _:
             ...
 
