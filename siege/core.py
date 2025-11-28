@@ -619,7 +619,7 @@ def analyse_overall_user_status(heartbeats: list[ProjHeartbeatRecord]) -> dict[A
     total_status_df = user_dfs.group("time", "status").agg(pl.col("user_id").count().alias("count"))
 
     out: dict[Arrow, dict[str, int]] = {}
-    for k, v in df.rows_by_key(key=["time", "status"], named=True, unique=True):
+    for k, v in total_status_df.rows_by_key(key=["time", "status"], named=True, unique=True):
         out.setdefault(k[0], {})
         out[k[0]][k[1]] = v["count"]
     return out
