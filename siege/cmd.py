@@ -603,12 +603,12 @@ def generate_graph(ctx: Context, public: bool):
         if media:
             ctx.public_send(files=[media])
         else:
-            ctx.public_send(text="No graph generated.")
+            ctx.public_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`")
     else:
         if media:
             ctx.private_send(files=[media])
         else:
-            ctx.private_send(text="No graph generated.")
+            ctx.private_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`")
 
 
 @slash_listen("/stats")
