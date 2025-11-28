@@ -602,7 +602,7 @@ def analyse_overall_user_status(heartbeats: list[UserHeartbeatRecord]) -> dict[A
         return {}
     df = pl.DataFrame(
         {
-            "time": [hb.measurement_time for hb in heartbeats],
+            "time": [hb.measurement_time.datetime for hb in heartbeats],
             "user_id": [hb.user_id for hb in heartbeats],
             "status": [hb.user_status for hb in heartbeats]
         }
@@ -629,7 +629,7 @@ def analyse_overall_user_status_raw(heartbeats: list[UserHeartbeatRecord]) -> pl
         return {}
     df = pl.DataFrame(
         {
-            "time": [hb.measurement_time for hb in heartbeats],
+            "time": [hb.measurement_time.datetime for hb in heartbeats],
             "user_id": [hb.user_id for hb in heartbeats],
             "status": [hb.user_status for hb in heartbeats]
         }
