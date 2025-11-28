@@ -652,6 +652,7 @@ def analyse_overall_user_status_raw(heartbeats: list[UserHeartbeatRecord]) -> pl
 
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
     total_status_df = user_dfs.group_by("time", "status").agg(pl.col("user_id").count().alias("count"))
+    logging.info(total_status_df)
     return total_status_df
 
 def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int]:
