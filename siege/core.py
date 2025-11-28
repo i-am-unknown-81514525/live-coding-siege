@@ -597,14 +597,14 @@ def analyse_per_person_proj_hours(heartbeats: list[ProjHeartbeatRecord]) -> dict
 
     return result
 
-def analyse_overall_user_status(heartbeats: list[ProjHeartbeatRecord]) -> dict[Arrow, dict[str, int]]:
+def analyse_overall_user_status(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, dict[str, int]]:
     if not heartbeats:
         return {}
     df = pl.DataFrame(
         {
             "time": [hb.measurement_time for hb in heartbeats],
             "user_id": [hb.user_id for hb in heartbeats],
-            "status": [hb.proj_status for hb in heartbeats]
+            "status": [hb.user_status for hb in heartbeats]
         }
     )
 
@@ -624,14 +624,14 @@ def analyse_overall_user_status(heartbeats: list[ProjHeartbeatRecord]) -> dict[A
         out[k[0]][k[1]] = v["count"]
     return out
 
-def analyse_overall_user_status_raw(heartbeats: list[ProjHeartbeatRecord]) -> pl.DataFrame:
+def analyse_overall_user_status_raw(heartbeats: list[UserHeartbeatRecord]) -> pl.DataFrame:
     if not heartbeats:
         return {}
     df = pl.DataFrame(
         {
             "time": [hb.measurement_time for hb in heartbeats],
             "user_id": [hb.user_id for hb in heartbeats],
-            "status": [hb.proj_status for hb in heartbeats]
+            "status": [hb.user_status for hb in heartbeats]
         }
     )
 
