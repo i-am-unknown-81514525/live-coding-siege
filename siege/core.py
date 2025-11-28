@@ -616,7 +616,7 @@ def analyse_overall_user_status(heartbeats: list[UserHeartbeatRecord]) -> dict[A
                 .agg(pl.col("status").last().fill_null(strategy="backward")))
 
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
-    total_status_df = user_dfs.group("time", "status").agg(pl.col("user_id").count().alias("count"))
+    total_status_df = user_dfs.group_by("time", "status").agg(pl.col("user_id").count().alias("count"))
 
     out: dict[Arrow, dict[str, int]] = {}
     for k, v in total_status_df.rows_by_key(key=["time", "status"], named=True, unique=True):
@@ -765,7 +765,7 @@ def analysis_heartbeat_hours(heartbeats: list[ProjHeartbeatRecord]) -> float:
             penalty_h += increase_h - delta_t
         curr_h = hb.hours
         curr_t = hb.measurement_time
-    return max(0, final_h - initial_h - penalty_h)
+    return max(0.0, final_h - initial_h - penalty_h)
 
 
 def get_user_id_from_slack(slack_id: str) -> int | None:
