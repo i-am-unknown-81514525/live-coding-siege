@@ -612,8 +612,12 @@ def analyse_overall_user_status(heartbeats: list[UserHeartbeatRecord]) -> dict[A
 
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
         return (df.sort("time")
-                .group_by_dynamic("time", every="15m")
-                .agg(pl.col("status").last().fill_null(strategy="backward")))
+        .group_by_dynamic("time", every="15m")
+        .agg(
+            pl.col("status").last().fill_null(strategy="backward").alias("status"),
+            pl.col("user_id").first()
+        )
+        )
 
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
     total_status_df = user_dfs.group_by("time", "status").agg(pl.col("user_id").count().alias("count"))
@@ -640,7 +644,11 @@ def analyse_overall_user_status_raw(heartbeats: list[UserHeartbeatRecord]) -> pl
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
         return (df.sort("time")
                 .group_by_dynamic("time", every="15m")
-                .agg(pl.col("status").last().fill_null(strategy="backward")))
+                .agg(
+                    pl.col("status").last().fill_null(strategy="backward").alias("status"),
+                    pl.col("user_id").first()
+                )
+        )
 
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
     total_status_df = user_dfs.group_by("time", "status").agg(pl.col("user_id").count().alias("count"))
