@@ -645,7 +645,7 @@ def analyse_overall_user_status_raw(heartbeats: list[UserHeartbeatRecord]) -> pl
         return (df.sort("time")
                 .group_by_dynamic("time", every="15m")
                 .agg(
-                    pl.col("status").last().fill_null(strategy="backward").alias("status"),
+                    pl.col("status").fill_null(strategy="backward").last().alias("status"),
                     pl.col("user_id").first()
                 )
         )
