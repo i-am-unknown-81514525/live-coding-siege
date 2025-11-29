@@ -55,38 +55,39 @@ class Client[T](ABC):
 class Context[T: Client](ABC):
     client: T
 
-    @abstractmethod
     @property
+    @abstractmethod
     def value(self) -> str:
         raise NotImplementedError()
 
-    @abstractmethod
     @property
+    @abstractmethod
     def author_id(self) -> str:
         raise NotImplementedError()
 
-    @abstractmethod
     @property
+    @abstractmethod
     def message_ts(self) -> str | None:
         raise NotImplementedError()
 
-    @abstractmethod
     @property
+    @abstractmethod
     def thread_ts(self) -> str | None:
         raise NotImplementedError()
 
-    @abstractmethod
     @property
+    @abstractmethod
     def channel_id(self) -> str:
         raise NotImplementedError()
 
-    @abstractmethod
+    
     @property
+    @abstractmethod
     def cmd(self) -> str:
         raise NotImplementedError()
 
-    @abstractmethod
     @property
+    @abstractmethod
     def action_namespace(self) -> str:
         raise NotImplementedError()
 

@@ -1221,33 +1221,24 @@ def end_game(ctx: Context, game_id: int):
     ctx.public_send(**summary_message.build())
 
 
-@action_listen("force_manager_mark_completed")
-def handle_manager_force_mark_completed(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("force_manager_mark_completed")
+@require_game_manager
+def handle_manager_force_mark_completed(ctx: InteractionContext, game_id: int):
     """Handles a manager marking a timed-out turn as COMPLETED."""
-    manager_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
-    message_ts = event.container.message_ts
-    user_id = event.actions[0].value
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
+    user_id = ctx.value
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id or not user_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Could not find an active show or user for this action.",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1268,9 +1259,7 @@ def handle_manager_force_mark_completed(event: BlockActionEvent, client: WebClie
 
     db.update_turn_status(game_id, user_id, "COMPLETED")
 
-    client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_ts,
+    ctx.public_send(
         text=f"Turn for <@{user_id}> marked as *completed* by <@{manager_id}>.",
         blocks=Message()
         .add_block(
@@ -1282,33 +1271,26 @@ def handle_manager_force_mark_completed(event: BlockActionEvent, client: WebClie
     )
 
 
-@action_listen("manager_mark_completed")
-def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("manager_mark_completed")
+@require_game_manager
+def handle_manager_mark_completed(ctx: InteractionContext, game_id: int):
     """Handles a manager marking a timed-out turn as COMPLETED."""
-    manager_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
-    message_ts = event.container.message_ts
-    user_id = event.actions[0].value
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
+    message_ts = ctx.message_ts
+    if not message_ts: return
+    user_id = ctx.value
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id or not user_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Could not find an active show or user for this action.",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1329,14 +1311,14 @@ def handle_manager_mark_completed(event: BlockActionEvent, client: WebClient):
 
     db.update_turn_status(game_id, user_id, "COMPLETED")
 
-    client.chat_update(
+    ctx.client.client.web_client.chat_update(
         channel=channel_id,
         ts=message_ts,
         text=f"Turn for <@{user_id}> marked as *completed* by <@{manager_id}>.",
         blocks=Message()
         .add_block(
             Section(
-                f"✅ Turn for <@{user_id}> marked as *COcompletedMPLETED* by <@{manager_id}>."
+                f"✅ Turn for <@{user_id}> marked as *COcompletedMPLETED* by <@{manager_id}>." # Intention because It it funny
             )
         )
         .build()["blocks"],
@@ -1353,33 +1335,26 @@ def show_client_secret(ctx: MessageContext, game_id: int):
     ctx.public_send(text=f"Current client secret: `{client_secret}`.")
 
 
-@action_listen("manager_mark_failed")
-def handle_manager_mark_failed(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("manager_mark_failed")
+@require_game_manager
+def handle_manager_mark_failed(ctx: InteractionContext, game_id: int):
     """Handles a manager marking a timed-out turn as FAILED."""
-    manager_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
-    message_ts = event.container.message_ts
-    user_id = event.actions[0].value
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
+    message_ts = ctx.message_ts
+    if not message_ts: return
+    user_id = ctx.value
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id or not user_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Could not find an active game or user for this action.",
-            thread_ts=thread_ts,
         )
         return
 
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1400,7 +1375,7 @@ def handle_manager_mark_failed(event: BlockActionEvent, client: WebClient):
 
     db.update_turn_status(game_id, user_id, "FAILED")
 
-    client.chat_update(
+    ctx.client.client.web_client.chat_update(
         channel=channel_id,
         ts=message_ts,
         text=f"❌ Turn for <@{user_id}> marked as FAILED by <@{manager_id}>.",
