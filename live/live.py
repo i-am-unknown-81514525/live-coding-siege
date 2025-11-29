@@ -30,7 +30,7 @@ from blockkit import Message, Section, Button
 import utils
 from ws_mgr import controller, signals
 import jwt
-from utils import get_group, require_allowed, require_authorised, require_group
+from utils import get_group, require_allowed, require_authorised
 from live.base import get_module
 from live.utils import require_game_thread, require_game_manager
 from slack_sdk.socket_mode.client import BaseSocketModeClient
@@ -76,8 +76,9 @@ def filter_by_value[**P, T, C: Context](
 ) -> Callable[Concatenate[C, list[str], P], T]:
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         ret: list[str] = []
-        if ctx.value.strip() in groups:
-            ret = [ctx.value.strip()]
+        value: str = ctx.value
+        if value.strip() in groups:
+            ret = [value.strip()]
         return func(ctx, ret, *args, **kwargs)
 
     return inner
@@ -455,8 +456,8 @@ def reloc(ctx: MessageContext, game_id: int):
     "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)",
 )
 @get_group
+@get_game_group
 @require_authorised
-@require_group("siege")
 @require_game_manager
 def debug(ctx: MessageContext, game_id: int):
     user_id = ctx.value
@@ -780,9 +781,8 @@ def leave(ctx: MessageContext, game_id: int):
 
 
 @smart_msg_listen("live.takeover")
-@get_group
+@get_game_group
 @require_authorised
-@require_group("siege")
 @require_game_thread
 def takeover(ctx: MessageContext, game_id: int):
     user_id = ctx.author_id
@@ -798,9 +798,8 @@ def takeover(ctx: MessageContext, game_id: int):
     "live.rm_mgr",
     "Remove a game manager from the game ((Authorized user only, same as #siege-announcement channel manager currently))",
 )
-@get_group
+@get_game_group
 @require_authorised
-@require_group("siege")
 @require_game_thread
 def remove_manager(ctx: MessageContext, game_id: int):
     user_id = ctx.value
@@ -993,7 +992,7 @@ def pick_user(ctx: Context, game_id: int):
         target_user_id = tickets[selected_index]
 
         duration_hours = (duration_seconds) // 3600
-        duration_minutes = (duration_seconds % 60) // 60
+        duration_minutes = (duration_seconds // 60) % 60
         remaining_seconds = duration_seconds % 60
 
         duration_text_parts = []
