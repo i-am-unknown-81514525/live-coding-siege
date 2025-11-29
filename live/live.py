@@ -1712,9 +1712,13 @@ def handle_huddle_join(event: HuddleChange, client: Client[BaseSocketModeClient]
     if game_id is not None:
         instance = db.get_game_instance(game_id, client)
         module = get_module(instance)
+        is_in = False
+        if user_id in db.get_huddle_participants(game_id):
+            is_in = True
         db.add_game_participant(game_id, user_id, module.get_ticket(user_id))
         push_ticket_update_ws(game_id)
-        module.on_join(user_id)
+        if not is_in:
+            module.on_join(user_id)
 
 
 @huddle_listen(HuddleState.NOT_IN_HUDDLE)
