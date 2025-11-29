@@ -458,9 +458,9 @@ def reloc(ctx: MessageContext, game_id: int):
     "live.debug_turn",
     "Debug turn status when necessary (Authorized user only, same as #siege-announcement channel manager currently)",
 )
-@get_group
 @get_game_group
 @require_authorised
+@utils.consume_second
 @require_game_manager
 def debug(ctx: MessageContext, game_id: int):
     user_id = ctx.value
@@ -786,6 +786,7 @@ def leave(ctx: MessageContext, game_id: int):
 @smart_msg_listen("live.takeover")
 @get_game_group
 @require_authorised
+@utils.consume_second
 @require_game_thread
 def takeover(ctx: MessageContext, game_id: int):
     user_id = ctx.author_id
@@ -803,6 +804,7 @@ def takeover(ctx: MessageContext, game_id: int):
 )
 @get_game_group
 @require_authorised
+@utils.consume_second
 @require_game_thread
 def remove_manager(ctx: MessageContext, game_id: int):
     user_id = ctx.value
