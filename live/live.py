@@ -1279,7 +1279,6 @@ def handle_manager_mark_completed(ctx: InteractionContext, game_id: int):
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts
     message_ts = ctx.message_ts
-    if not message_ts: return
     user_id = ctx.value
 
     if not game_id or not user_id:
@@ -1311,6 +1310,7 @@ def handle_manager_mark_completed(ctx: InteractionContext, game_id: int):
 
     db.update_turn_status(game_id, user_id, "COMPLETED")
 
+    if not message_ts: return
     ctx.client.client.web_client.chat_update(
         channel=channel_id,
         ts=message_ts,
@@ -1343,7 +1343,6 @@ def handle_manager_mark_failed(ctx: InteractionContext, game_id: int):
     channel_id = ctx.channel_id
     thread_ts = ctx.thread_ts
     message_ts = ctx.message_ts
-    if not message_ts: return
     user_id = ctx.value
 
     if not game_id or not user_id:
@@ -1375,6 +1374,9 @@ def handle_manager_mark_failed(ctx: InteractionContext, game_id: int):
 
     db.update_turn_status(game_id, user_id, "FAILED")
 
+
+    if not message_ts: return
+
     ctx.client.client.web_client.chat_update(
         channel=channel_id,
         ts=message_ts,
@@ -1387,12 +1389,11 @@ def handle_manager_mark_failed(ctx: InteractionContext, game_id: int):
     )
 
 
-@action_listen("test_button")
-def handle_test_button(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("test_button")
+def handle_test_button(ctx: InteractionContext):
     """Handles the click of the 'test_button'."""
-    user_name = event.user.name
-    client.chat_postMessage(
-        channel=event.container.channel_id,
+    user_name = ctx.author_id
+    ctx.public_send(
         text=f"👋 Hello {user_name}, you clicked the button!",
     )
 
@@ -1406,9 +1407,6 @@ def handle_start_turn(ctx: InteractionContext, game_id: int):
     thread_ts = ctx.thread_ts
 
     try:
-        if not game_id:
-            ctx.private_send(text="Could not find an active show in this thread.")
-            return
 
         if not db.is_game_manager(game_id, manager_id):
             ctx.private_send(text="You cannot overrule the magician.")
@@ -1455,48 +1453,29 @@ def handle_start_turn(ctx: InteractionContext, game_id: int):
         ctx.public_send(text="Could not start turn.")
 
 
-@action_listen("accept_turn")
-def handle_accept_turn(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("accept_turn")
+@require_game_manager
+def handle_accept_turn(ctx: InteractionContext, game_id: int):
     """Handles the selected user accepting their turn."""
-    clicker_id = event.user.id
-    channel_id = event.container.channel_id
-    message_ts = event.container.message_ts
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
-
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        client.chat_postEphemeral(
-            user=clicker_id,
-            channel=channel_id,
-            text="Could not find an active game in this thread.",
-            thread_ts=thread_ts,
-        )
-        return
+    clicker_id = ctx.author_id
+    channel_id = ctx.channel_id
+    message_ts = ctx.message_ts
 
     in_progress_user_id = db.get_in_progress_turn_user(game_id)
     if not in_progress_user_id:
-        client.chat_postEphemeral(
-            user=clicker_id,
-            channel=channel_id,
-            text="There is no turn currently in progress to accept.",
-            thread_ts=thread_ts,
-        )
+        ctx.private_send(text="There is no turn currently in progress to accept.")
         return
 
     if clicker_id != in_progress_user_id:
-        client.chat_postEphemeral(
-            user=clicker_id,
-            channel=channel_id,
-            text="It's not your turn to accept.",
-            thread_ts=thread_ts,
-        )
+        ctx.private_send(text="It's not your turn to accept.")
         return
 
     db.update_turn_status(game_id, clicker_id, "ACCEPTED")
 
-    client.chat_update(
+    if not message_ts:
+        return
+
+    ctx.client.client.web_client.chat_update(
         channel=channel_id,
         ts=message_ts,
         text=f"<@{clicker_id}> has *started* the turn.",
@@ -1510,29 +1489,18 @@ def handle_accept_turn(event: BlockActionEvent, client: WebClient):
     )
 
 
-@action_listen("confirm_skip")
-def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("confirm_skip")
+@require_game_manager
+def handle_confirm_skip(ctx: InteractionContext, game_id: int):
     """Handles a manager confirming to skip a user after a timeout."""
-    manager_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
-    message_ts = event.container.message_ts
-    user_to_skip = event.actions[0].value
-
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
-    if not game_id:
-        client.chat_postEphemeral(
-            user=manager_id,
-            channel=channel_id,
-            text="Could not find an active game in this thread.",
-            thread_ts=thread_ts,
-        )
-        return
-
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
+    user_to_skip = ctx.value
+    message_ts = ctx.message_ts
+    
     if not db.is_game_manager(game_id, manager_id):
-        client.chat_postEphemeral(
+        ctx.client.client.web_client.chat_postEphemeral(
             user=manager_id,
             channel=channel_id,
             text="You cannot overrule the magician.",
@@ -1557,7 +1525,10 @@ def handle_confirm_skip(event: BlockActionEvent, client: WebClient):
 
     db.update_turn_status(game_id, str(user_to_skip), "SKIPPED")
 
-    client.chat_update(
+    if not message_ts:
+        return
+
+    ctx.client.client.web_client.chat_update(
         channel=channel_id,
         ts=message_ts,
         text=f"🏃 Turn for <@{user_to_skip}> has been skipped by <@{manager_id}>.",
