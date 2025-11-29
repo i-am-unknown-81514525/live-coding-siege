@@ -1,20 +1,17 @@
-import logging
 import sqlite3
 import os
 from contextlib import contextmanager
 import json
 from datetime import datetime, timezone
-from typing import Final
-import concurrent.futures
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 from pathlib import Path
 import arrow
-from slack_sdk import WebClient
 from base import Client
-from siege.api import get_project, get_user
 import live.base as base
-from siege.schema.siege import SiegeProject
 from dataclasses import dataclass
+
+import slack.api
+from slack.client import SlackClient
 
 DB_FILE = Path() / "data" / "live_coding.db"
 SCHEMA_FILE = os.path.join(Path(), "schema.sql")
@@ -418,7 +415,7 @@ def update_server_secret(
         return new_hash
 
 
-def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
+def upsert_user(user_id: str, name: str, avatar_url: str | None = None, client: SlackClient | None = None):
     """Adds a new user or updates their name. It avoids overwriting a real name with 'UNKNOWN'."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -429,10 +426,20 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None):
                 name = excluded.name,
                 avatar_url = excluded.avatar_url
             WHERE excluded.name != 'UNKNOWN' OR user.name = 'UNKNOWN'
+            RETURNING avatar_url
             """,
             (user_id, name, avatar_url),
         )
+        avatar_url = cursor.fetchone()[0]
         conn.commit()
+        if avatar_url is None and client:
+            avatar_url = slack.api.get_profile_picture(user_id, client)
+            cursor.execute(
+                "UPDATE user SET avatar_url = ? WHERE slack_id = ?",
+                (avatar_url, user_id),
+            )
+            conn.commit()
+    
 
 
 # def auto_add(game_id: int, user_id: str, week: int | None = None):
