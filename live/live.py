@@ -16,7 +16,6 @@ from schema.huddle import HuddleChange, HuddleState
 from schema.interactive import BlockActionEvent
 from slack.reg import (
     InteractionContext,
-    action_listen,
     huddle_listen,
     smart_action_listen,
     smart_msg_listen,
@@ -1498,7 +1497,7 @@ def handle_confirm_skip(ctx: InteractionContext, game_id: int):
     thread_ts = ctx.thread_ts
     user_to_skip = ctx.value
     message_ts = ctx.message_ts
-    
+
     if not db.is_game_manager(game_id, manager_id):
         ctx.client.client.web_client.chat_postEphemeral(
             user=manager_id,
@@ -1542,31 +1541,23 @@ def handle_confirm_skip(ctx: InteractionContext, game_id: int):
     )
 
 
-@action_listen("skip_turn")
-def handle_skip_turn(event: BlockActionEvent, client: WebClient):
-    clicker_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
+@smart_action_listen("skip_turn")
+@require_game_thread
+def handle_skip_turn(ctx: InteractionContext, game_id: int):
+    clicker_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
 
-    game_id = db.get_active_game_by_thread(channel_id, thread_ts)
     if not game_id:
-        client.chat_postEphemeral(
-            user=clicker_id,
-            channel=channel_id,
+        ctx.private_send(
             text="Could not find an active game in this thread.",
-            thread_ts=thread_ts,
         )
         return
 
     pending_user_id = db.get_pending_turn_user(game_id)
     if not pending_user_id:
-        client.chat_postEphemeral(
-            user=clicker_id,
-            channel=channel_id,
+        ctx.private_send(
             text="There is no pending performance to skip.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1574,11 +1565,8 @@ def handle_skip_turn(event: BlockActionEvent, client: WebClient):
     is_selected_user = clicker_id == pending_user_id
 
     if not is_manager and not is_selected_user:
-        client.chat_postEphemeral(
-            user=clicker_id,
-            channel=channel_id,
+        ctx.private_send(
             text="You cannot overrule the magician.",
-            thread_ts=thread_ts,
         )
         return
 
@@ -1599,10 +1587,8 @@ def handle_skip_turn(event: BlockActionEvent, client: WebClient):
 
     db.update_turn_status(game_id, pending_user_id, "SKIPPED")
 
-    client.chat_postMessage(
-        channel=channel_id,
+    ctx.public_send(
         text=f"🏃 <@{pending_user_id}>'s turn has been skipped, now the magician like you less.",
-        thread_ts=thread_ts,
     )
 
 
@@ -1652,19 +1638,17 @@ def show_mgr_secret(ctx: MessageContext, game_id: int):
     ctx.private_send(**msg.build())
 
 
-@action_listen("mgr_secret_display")
-def handle_mgr_secret_display(event: BlockActionEvent, client: WebClient):
-    data = event.actions[0].value
+@smart_action_listen("mgr_secret_display")
+@require_game_manager
+def handle_mgr_secret_display(ctx: InteractionContext, _: int):
+    data = ctx.event.actions[0].value
     if data is None:
         return
     channel_id, jwt_token, thread_ts = data.split(";")
     thread_ts = thread_ts or None
-    client.chat_postEphemeral(
-        channel=channel_id,
-        thread_ts=thread_ts,
+    ctx.private_send(
         text=f"The secret is:",
         **Message().add_block(Section(f"`{jwt_token}`")).build(),
-        user=event.user.id,
     )
 
 
