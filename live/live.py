@@ -1675,7 +1675,7 @@ def listen_all(ctx: MessageContext):
         return
 
     if game_id := db.get_active_game_by_thread(ctx.event.channel, thread_ts):
-        db.upsert_user(ctx.event.message.user, "UNKNOWN")
+        db.upsert_user(ctx.event.message.user, "UNKNOWN", None, ctx.client)
         db.add_message_transaction(
             game_id,
             ctx.event.message.user,
@@ -1715,7 +1715,7 @@ def handle_huddle_join(event: HuddleChange, client: Client[BaseSocketModeClient]
     )
     huddle_id = event.call_id
     db.upsert_huddle(huddle_id, "UNKNOWN", datetime.now(timezone.utc))
-    db.upsert_user(user_id, user_name, event.user.profile.avatars.image_512)
+    db.upsert_user(user_id, user_name, event.user.profile.avatars.image_512, client)
     db.add_huddle_participant(huddle_id, user_id)
     print(f"ℹ️ User {user_name} ({user_id}) joined huddle {huddle_id}.")
     game_id = db.get_active_game_in_huddle(huddle_id)

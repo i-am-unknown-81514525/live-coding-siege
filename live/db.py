@@ -10,6 +10,7 @@ import arrow
 from base import Client
 import live.base as base
 from dataclasses import dataclass
+from slack_sdk.socket_mode.client import BaseSocketModeClient
 
 import slack.api
 from slack.client import SlackClient
@@ -416,7 +417,7 @@ def update_server_secret(
         return new_hash
 
 
-def upsert_user(user_id: str, name: str, avatar_url: str | None = None, client: SlackClient | None = None):
+def upsert_user(user_id: str, name: str, avatar_url: str | None = None, client: Client[BaseSocketModeClient] | None = None):
     """Adds a new user or updates their name. It avoids overwriting a real name with 'UNKNOWN'."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -436,7 +437,7 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None, client: 
         if res is not None:
             avatar_url = res[0]
             if avatar_url is None and client:
-                avatar_url = slack.api.get_profile_picture(user_id, client)
+                avatar_url = slack.api.get_profile_picture(user_id, client) # pyright: ignore[reportArgumentType]
                 cursor.execute(
                     "UPDATE user SET avatar_url = ? WHERE slack_id = ?",
                     (avatar_url, user_id),
