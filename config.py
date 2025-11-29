@@ -27,4 +27,5 @@ class Top(TypedDict):
 @functools.cache
 def get_config() -> Top:
     with open(CONFIG_FILE, "rb") as f:
+        # noinspection PyTypeChecker
         return tomllib.load(f)  # pyright: ignore[reportReturnType]

@@ -73,6 +73,7 @@ def file_upload(
     mapping: dict[PendingFile, str] = {
         file: "".join(random.choices("0123456789abcdef", k=64)) for file in files
     }
+    # noinspection PyTypeChecker
     uploaded_raw = client.files_upload_v2(
         file_uploads=[k.export(v) for k, v in mapping.items()],   # pyright: ignore[reportArgumentType]
         channels=channels,

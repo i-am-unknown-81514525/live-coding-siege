@@ -161,6 +161,7 @@ class Broadcast:
     ) -> CoroutineType[Any, Any, _V]:
         future = self._loop.create_future()
         self._temp_listener.append((event, future, check))
+        # noinspection PyTypeChecker
         return asyncio.wait_for(future, timeout)
 
     async def self_emit(self, event: str, value: Any, *, tg: asyncio.TaskGroup):

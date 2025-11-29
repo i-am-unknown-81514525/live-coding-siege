@@ -1,3 +1,4 @@
+import typing
 from typing import Literal
 from slack.reg import (
     smart_action_listen,
@@ -180,7 +181,7 @@ def get_siege_user_info(ctx: Context, public: bool):
 @utils.get_group
 @utils.filter_authorised
 @utils.require_group("siege", False)
-def test(ctx: Context):
+def test(ctx: Context) -> typing.Any:
     return ctx.private_send(
         False, files=[PendingFile("test.txt", b"Hello world!", "A test file")]
     )
@@ -295,6 +296,7 @@ def get_siege_proj_info(ctx: Context, public: bool):
             if img
             else [],
         )
+    return None
 
 
 @slash_listen("/global")
@@ -757,6 +759,7 @@ def search_project(ctx: Context, public: bool):
             or _cmp(req, proj.user.name.lower()) > SIMILARITY_THRESHOLD
         ):
             return "user name"
+        return None
 
     def retrieve(
         proj: SiegeProject,
@@ -797,6 +800,7 @@ def search_project(ctx: Context, public: bool):
     if len(filtered) > 50:
         base += " (Only showing 50 results)"
     base += "\n"
+    # noinspection PyTypeChecker
     base += "\n".join(
         f"`{p.id}`-`W{p.week}-{p.user.id}` - {p.name}: {p.status} with {p.hours:.1f}h"
         + (
@@ -890,6 +894,7 @@ def get_user_details(ctx: Context, public: bool):
         ctx.public_send(True, text="\n".join(message_lines))
     else:
         ctx.private_send(True, text="\n".join(message_lines))
+    return None
 
 
 @slash_listen("/siege_shop")
@@ -1030,3 +1035,4 @@ def get_proj_details(ctx: Context, public: bool):
         ctx.public_send(True, text=output)
     else:
         ctx.private_send(True, text=output)
+    return None

@@ -24,18 +24,18 @@ def process_message(client: "SlackClient", req: SocketModeRequest):
         event_type = event_payload.get("type")
 
         if event_type == "message" and "bot_id" not in event_payload:
-            event = MessageEvent.parse(req.payload)
+            event: MessageEvent = MessageEvent.parse(req.payload)
             message_dispatch(event, client)
 
         elif event_type == "user_huddle_changed":
-            event = HuddleChange.parse(req.payload)
+            event: HuddleChange = HuddleChange.parse(req.payload)
             huddle_dispatch(event, client)
 
     elif req.type == "interactive" and req.payload.get("type") == "block_actions":
-        event = BlockActionEvent.parse(req.payload)
+        event: BlockActionEvent = BlockActionEvent.parse(req.payload)
         action_dispatch(event, client)
     elif req.type == "slash_commands":
-        event = CommandEvent.parse(req.payload)
+        event: CommandEvent = CommandEvent.parse(req.payload)
         ctx = SlashContext(event, client)
         slash_dispatch(ctx)
 

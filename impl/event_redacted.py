@@ -2,8 +2,9 @@ import siege.core as siege
 from live.base import GameInstance, LiveModuleBase
 import arrow
 from datetime import timedelta
+from slack_sdk.socket_mode.client import BaseSocketModeClient
 
-class SiegeRedacted(LiveModuleBase):
+class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
     BOUND = (1200, 2400)
     def on_create(self) -> None:
         pass
@@ -16,7 +17,7 @@ class SiegeRedacted(LiveModuleBase):
 
     def on_join(self, user_id: str) -> None:
         if len(self._instance.managers) == 1:
-            self._instance.client.chat_postMessage(
+            self._instance.client.client.web_client.chat_postMessage(
                 channel=self._instance.channel_id,
                 thread_ts=self._instance.thread_ts,
                 text=f"<@{user_id}> has joined and now the game can be resumed!")
@@ -24,7 +25,7 @@ class SiegeRedacted(LiveModuleBase):
 
     def on_leave(self, user_id: str) -> None:
         if len(self._instance.managers) == 0:
-            self._instance.client.chat_postMessage(
+            self._instance.client.client.web_client.chat_postMessage(
                 channel=self._instance.channel_id,
                 thread_ts=self._instance.thread_ts,
                 text=f"All managers have left. The game is now paused.")
@@ -36,7 +37,7 @@ class SiegeRedacted(LiveModuleBase):
         user_id = siege.get_user_id_from_slack(user)
         if not user_id:
             return 0
-        heartbeats = siege.retrieve_all_heartbeat_curr_proj_curr_week(user_id, 13, arrow.now() - timedelta(minutes=15))
+        heartbeats = siege.retrieve_all_heartbeat_curr_proj_curr_week(user_id, 13, arrow.now().shift(minutes=15))
         most_recent = max(heartbeats, key=lambda hb: hb.measurement_time.timestamp()) if heartbeats else None
         if not most_recent:
             return 0

@@ -32,10 +32,10 @@ class GameInstance[T]:
     client: Client[T]
 
 
-class LiveModuleBase(ABC):
+class LiveModuleBase[T](ABC):
     BOUND: ClassVar[tuple[int, int]] = (300, 1200)
 
-    def __init__(self, instance: GameInstance):
+    def __init__(self, instance: GameInstance[T]):
         self._instance = instance
         super().__init__()
 

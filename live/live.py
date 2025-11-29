@@ -59,6 +59,7 @@ def get_game_lock(game_id: int) -> Lock:
 def get_game_group[**P, T, C: Context](
     func: Callable[Concatenate[C, list[str], P], T],
 ) -> Callable[Concatenate[C, P], T]:
+    # noinspection PyTypeChecker
     def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:
         ret: list[str] = []
         if ctx.thread_ts:
@@ -74,6 +75,7 @@ def get_game_group[**P, T, C: Context](
 def filter_by_value[**P, T, C: Context](
     func: Callable[Concatenate[C, list[str], P], T],
 ) -> Callable[Concatenate[C, list[str], P], T]:
+    # noinspection PyTypeChecker
     def inner(ctx: C, groups: list[str], *args: P.args, **kwargs: P.kwargs) -> T:
         ret: list[str] = []
         value: str = ctx.value
@@ -125,7 +127,7 @@ def _technical_not_reveal_from_msg(
 @filter_by_value
 @utils.filter_authorised
 @utils.have_any_group()
-def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
+def init_game(ctx: Context, is_authorized: bool, modes: list[str]) -> Any:
     picked_mode = ctx.value
     if picked_mode not in modes:
         text = f'"{picked_mode}" cannot be selected'
@@ -139,14 +141,14 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
 
     if not thread_ts:
         ctx.public_send(text="Unable to locate the thread")
-        return
+        return None
 
     existing_game_id = db.get_any_game_by_thread(channel_id, thread_ts)
     if existing_game_id:
         game_is_active = db.get_active_game_by_thread(channel_id, thread_ts) is not None
         if game_is_active:
             ctx.public_send(text="A magic show is already active in this thread.")
-            return
+            return None
 
         previous_managers = db.list_game_manager(existing_game_id)
         if user_id in previous_managers:
@@ -180,31 +182,31 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
                 ctx.public_send(
                     text="It is currently valid to restart the existing game, awaiting manager action.",
                 )
-                return
+                return None
             else:
                 ctx.public_send(
                     text="A magic show has already concluded in this thread and the condition required to restart the show is not sastified.",
                 )
-                return
+                return None
 
         ctx.public_send(
             text="A magic show has already concluded in this thread.",
         )
-        return
+        return None
 
     user_huddles = db.get_user_huddles(user_id)
     if not user_huddles:
         ctx.private_send(
             text="You don't seem to be in an active show.",
         )
-        return
+        return None
     huddle_id = user_huddles[0]  # Assume the user is in one huddle at a time
 
     if db.get_active_game_in_huddle(huddle_id):
         ctx.private_send(
             text="A magic show is already active in this huddle.",
         )
-        return
+        return None
 
     client_secret = secrets.token_hex(16)
     server_secret = secrets.token_hex(16)
@@ -235,6 +237,7 @@ def init_game(ctx: Context, is_authorized: bool, modes: list[str]):
             server_secret,
         ).build(),
     )
+    return None
 
 
 @smart_action_listen("restart_game")
@@ -594,7 +597,7 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
                     .confirm(
                         blockkit.Confirm(
                             title="Are you sure you want to fail this performance",
-                            text="This will not be mark as failed",
+                            text="This will not be mark as skipped (And not subject to consecutive skip limit)",
                             confirm="Yes, fail",
                             deny="No",
                         )
@@ -775,7 +778,7 @@ def leave(ctx: MessageContext, game_id: int):
 
     db.remove_game_manager(game_id, user_id)
 
-    ctx.public_send(
+    return ctx.public_send(
         text="You are removed from the game manager in the active game",
     )
 
@@ -1140,7 +1143,7 @@ def export_game_history(ctx: MessageContext, game_id: int):
 
         history_text += f"{i}. `{user_id}` - Status: `{status}` - Assigned Time: `{min_string}{sec_string}` `({turn['status']})`\n"
 
-    ctx.public_send(text=history_text)
+    return ctx.public_send(text=history_text)
 
 
 @smart_msg_listen("live.rnd")
@@ -1417,41 +1420,26 @@ def handle_test_button(event: BlockActionEvent, client: WebClient):
     )
 
 
-@action_listen("start_turn")
-def handle_start_turn(event: BlockActionEvent, client: WebClient):
+@smart_action_listen("start_turn")
+@require_game_thread
+def handle_start_turn(ctx: InteractionContext, game_id: int):
     """Handles a manager starting the current turn."""
-    manager_id = event.user.id
-    channel_id = event.container.channel_id
-    thread_ts = (
-        event.message and event.message.thread_ts
-    ) or event.container.message_ts
+    manager_id = ctx.author_id
+    channel_id = ctx.channel_id
+    thread_ts = ctx.thread_ts
+
     try:
-        game_id = db.get_active_game_by_thread(channel_id, thread_ts)
         if not game_id:
-            client.chat_postEphemeral(
-                user=manager_id,
-                channel=channel_id,
-                text="Could not find an active show in this thread.",
-                thread_ts=thread_ts,
-            )
+            ctx.private_send(text="Could not find an active show in this thread.")
             return
 
         if not db.is_game_manager(game_id, manager_id):
-            client.chat_postEphemeral(
-                user=manager_id,
-                channel=channel_id,
-                text="YYou cannot overrule the magician.",
-                thread_ts=thread_ts,
-            )
+            ctx.private_send(text="You cannot overrule the magician.")
             return
 
         pending_user_id = db.get_pending_turn_user(game_id)
         if not pending_user_id:
-            client.chat_postMessage(
-                channel=channel_id,
-                text="There is no pending performance to start.",
-                thread_ts=thread_ts,
-            )
+            ctx.public_send(text="There is no pending performance to start.")
             return
         turn_details = db.start_turn(game_id, pending_user_id)
         message_payload = (
@@ -1459,16 +1447,13 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
                 text=f"<@{pending_user_id}>'s performance has officially started! Good luck!"
             )
         ).build()
-
-        client.chat_postMessage(
-            channel=channel_id, thread_ts=thread_ts, **message_payload
-        )
+        ctx.public_send(**message_payload)
 
         duration_seconds = turn_details["assigned_duration_seconds"]
         user_turn_timer = Timer(
             duration_seconds,
             _handle_user_turn_timeout,
-            args=(game_id, pending_user_id, channel_id, thread_ts, client),
+            args=(game_id, pending_user_id, channel_id, thread_ts, ctx.client.client.web_client),
         )
         user_names_map = db.get_user_names([pending_user_id])
         user_name = user_names_map.get(pending_user_id, pending_user_id)
@@ -1490,9 +1475,7 @@ def handle_start_turn(event: BlockActionEvent, client: WebClient):
         user_turn_timer.start()
     except ValueError as e:
         logging.error(f"Error starting turn:", exc_info=True)
-        client.chat_postMessage(
-            channel=channel_id, text=f"Error starting turn: {e}", thread_ts=thread_ts
-        )
+        ctx.public_send(text="Could not start turn.")
 
 
 @action_listen("accept_turn")
