@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 import os
 from contextlib import contextmanager
@@ -426,19 +427,24 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None, client: 
                 name = excluded.name,
                 avatar_url = excluded.avatar_url
             WHERE excluded.name != 'UNKNOWN' OR user.name = 'UNKNOWN'
-            RETURNING avatar_url
             """,
             (user_id, name, avatar_url),
         )
-        avatar_url = cursor.fetchone()[0]
         conn.commit()
-        if avatar_url is None and client:
-            avatar_url = slack.api.get_profile_picture(user_id, client)
-            cursor.execute(
-                "UPDATE user SET avatar_url = ? WHERE slack_id = ?",
-                (avatar_url, user_id),
-            )
-            conn.commit()
+        cursor.execute("SELECT avatar_url FROM user WHERE slack_id = ?", (user_id,))
+        res = cursor.fetchone()
+        if res is not None:
+            avatar_url = res[0]
+            if avatar_url is None and client:
+                avatar_url = slack.api.get_profile_picture(user_id, client)
+                cursor.execute(
+                    "UPDATE user SET avatar_url = ? WHERE slack_id = ?",
+                    (avatar_url, user_id),
+                )
+                conn.commit()
+            logging.info(f"User {user_id} avatar URL: {res[0]} -> {avatar_url}")
+        else:
+            logging.info(f"User {user_id} not found???.")
     
 
 
