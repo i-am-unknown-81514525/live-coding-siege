@@ -88,7 +88,7 @@ def filter_by_value[**P, T, C: Context](
 @smart_msg_listen("live.test1")
 def test_interactive(ctx: MessageContext):
     try:
-        user_info = ctx.client.client.web_client.users_profile_get(user=ctx.author_id)
+        user_info = ctx.client.client.web_client.users_profile_get(user=ctx.author_id).data
         logging.info(f"User profile: {json.dumps(user_info, indent=2)}")
     except:
         logging.info("Fail to get user profile", exc_info=True)
