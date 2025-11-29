@@ -433,6 +433,11 @@ def reloc(ctx: MessageContext, game_id: int):
     if not thread_ts:
         ctx.private_send(text="Cannot locate the thread.")
         return
+    if db.get_any_game_by_thread(channel_id, thread_ts):
+        ctx.private_send(
+            text="Another game is already active or have existed in this thread."
+        )
+        return
     with get_game_lock(game_id):
         huddles = db.get_user_huddles(ctx.author_id)
         if len(huddles) == 0:
