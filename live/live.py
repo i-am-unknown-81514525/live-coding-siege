@@ -31,7 +31,7 @@ from ws_mgr import controller, signals
 import jwt
 from utils import get_group, require_allowed, require_authorised
 from live.base import get_module
-from live.utils import require_game_thread, require_game_manager
+from live.utils import require_any_game_manager, require_game_thread, require_game_manager
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 from base import description
 
@@ -426,7 +426,7 @@ def huddle_rst(ctx: MessageContext):
 @get_group
 @require_allowed
 @utils.consume_second
-@require_game_manager
+@require_any_game_manager
 def reloc(ctx: MessageContext, game_id: int):
     thread_ts = ctx.thread_ts
     channel_id = ctx.channel_id

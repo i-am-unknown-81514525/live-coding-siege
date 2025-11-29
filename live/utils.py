@@ -33,3 +33,18 @@ def require_game_manager[**P, T, C: Context](
         return func(ctx, game_id, *args, **kwargs)
 
     return inner
+
+
+def require_any_game_manager[**P, T, C: Context](
+    func: Callable[Concatenate[C, int, P], T],
+) -> Callable[Concatenate[C, P], T | None]:
+    def inner(ctx: C,  *args: P.args, **kwargs: P.kwargs) -> T | None:
+        game_id = db.get_game_mgr_active_game(ctx.author_id)
+        if game_id is None:
+            ctx.private_send(
+                text=f'Require missing role "Game manager" in any active game.'
+            )
+            return None
+        return func(ctx, game_id, *args, **kwargs)
+
+    return inner
