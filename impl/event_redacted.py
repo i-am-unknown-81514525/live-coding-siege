@@ -36,7 +36,7 @@ class SiegeRedacted(LiveModuleBase):
         user_id = siege.get_user_id_from_slack(user)
         if not user_id:
             return 0
-        heartbeats = siege.retrieve_all_heartbeat_curr_proj_curr_week(user_id, 14, arrow.now() - timedelta(minutes=15))
+        heartbeats = siege.retrieve_all_heartbeat_curr_proj_curr_week(user_id, 13, arrow.now() - timedelta(minutes=15))
         most_recent = max(heartbeats, key=lambda hb: hb.measurement_time.timestamp()) if heartbeats else None
         if not most_recent:
             return 0
