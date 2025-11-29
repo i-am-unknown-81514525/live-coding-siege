@@ -54,7 +54,7 @@ def _time_to_slack(time: Arrow) -> str:
 
 def _parse_repo(repo: str) -> str:
     match = re.search(
-        r"https?://(?:(?:(?:www\.?)?(github\.com|gitlab\.com|codeberg\.org|bitbucket\.org))|(git\.hackclub\.app|dev\.azure\.com))/([^/\"\n ]+)/([^/\"\n ]+)",
+        r"https?://(?:(?:(?:www\.?)?(github\.com|gitlab\.com|codeberg\.org|bitbucket\.org))|(git\.hackclub\.app|dev\.azure\.com))/([^/\"\n ]+)/([^/\"\n ]*)",
         repo,
     )
 
