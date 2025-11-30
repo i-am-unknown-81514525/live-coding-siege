@@ -679,7 +679,7 @@ def optout(ctx: MessageContext, game_id: int):
                 .confirm(
                     blockkit.Confirm(
                         title="Are you sure you want to opt out?",
-                        text="You will not be able to participate further in this show.",
+                        text="You will not be able to participate further in this show. Optin might not be always possible.",
                         confirm="Yes, opt out",
                         deny="No",
                     )
