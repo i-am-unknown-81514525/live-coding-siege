@@ -46,7 +46,7 @@ def init_db():
         cursor = conn.cursor()
         cursor.executescript(schema_sql)
         conn.commit()
-    print("Siege Database initialized successfully.")
+    logging.info("Siege Database initialized successfully.")
 
 
 def push_proj(projs: list[SiegeProject]):
