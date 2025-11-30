@@ -46,27 +46,17 @@ As a game manager, you can use `live.mgr_secret` to get the JWT secret for dashb
 ### Public command list
 Use `siege.helps` or `/help` for the full list
 
-### Main change for W12
-- File upload support in framework `Context`
-- Built a bunch of graph
-- REDACTED
-Check `changelist/CHANGE_LIST_W12.md` for full list
+### Main change for W13
+- Implement a IRC client for the bot (`irc.hackclub.com`)
+- Fix whatever in redacted code (now public btw!!!)
+- Added more graph
+- Add hackatime implementation
+- Add optin and huddle relocate etc.
+Check `changelist/CHANGE_LIST_W13.md` for full list (probably)
 
-### How does it follow the framework theme
-The bot is built based upon a custom slack bot framework which is more useful than slack-bolt in some aspect (built with `slack-sdk` and `blockkit`), which support
-- Huddle event
-- Message event
-- Interaction
-- File sending (Which slack bolt is bad at, literally didn't even mention it in docs from what I can find)
-with a custom permission system.
-This can be used to make other slack bot (given you don't need other capability) by:
-Copying `main.py`(Bot launchor with the module loader), `config.py`(Config loader), `utils.py`(Permission decorator based on context namespace), `reg.py`(Command decorator // `Context` which provide a unified interaction interface to send message public/privately, between message/slash command and interaction) and `schema/`(All the different slack schema for this limited subsrt of capability)
-(Side noteL even the platform is made agnositic right now, and the specific implementation is described in `slack/`, (or `irc/` which is WIP for W13))
-
-There is also a different, more specific framework, which is in the live module (yes, framework in a framework), which allow custom behaviour of a live coding event and can be customized entirely (See `impl/live_blank.py` and `impl/siege.py`, which one just give everyone a single ticket while in siege is based on the coding time during the huddle)
 
 ### How does it follow the winter theme
-We are undergoing(maybe not now? but at the time of writing: 25 November 2025 20:58 UTC) a communication winter, where Slack is not accessible, and a irc server is hosted for temporary communication. THerefore, the bot have adapted so it can handle command from irc chat as well (in `#siege` in `irc.hackclub.com`, might not available at the time of review)
+We are undergoing(maybe not now? but at the time of writing: 25 November 2025 20:58 UTC) a communication winter where Slack is not accessible, and a irc server is hosted for temporary communication. THerefore, the bot have adapted so it can handle command from irc chat as well (in `#siege` in `irc.hackclub.com`, the IRC server might not available at the time of review)
 
 ### Demo?
 I prefer you test on Slack instead, it would take same amount of time to a demo video, and just start a empty huddle, for the better experience :)
