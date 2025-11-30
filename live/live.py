@@ -740,9 +740,22 @@ def reject_turn(ctx: MessageContext, game_id: int):
 
 @smart_msg_listen("live.add_mgr")
 @description("live.add_mgr", "Add a game manager (Current game manager only)")
+@get_game_group
+@utils.flatten_get_first_require_value
 @require_game_manager
-def add_manager(ctx: Context, game_id: int):
+def add_manager(ctx: Context, game_id: int, group: str):
     user_id = ctx.value
+
+    if ctx.value.strip() == "all":
+        allowed = utils.get_all_allowed(group)
+        added = []
+        for user in allowed:
+            if not db.has_game_manager(user_id):
+                db.add_game_manager(game_id, user)
+                added.append(user)
+        return ctx.public_send(
+            text=f"Added {len(added)} game managers: {', '.join(f'<@{uid}>' for uid in added)}",
+        )
 
     if not re.match(r"<@(U\w+)>", user_id):
         ctx.private_send(
