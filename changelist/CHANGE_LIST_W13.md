@@ -3,3 +3,10 @@
 - [ ] transaction page
 - [ ] updated timer system
 - [ ] more graph
+- [x] `live.optin`
+- [x] `live.add_mgr all`
+- [x] Refactor code to change to `smart_action_listen`
+- [x] Update utils fn
+- [x] Fix pfp display on website
+- [x] `user_status` graph
+- [x] General debugging
