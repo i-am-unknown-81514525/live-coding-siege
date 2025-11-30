@@ -49,7 +49,6 @@ class UserStats:
     total_seconds: int
     daily_average: int
     languages: list[LanguageStats]
-    trust: TrustStats
 
     @classmethod
     def parse(cls, data: dict) -> "UserStats":
@@ -67,7 +66,19 @@ class UserStats:
                 LanguageStats.parse(data["user_id"], lang)
                 for lang in data.get("languages", [])
             ],
-            trust=TrustStats.parse(data["user_id"], data.get("trust", {})),
         ) 
+
+@dataclass(frozen=True)
+class UserData:
+    stats: UserStats
+    trust: TrustStats
+
+    @classmethod
+    def parse(cls, data: dict) -> "UserData":
+        user_stats = UserStats.parse(data.get("data", {}))
+        return cls(
+            stats=user_stats,
+            trust=TrustStats.parse(user_stats.user_id, data.get("trust_factor", {})),
+        )
 
 
