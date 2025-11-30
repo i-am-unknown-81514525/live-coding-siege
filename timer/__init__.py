@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import logging
 from threading import Thread, Event
 
 import sys
@@ -70,7 +71,10 @@ def runner():
             time.sleep(0.1)
         task: Task = task_list[0] # pyright: ignore[reportAssignmentType]
         if task.remaining_time <= 0:
-            task._exec()
+            try:
+                task._exec()
+            except:
+                logging.warning("Task failed", exc_info=True)
             task_list.pop(0)
         elif 0 < task.remaining_time < WAIT_TIME:
             time.sleep(task.remaining_time)
