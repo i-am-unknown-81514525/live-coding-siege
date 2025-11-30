@@ -4,6 +4,7 @@ from threading import Thread, Event
 
 import sys
 from types import TracebackType
+from typing import Self
 from sortedcontainers import SortedList
 import arrow 
 import time
@@ -24,6 +25,7 @@ class Task[**P, T]:
         self.exception: tuple[type[BaseException], BaseException, TracebackType] | tuple[None, None, None] = (None, None, None)
         task_list.add(self)
         self.flag = Event()
+        self.log_on_error = False
     
     @property
     def remaining_time(self) -> float:
@@ -38,8 +40,11 @@ class Task[**P, T]:
                 self.res = self.fn()
             except Exception as e:
                 self.exception = sys.exc_info()
-            self.done = True
-            self.flag.set()
+                if self.log_on_error:
+                    logging.warning("Task execution failed", exc_info=True)
+            finally:
+                self.done = True
+                self.flag.set()
         thread = Thread(target=runner)
         thread.start()
         
@@ -63,6 +68,11 @@ class Task[**P, T]:
     @property
     def execute_at(self) -> arrow.Arrow:
         return self.at
+    
+    def set_log_on_error(self) -> Self:
+        self.log_on_error = True
+        return self
+
 
 WAIT_TIME = 1.0
 def runner():

@@ -1,10 +1,11 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 import os, logging, secrets, time
-from threading import Timer, Lock
+from threading import Lock
 from datetime import datetime, timezone
 from typing import Any, Concatenate
 
+import arrow
 from slack_sdk.web import WebClient
 import re
 
@@ -26,6 +27,7 @@ from crypto.core import DeterRnd, Handler, _sha3, randint
 import live.db as db
 import blockkit
 from blockkit import Message, Section, Button
+from timer import Task
 import utils
 from ws_mgr import controller, signals
 import jwt
@@ -350,7 +352,6 @@ def _handle_manager_action_timeout(
         )
 
 
-ACTIVE_TURN_TIMERS: dict[tuple[int, str], Timer] = {}
 
 
 def _handle_user_turn_timeout(
@@ -363,11 +364,6 @@ def _handle_user_turn_timeout(
         or turn_details["timeout_notified"]
     ):
         return
-
-    try:
-        ACTIVE_TURN_TIMERS.pop((game_id, user_id), None)
-    except KeyError:
-        pass
 
     db.set_turn_timeout_notified(game_id, user_id)
     print(
@@ -1076,11 +1072,13 @@ def pick_user(ctx: MessageContext, game_id: int):
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
         timeout_seconds = 120
-        Timer(
-            timeout_seconds,
-            _handle_manager_action_timeout,
-            args=(game_id, target_user_id, channel_id, ctx.thread_ts, ctx.client.client.web_client),
-        ).start()
+        if not ctx.thread_ts:
+            logging.warning("Cannot find thread.")
+        else:
+            Task(
+                arrow.now().shift(seconds=timeout_seconds),
+                _handle_manager_action_timeout,game_id, target_user_id, channel_id, ctx.thread_ts, ctx.client.client.web_client
+            ).set_log_on_error()
         new_server_secret = secrets.token_hex(16)
         db.update_server_secret(game_id, new_server_secret)
 
@@ -1481,11 +1479,14 @@ def handle_start_turn(ctx: InteractionContext, game_id: int):
         ctx.public_send(**message_payload)
 
         duration_seconds = turn_details["assigned_duration_seconds"]
-        user_turn_timer = Timer(
-            duration_seconds,
-            _handle_user_turn_timeout,
-            args=(game_id, pending_user_id, channel_id, thread_ts, ctx.client.client.web_client),
-        )
+        if not thread_ts:
+            logging.warning("Missing thread ts when start turn task creation")
+        else:
+            Task(
+                arrow.now().shift(seconds=duration_seconds),
+                _handle_user_turn_timeout,
+                game_id, pending_user_id, channel_id, thread_ts, ctx.client.client.web_client,
+            ).set_log_on_error()
         user_names_map = db.get_user_names([pending_user_id])
         user_name = user_names_map.get(pending_user_id, pending_user_id)
         end_time = datetime.now(timezone.utc).timestamp() + duration_seconds
@@ -1502,9 +1503,6 @@ def handle_start_turn(ctx: InteractionContext, game_id: int):
             ).encode(),
         )
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
-        ACTIVE_TURN_TIMERS[(game_id, pending_user_id)] = user_turn_timer
-        logging.info(ACTIVE_TURN_TIMERS)
-        user_turn_timer.start()
     except ValueError as e:
         logging.error(f"Error starting turn:", exc_info=True)
         ctx.public_send(text="Could not start turn.")
@@ -1828,17 +1826,15 @@ def load_active_timers(client: WebClient):
 
         if remaining_time > 0:
             # Start a timer for the remaining duration
-            Timer(
-                remaining_time,
+            Task(
+                arrow.now().shift(seconds=remaining_time),
                 _handle_manager_action_timeout,
-                args=(
-                    turn["game_id"],
-                    turn["user_id"],
-                    turn["channel_id"],
-                    turn["thread_ts"],
-                    client,
-                ),
-            ).start()
+                turn["game_id"],
+                turn["user_id"],
+                turn["channel_id"],
+                turn["thread_ts"],
+                client,
+            ).set_log_on_error()
         elif not turn["timeout_notified"]:
             # If time has expired and we haven't notified yet, handle the timeout.
             _handle_manager_action_timeout(
@@ -1871,19 +1867,15 @@ def load_active_timers(client: WebClient):
         )
 
         if remaining_time > 0:
-            user_turn_timer = Timer(
-                remaining_time,
+            user_turn_timer = Task(
+                arrow.now().shift(seconds=remaining_time),
                 _handle_user_turn_timeout,
-                args=(
-                    turn["game_id"],
-                    turn["user_id"],
-                    turn["channel_id"],
-                    turn["thread_ts"],
-                    client,
-                ),
-            )
-            ACTIVE_TURN_TIMERS[(turn["game_id"], turn["user_id"])] = user_turn_timer
-            user_turn_timer.start()
+                turn["game_id"],
+                turn["user_id"],
+                turn["channel_id"],
+                turn["thread_ts"],
+                client,
+            ).set_log_on_error()
         else:
             _handle_user_turn_timeout(
                 turn["game_id"],
