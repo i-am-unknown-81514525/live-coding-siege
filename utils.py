@@ -38,6 +38,12 @@ def get_is_authorized(user_id: str, group: str) -> bool:
         return False
     return user_id in configs[group]["authorized"]
 
+def get_all_authorized(group: str) -> list[str]:
+    configs = get_config()["bot"]["group"]
+    if group not in configs:
+        return []
+    return configs[group]["authorized"]
+
 
 def get_is_allowed(user_id: str, group: str) -> bool:
     configs = get_config()["bot"]["group"]
@@ -47,6 +53,13 @@ def get_is_allowed(user_id: str, group: str) -> bool:
         user_id in configs[group]["allowed"] or user_id in configs[group]["authorized"]
     )
 
+def get_all_allowed(group: str) -> list[str]:
+    configs = get_config()["bot"]["group"]
+    if group not in configs:
+        return []
+    allowed = configs[group]["allowed"]
+    authorized = configs[group]["authorized"]
+    return list(set(allowed).union(set(authorized)))
 
 def require_allowed[**P, T, C: Context](
     func: Callable[Concatenate[C, list[str], P], T],
