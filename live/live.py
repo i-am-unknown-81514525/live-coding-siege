@@ -750,11 +750,15 @@ def add_manager(ctx: Context, game_id: int, group: str):
         allowed = utils.get_all_allowed(group)
         added = []
         for user in allowed:
-            if not db.has_game_manager(user_id):
-                db.add_game_manager(game_id, user)
-                added.append(user)
+            if not db.has_game_manager(user):
+                try:
+                    db.upsert_user(user, "UNKNOWN", None, ctx.client)
+                    db.add_game_manager(game_id, user)
+                    added.append(user)
+                except Exception as e:
+                    logging.warning(f"Failed to add game manager {user} to game {game_id}:", exc_info=True)
         return ctx.public_send(
-            text=f"Added {len(added)} game managers: {', '.join(f'<@{uid}>' for uid in added)}",
+            text=f"Added new {len(added)} game managers: {', '.join(f'`{uid}`' for uid in added)}",
         )
 
     if not re.match(r"<@(U\w+)>", user_id):

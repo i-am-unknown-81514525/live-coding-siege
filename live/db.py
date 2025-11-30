@@ -443,7 +443,7 @@ def upsert_user(user_id: str, name: str, avatar_url: str | None = None, client: 
                     (avatar_url, user_id),
                 )
                 conn.commit()
-            logging.info(f"User {user_id} avatar URL: {res[0]} -> {avatar_url}")
+                logging.info(f"User {user_id} avatar URL: {res[0]} -> {avatar_url}")
         else:
             logging.info(f"User {user_id} not found???.")
     
