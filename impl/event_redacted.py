@@ -5,7 +5,7 @@ from datetime import timedelta
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 
 class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
-    BOUND = (120, 240)
+    BOUND = (1200, 2400)
     CAN_OPTIN = True
 
     def on_create(self) -> None:
@@ -39,7 +39,7 @@ class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
         user_id = siege.get_user_id_from_slack(user)
         if not user_id:
             return 0
-        heartbeats = siege.retrieve_all_heartbeat_curr_proj_curr_week(user_id, 13, arrow.now().shift(minutes=-15))
+        heartbeats = siege.retrieve_all_heartbeat_curr_proj_curr_week(user_id, 14, arrow.now().shift(minutes=-15))
         most_recent = max(heartbeats, key=lambda hb: hb.measurement_time.timestamp()) if heartbeats else None
         if not most_recent:
             return 0
