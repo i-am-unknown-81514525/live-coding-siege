@@ -6,6 +6,8 @@ from slack_sdk.socket_mode.client import BaseSocketModeClient
 
 class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
     BOUND = (1200, 2400)
+    CAN_OPTIN = True
+
     def on_create(self) -> None:
         pass
 

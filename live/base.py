@@ -34,6 +34,7 @@ class GameInstance[T]:
 
 class LiveModuleBase[T](ABC):
     BOUND: ClassVar[tuple[int, int]] = (300, 1200)
+    CAN_OPTIN: ClassVar[bool] = False
 
     def __init__(self, instance: GameInstance[T]):
         self._instance = instance

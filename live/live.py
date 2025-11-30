@@ -653,6 +653,18 @@ def _build_active_turn_message(game_id: int, is_public: bool = False) -> Message
 
     return message
 
+@smart_msg_listen("live.optin")
+@description("live.optin", "Optin, which may or may not work:) You _never_ knows")
+@require_game_thread
+def optin(ctx: MessageContext, game_id: int):
+    instance = db.get_game_instance(game_id, ctx.client)
+    module = get_module(instance)
+    if not module.CAN_OPTIN:
+        return ctx.private_send(text="Optin is not supported in this game mode.")
+    db.update_participant_opt_out(game_id, ctx.author_id, is_opted_out=False)
+    ctx.private_send(
+        text="You have opted in to the current show. You may be selected for performances."
+    )
 
 @smart_msg_listen("live.optout")
 @description("live.optout", "Optout from the game (Why... :heavysob:)")
