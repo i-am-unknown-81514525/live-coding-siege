@@ -11,7 +11,7 @@ def require_game_thread[**P, T, C: Context](
         if ctx.thread_ts is None:
             ctx.private_send(text="You can only run this in a thread")
             return None
-        game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
+        game_id = db.get_any_game_by_thread(ctx.channel_id, ctx.thread_ts)
         if game_id is None:
             ctx.private_send(text=f"No game instance exist in thread `{ctx.thread_ts}`")
             return None

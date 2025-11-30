@@ -1681,7 +1681,7 @@ def show_mgr_secret(ctx: MessageContext, game_id: int):
     jwt_token = jwt.encode(
         {
             "user_id": user_id,
-            "exp": time.time() + 43200,
+            "exp": time.time() + 648000, # 43200
             "iss": "bot",
             "aud": "web",
             "sub": user_id,
