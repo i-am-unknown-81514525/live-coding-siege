@@ -1,7 +1,7 @@
 - [x] Refactor framework to support multi-client
 - [x] Add `ìrc` implementation
 - [ ] transaction page
-- [ ] updated timer system
+- [x] updated timer system (I actually did this wtf)
 - [ ] more graph
 - [x] `live.optin`
 - [x] `live.add_mgr all`
@@ -10,3 +10,4 @@
 - [x] Fix pfp display on website
 - [x] `user_status` graph
 - [x] General debugging
+- [x] FIx timer only appear in manager timeout or the end of turn (Now appear in both)

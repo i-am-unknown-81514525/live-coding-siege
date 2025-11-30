@@ -45,7 +45,7 @@ CLIENTS = [
         ],
     )
 ]
-START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live"]
+START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live", "timer"]
 LOAD_MODULE = ["siege.cmd", "live.live"]
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
 CONTEXT = ExecutionContext(

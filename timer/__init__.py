@@ -17,7 +17,6 @@ class Task[**P, T]:
     def __init__(self, at: arrow.Arrow, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
         def inner():
             return fn(*args, **kwargs)
-        task_list.append(self)
         self.at = at
         self.fn = inner
         self.done = False
@@ -78,9 +77,11 @@ WAIT_TIME = 1.0
 def runner():
     while True:
         if len(task_list) == 0:
-            time.sleep(0.1)
+            time.sleep(1.0)
+            continue
         task: Task = task_list[0] # pyright: ignore[reportAssignmentType]
         if task.remaining_time <= 0:
+            logging.info(f"Dispatching task {task}")
             try:
                 task._exec()
             except:
@@ -89,7 +90,7 @@ def runner():
         elif 0 < task.remaining_time < WAIT_TIME:
             time.sleep(task.remaining_time)
         else:
-            time.sleep(0.1)
+            time.sleep(1.0)
         
 def start(client: ExecutionContext):
     thread_proj = Thread(target=runner)

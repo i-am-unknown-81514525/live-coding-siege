@@ -358,6 +358,7 @@ def _handle_user_turn_timeout(
     game_id: int, user_id: str, channel_id: str, thread_ts: str, client: WebClient
 ):
     turn_details = db.get_turn_by_status(game_id, ["IN_PROGRESS", "ACCEPTED"])
+    logging.info(turn_details)
     if (
         not turn_details
         or turn_details["user_id"] != user_id
@@ -366,7 +367,7 @@ def _handle_user_turn_timeout(
         return
 
     db.set_turn_timeout_notified(game_id, user_id)
-    print(
+    logging.info(
         f"⌛️ User turn for {user_id} in game {game_id} has expired. Sending manager notification."
     )
     message_payload = (
@@ -1809,83 +1810,89 @@ def handle_huddle_leave(event: HuddleChange, client: Client[BaseSocketModeClient
 
 
 def load_active_timers(client: WebClient):
-    print("⏳ Loading active timers from the database...")
+    logging.info("⏳ Loading active timers from the database...")
     pending_turns = db.get_all_turns_by_status(["PENDING"])
     manager_timeout_duration = 120  # 2 minutes
 
     for turn in pending_turns:
-        selection_time = datetime.fromisoformat(turn["selection_time"]).replace(
-            tzinfo=timezone.utc
-        )
-        elapsed_time = (datetime.now(timezone.utc) - selection_time).total_seconds()
-        remaining_time = manager_timeout_duration - elapsed_time
+        try:
+            selection_time = datetime.fromisoformat(turn["selection_time"]).replace(
+                tzinfo=timezone.utc
+            )
+            elapsed_time = (datetime.now(timezone.utc) - selection_time).total_seconds()
+            remaining_time = manager_timeout_duration - elapsed_time
 
-        print(
-            f"  - Found pending turn for user {turn['user_id']} in game {turn['game_id']}. Remaining time: {remaining_time:.0f}s"
-        )
-
-        if remaining_time > 0:
-            # Start a timer for the remaining duration
-            Task(
-                arrow.now().shift(seconds=remaining_time),
-                _handle_manager_action_timeout,
-                turn["game_id"],
-                turn["user_id"],
-                turn["channel_id"],
-                turn["thread_ts"],
-                client,
-            ).set_log_on_error()
-        elif not turn["timeout_notified"]:
-            # If time has expired and we haven't notified yet, handle the timeout.
-            _handle_manager_action_timeout(
-                turn["game_id"],
-                turn["user_id"],
-                turn["channel_id"],
-                turn["thread_ts"],
-                client,
+            logging.info(
+                f"  - Found pending turn for user {turn['user_id']} in game {turn['game_id']}. Remaining time: {remaining_time:.0f}s"
             )
 
-    print(f"✅ Finished loading {len(pending_turns)} PENDING turn timers.")
+            if remaining_time > 0:
+                # Start a timer for the remaining duration
+                Task(
+                    arrow.now().shift(seconds=remaining_time),
+                    _handle_manager_action_timeout,
+                    turn["game_id"],
+                    turn["user_id"],
+                    turn["channel_id"],
+                    turn["thread_ts"],
+                    client,
+                ).set_log_on_error()
+            elif not turn["timeout_notified"]:
+                # If time has expired and we haven't notified yet, handle the timeout.
+                _handle_manager_action_timeout(
+                    turn["game_id"],
+                    turn["user_id"],
+                    turn["channel_id"],
+                    turn["thread_ts"],
+                    client,
+                )
+        except Exception:
+            logging.info("Fail to run handler", exc_info=True)
+
+    logging.info(f"✅ Finished loading {len(pending_turns)} PENDING turn timers.")
 
     # Load IN_PROGRESS and ACCEPTED turns
     in_progress_turns = db.get_all_turns_by_status(["IN_PROGRESS", "ACCEPTED"])
     for turn in in_progress_turns:
-        start_time = (
-            datetime.fromisoformat(turn["start_time"]).replace(tzinfo=timezone.utc)
-            if turn["start_time"]
-            else None
-        )
-        if not start_time:
-            continue
+        try:
+            start_time = (
+                datetime.fromisoformat(turn["start_time"]).replace(tzinfo=timezone.utc)
+                if turn["start_time"]
+                else None
+            )
+            if not start_time:
+                continue
 
-        duration = turn["assigned_duration_seconds"]
-        elapsed_time = (datetime.now(timezone.utc) - start_time).total_seconds()
-        remaining_time = duration - elapsed_time
+            duration = turn["assigned_duration_seconds"]
+            elapsed_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+            remaining_time = duration - elapsed_time
 
-        print(
-            f"  - Found IN_PROGRESS turn for user {turn['user_id']} in game {turn['game_id']}. Remaining time: {remaining_time:.0f}s"
-        )
-
-        if remaining_time > 0:
-            user_turn_timer = Task(
-                arrow.now().shift(seconds=remaining_time),
-                _handle_user_turn_timeout,
-                turn["game_id"],
-                turn["user_id"],
-                turn["channel_id"],
-                turn["thread_ts"],
-                client,
-            ).set_log_on_error()
-        else:
-            _handle_user_turn_timeout(
-                turn["game_id"],
-                turn["user_id"],
-                turn["channel_id"],
-                turn["thread_ts"],
-                client,
+            logging.info(
+                f"  - Found IN_PROGRESS turn for user {turn['user_id']} in game {turn['game_id']}. Remaining time: {remaining_time:.0f}s"
             )
 
-    print(f"Finished loading {len(in_progress_turns)} IN_PROGRESS turn timers.")
+            if remaining_time > 0:
+                user_turn_timer = Task(
+                    arrow.now().shift(seconds=remaining_time),
+                    _handle_user_turn_timeout,
+                    turn["game_id"],
+                    turn["user_id"],
+                    turn["channel_id"],
+                    turn["thread_ts"],
+                    client,
+                ).set_log_on_error()
+            else:
+                _handle_user_turn_timeout(
+                    turn["game_id"],
+                    turn["user_id"],
+                    turn["channel_id"],
+                    turn["thread_ts"],
+                    client,
+                )
+        except:
+            logging.info("Fail to run handler", exc_info=True)
+
+    logging.info(f"Finished loading {len(in_progress_turns)} IN_PROGRESS turn timers.")
 
 
 def start(client: ExecutionContext):

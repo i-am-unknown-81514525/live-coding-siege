@@ -290,7 +290,7 @@ def start_turn(game_id: int, user_id: str) -> sqlite3.Row:
         cursor.execute(
             """
             UPDATE game_turn 
-            SET status = 'IN_PROGRESS', start_time = ? 
+            SET status = 'IN_PROGRESS', start_time = ? , timeout_notified = FALSE
             WHERE id = ?
             """,
             (datetime.now(timezone.utc).isoformat(), turn_details["id"]),
@@ -331,7 +331,7 @@ def update_turn_status(
         cursor = conn.cursor()
 
         cursor.execute(
-            "UPDATE game_turn SET status = ? WHERE game_id = ? AND user_id = ? AND status IN ('PENDING', 'IN_PROGRESS')",
+            "UPDATE game_turn SET status = ?, timeout_notified = FALSE WHERE game_id = ? AND user_id = ? AND status IN ('PENDING', 'IN_PROGRESS')",
             (new_status, game_id, user_id),
         )
 
