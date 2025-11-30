@@ -480,3 +480,23 @@ def swap[**P, A, B, C, T](
         return func(a, c, b, *args, **kwargs)
 
     return inner
+
+def flatten_get_first_require_value[**P, A, I, T](
+        func: Callable[Concatenate[A, I, P], T]
+) -> Callable[Concatenate[A, list[I], P], T | None]:
+    def inner(a: A, items: list[I], *args: P.args, **kwargs: P.kwargs) -> T | None:
+        if not items:
+            return None
+        return func(a, items[0], *args, **kwargs)
+
+    return inner
+
+def flatten_get_first_optional[**P, A, I, T](
+        func: Callable[Concatenate[A, I | None, P], T]
+) -> Callable[Concatenate[A, list[I], P], T]:
+    def inner(a: A, items: list[I], *args: P.args, **kwargs: P.kwargs) -> T:
+        if not items:
+            return func(a, None, *args, **kwargs)
+        return func(a, items[0], *args, **kwargs)
+
+    return inner
