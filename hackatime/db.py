@@ -42,5 +42,16 @@ def append_game(user_id: str, game_id: int, hours: float):
         cursor.execute("INSERT INTO link(user_id, game_id, start_hours) VALUES (?, ?, ?) ON CONFLICT(user_id, game_id) DO NOTHING", (user_id, game_id, hours))
         conn.commit()
 
+def get_game_start_hours(user_id: str, game_id: int) -> float | None:
+    with get_hackatime_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT start_hours FROM link WHERE user_id = ? AND game_id = ?", (user_id, game_id))
+        res = cursor.fetchone()
+        if not res:
+            return None
+        return res[0]
+
+
+
 def start(client: ExecutionContext):
     init_db()
