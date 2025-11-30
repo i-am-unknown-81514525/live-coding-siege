@@ -717,12 +717,16 @@ def confirm_optout(ctx: InteractionContext):
         text="You have opted out of the current show. You will no longer be selected for performances.",
     )
     if ctx.message_ts:
-        ctx.client.client.web_client.chat_update(
-            channel=channel_id,
-            ts=ctx.message_ts,
-            text="You have opted out.",
-            blocks=[],
-        )
+        try:
+            ctx.client.client.web_client.chat_update(
+                channel=channel_id,
+                ts=ctx.message_ts,
+                text="You have opted out.",
+                blocks=[],
+            )
+        except:
+            logging.warning("Fail to send message update", exc_info=True)
+            ctx.private_send(text="You have opted out.")
 
 
 @smart_msg_listen("live.reject")
@@ -985,7 +989,7 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
     "Pick a user to start a turn, or switch state for the corresponding state of the game (Game manager only)",
 )
 @require_game_manager
-def pick_user(ctx: Context, game_id: int):
+def pick_user(ctx: MessageContext, game_id: int):
     channel_id = ctx.channel_id
 
     with get_game_lock(game_id):
@@ -1075,7 +1079,7 @@ def pick_user(ctx: Context, game_id: int):
         Timer(
             timeout_seconds,
             _handle_manager_action_timeout,
-            args=(game_id, target_user_id, channel_id, ctx.thread_ts, ctx.client),
+            args=(game_id, target_user_id, channel_id, ctx.thread_ts, ctx.client.client.web_client),
         ).start()
         new_server_secret = secrets.token_hex(16)
         db.update_server_secret(game_id, new_server_secret)
@@ -1347,20 +1351,27 @@ def handle_manager_mark_completed(ctx: InteractionContext, game_id: int):
     asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
 
     db.update_turn_status(game_id, user_id, "COMPLETED")
-
-    if not message_ts: return
-    ctx.client.client.web_client.chat_update(
-        channel=channel_id,
-        ts=message_ts,
-        text=f"Turn for <@{user_id}> marked as *completed* by <@{manager_id}>.",
-        blocks=Message()
-        .add_block(
-            Section(
-                f"✅ Turn for <@{user_id}> marked as *COcompletedMPLETED* by <@{manager_id}>." # Intention because It it funny
+    message = Message(f"Turn for <@{user_id}> marked as *completed* by <@{manager_id}>.").add_block(
+                Section(
+                    f"✅ Turn for <@{user_id}> marked as *COcompletedMPLETED* by <@{manager_id}>." # Intention because It it funny
+                )
+            ).build()
+    send_normal = False
+    if not message_ts: 
+        send_normal = True
+    if message_ts:
+        try:
+            ctx.client.client.web_client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                **message
             )
-        )
-        .build()["blocks"],
-    )
+        except:
+            logging.warning("Fail to update message", exc_info=True)
+            send_normal = True
+    if send_normal:
+        ctx.public_send(**message)
+
 
 
 @smart_msg_listen("live.client_secret")
@@ -1412,19 +1423,26 @@ def handle_manager_mark_failed(ctx: InteractionContext, game_id: int):
 
     db.update_turn_status(game_id, user_id, "FAILED")
 
+    message = Message(f"❌ Turn for <@{user_id}> marked as FAILED by <@{manager_id}>.").add_block(
+                    Section(f"❌ Turn for <@{user_id}> marked as *FAILED* by <@{manager_id}>.")
+                ).build()
 
-    if not message_ts: return
-
-    ctx.client.client.web_client.chat_update(
-        channel=channel_id,
-        ts=message_ts,
-        text=f"❌ Turn for <@{user_id}> marked as FAILED by <@{manager_id}>.",
-        blocks=Message()
-        .add_block(
-            Section(f"❌ Turn for <@{user_id}> marked as *FAILED* by <@{manager_id}>.")
-        )
-        .build()["blocks"],
-    )
+    send_normal = False
+    if not message_ts:
+        send_normal = True
+    else:
+        try:
+            ctx.client.client.web_client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                **message
+            )
+        except:
+            logging.warning("Fail to send message update", exc_info=True)
+            send_normal = True
+    if send_normal:
+        ctx.public_send(**message)
+    
 
 
 @smart_action_listen("test_button")
@@ -1510,21 +1528,26 @@ def handle_accept_turn(ctx: InteractionContext, game_id: int):
 
     db.update_turn_status(game_id, clicker_id, "ACCEPTED")
 
-    if not message_ts:
-        return
-
-    ctx.client.client.web_client.chat_update(
-        channel=channel_id,
-        ts=message_ts,
-        text=f"<@{clicker_id}> has *started* the turn.",
-        blocks=Message()
-        .add_block(
+    message = Message(f"<@{clicker_id}> has *started* the turn.").add_block(
             Section(
                 f"<@{clicker_id}> has *started* their performance. The countdown is on!"
             )
-        )
-        .build()["blocks"],
-    )
+        ).build()
+    send_normal = False
+    if not message_ts:
+        send_normal = True
+    else:
+        try:
+            ctx.client.client.web_client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                **message
+            )
+        except:
+            send_normal = True
+            logging.warning("Fail to send message update", exc_info=True)
+    if send_normal:
+        ctx.public_send(**message)
 
 
 @smart_action_listen("confirm_skip")
@@ -1563,21 +1586,29 @@ def handle_confirm_skip(ctx: InteractionContext, game_id: int):
 
     db.update_turn_status(game_id, str(user_to_skip), "SKIPPED")
 
-    if not message_ts:
-        return
-
-    ctx.client.client.web_client.chat_update(
-        channel=channel_id,
-        ts=message_ts,
-        text=f"🏃 Turn for <@{user_to_skip}> has been skipped by <@{manager_id}>.",
-        blocks=Message()
+    message = (Message(f"🏃 Turn for <@{user_to_skip}> has been skipped by <@{manager_id}>.")
         .add_block(
             Section(
                 f"🏃 Turn for <@{user_to_skip}> has been skipped by <@{manager_id}>."
             )
         )
-        .build()["blocks"],
-    )
+        .build())
+    send_normal = False
+    if not message_ts:
+        send_normal = True
+    else:
+        try:
+            ctx.client.client.web_client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                **message
+            )
+        except:
+            send_normal = True
+            logging.warning("Fail to send chat update", exc_info=True)
+    if send_normal:
+        ctx.public_send(**message)
+
 
 
 @smart_action_listen("skip_turn")
