@@ -5,7 +5,7 @@ from datetime import timedelta
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 
 class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
-    BOUND = (1200, 2400)
+    BOUND = (120, 240)
     CAN_OPTIN = True
 
     def on_create(self) -> None:

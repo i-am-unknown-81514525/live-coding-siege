@@ -1503,6 +1503,7 @@ def handle_start_turn(ctx: InteractionContext, game_id: int):
         )
         asyncio.run_coroutine_threadsafe(_dispatch_async(coro), signals.ROOT.loop)
         ACTIVE_TURN_TIMERS[(game_id, pending_user_id)] = user_turn_timer
+        logging.info(ACTIVE_TURN_TIMERS)
         user_turn_timer.start()
     except ValueError as e:
         logging.error(f"Error starting turn:", exc_info=True)
