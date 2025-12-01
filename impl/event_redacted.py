@@ -4,6 +4,10 @@ import arrow
 from datetime import timedelta
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 
+MAPPING = {
+"U08R4GJ6XLP":"U093R4FFTB6"
+}
+
 class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
     BOUND = (1200, 2400)
     CAN_OPTIN = True
@@ -36,6 +40,7 @@ class SiegeRedacted(LiveModuleBase[BaseSocketModeClient]):
         pass
 
     def get_ticket(self, user: str) -> int:
+        user = MAPPING.get(user, user)
         user_id = siege.get_user_id_from_slack(user)
         if not user_id:
             return 0
