@@ -271,7 +271,7 @@ function append_grid_ticket(name, avatar_url, ticket_id) {
 async function fetchLeaderboard(force_update = false) {
     let url = "/tickets-no-update";
     if (force_update) {
-        url = "/ticketss"
+        url = "/tickets"
     }
     try {
         const resp = await fetch(url);

@@ -19,7 +19,7 @@ import os
 from arrow import Arrow
 import time
 import logging
-from siege.schema.siege import ProjectStatus, SiegeUserStatus, SiegeProject
+from siege.schema.siege import ProjectStatus, SiegePartialUser, SiegeUserStatus, SiegeProject
 from collections import Counter
 from rapidfuzz import fuzz
 import utils
@@ -406,6 +406,48 @@ def get_leaderboard(ctx: Context, public: bool):
                     )
                 )
             )
+        case "total_hours":
+            proj_list = get_all_projs()
+            proj_mapping: dict[SiegePartialUser, list[SiegeProject]] = {}
+            for proj in proj_list:
+                user = proj.user
+                proj_mapping[user] = proj_mapping.get(user, [])
+                proj_mapping[user].append(proj)
+            hours_mapping = {user: sum(map(lambda x: x.hours, proj_mapping[user])) for user in proj_mapping}
+            sorted_order = sorted(hours_mapping.items(), key=lambda x: x[1], reverse=True)
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [
+                            f"*{index}*: {user.display_name}(`{user.id}`) - {hours:.1f} hours / Total Project Value: {sum(map(lambda x: x.coin_value, proj_mapping[user])):.0f}"
+                            for index, (user, hours) in enumerate(
+                                sorted_order[:LEADERBOARD_AMOUNT], start=1
+                            )
+                        ]
+                    )
+                )
+            )
+        case "total_value":
+            proj_list = get_all_projs()
+            proj_mapping: dict[SiegePartialUser, list[SiegeProject]] = {}
+            for proj in proj_list:
+                user = proj.user
+                proj_mapping[user] = proj_mapping.get(user, [])
+                proj_mapping[user].append(proj)
+            hours_mapping = {user: sum(map(lambda x: x.coin_value, proj_mapping[user])) for user in proj_mapping}
+            sorted_order = sorted(hours_mapping.items(), key=lambda x: x[1], reverse=True)
+            message = blockkit.Message().add_block(
+                blockkit.Section(
+                    "\n".join(
+                        [
+                            f"*{index}*: {user.display_name}(`{user.id}`) - {sum(map(lambda x: x.hours, proj_mapping[user])):.1f} hours / Total Project Value: {coin_value:.0f}"
+                            for index, (user, coin_value) in enumerate(
+                                sorted_order[:LEADERBOARD_AMOUNT], start=1
+                            )
+                        ]
+                    )
+                )
+            )
         case "proj_coins":
             proj_list = get_all_projs()
             week_proj = [
@@ -481,7 +523,7 @@ def get_leaderboard(ctx: Context, public: bool):
             )
         case _:
             message = blockkit.Message(
-                "Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`, `efficiency`"
+                "Don't know how to use this? You can do the following options:\n`coin`, `proj_hours`, `week_hours`, `proj_coins`, `efficiency`, `total_hours`, `total_value`"
             )
 
     if not force_ephemeral:

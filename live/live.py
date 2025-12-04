@@ -1030,6 +1030,9 @@ def pick_user(ctx: MessageContext, game_id: int):
         for user in eligible_users:
             tickets += [user] * user_tickets.get(user, 0)
 
+        if len(tickets) <= 0:
+            return ctx.public_send(text="Magician don't like any of you so he don't want to start a performance. (ticket)")
+
         selected_index, duration_seconds = (
             DeterRnd(randint(0, len(tickets) - 1), t).with_seed(seed).retrieve()
         )
