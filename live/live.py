@@ -921,14 +921,14 @@ def get_ticket_count(ctx: MessageContext, game_id: int):
     if ctx.value:
         return
 
-    user = ctx.author_id
+    user_id = ctx.author_id
     instance = db.get_game_instance(game_id, ctx.client)
     users: list[str] = db.get_huddle_participants(game_id)
     tickets = get_module(instance).get_tickets(users)
     for user, ticket in tickets.items():
         db.add_game_participant(game_id, user, ticket)
 
-    ticket_count = tickets.get(user, "N/A")
+    ticket_count = tickets.get(user_id, "N/A")
 
     push_ticket_update_ws(game_id)
 
