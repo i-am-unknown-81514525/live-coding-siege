@@ -987,6 +987,7 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
 )
 @require_game_manager
 def pick_user(ctx: MessageContext, game_id: int):
+    return ctx.private_send(text="For data preservation reason. this is temporary locked")
     channel_id = ctx.channel_id
 
     with get_game_lock(game_id):
@@ -1155,6 +1156,9 @@ def show_game_summary(ctx: MessageContext, game_id: int):
         summary_text = ""
         for stat in summary_stats:
             summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful performance(s), {stat['consecutive_skips']} consecutive skip(s).\n"
+            if len(summary_text) > 2500:
+                summary_message.add_block(Section(summary_text))
+                summary_text = ""
 
         summary_message.add_block(Section(summary_text))
 
@@ -1167,7 +1171,7 @@ def show_game_summary(ctx: MessageContext, game_id: int):
         ctx.private_send(**summary_message.build())
 
 
-@smart_msg_listen("live.export")
+@smart_msg_listen("live.export ")
 @description("live.export", "Export the game state for coin distribution")
 @require_game_thread
 def export_game_history(ctx: MessageContext, game_id: int):
@@ -1190,6 +1194,25 @@ def export_game_history(ctx: MessageContext, game_id: int):
         history_text += f"{i}. `{user_id}` - Status: `{status}` - Assigned Time: `{min_string}{sec_string}` `({turn['status']})`\n"
 
     return ctx.public_send(text=history_text)
+
+@smart_msg_listen("live.export2 ")
+@description("live.export2", "There are too many entry... this make olive life easier")
+@require_game_thread
+def export_game_history2(ctx: MessageContext, game_id: int):
+    turns = db.get_all_turns_for_game(game_id)
+    if not turns:
+        return ctx.public_send(text="No turns have been recorded for this game yet.")
+
+    history_text = f"*Successful Turn Count for Game {game_id}*\n"
+    d = {}
+    for i, turn in enumerate(turns):
+        user_id = turn["user_id"]
+        status = turn["status"] == "COMPLETED"
+        if status:
+            d[user_id] = d.get(user_id, 0) + 1
+    
+
+    return ctx.public_send(text="\n".join(f"{k}: {v}" for k, v in sorted(d.items(), key=lambda x: x[1], reverse=True)))
 
 
 @smart_msg_listen("live.rnd")
@@ -1253,6 +1276,9 @@ def end_game(ctx: Context, game_id: int):
         summary_text = ""
         for stat in summary_stats:
             summary_text += f"• *{stat['name']}*: {stat['successful_rounds']} successful performance(s) :), {stat['consecutive_skips']} consecutive skip(s) :(.\n"
+            if len(summary_text) > 2500:
+                summary_message.add_block(Section(summary_text))
+                summary_text = ""
 
         summary_message.add_block(Section(summary_text))
 

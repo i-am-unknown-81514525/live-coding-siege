@@ -81,6 +81,8 @@ class SiegeUserStatus(StrEnum):
     OUT = "out"
     NEW = "new"
     BANNED = "banned"
+    APPROVED = "approved"
+    FULFILLED = "fulfilled"
 
     @property
     def readable(self) -> str:
@@ -93,6 +95,10 @@ class SiegeUserStatus(StrEnum):
                 return "New"
             case SiegeUserStatus.BANNED:
                 return "Banned"
+            case SiegeUserStatus.APPROVED:
+                return "Approved"
+            case SiegeUserStatus.FULFILLED:
+                return "Fulfilled"
             case _:
                 return "Unknown"
 

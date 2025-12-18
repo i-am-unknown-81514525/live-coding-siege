@@ -22,3 +22,5 @@ history/
 #*_redacted*
 #**/*_redacted*
 #*_redacted/**
+
+.idea/*

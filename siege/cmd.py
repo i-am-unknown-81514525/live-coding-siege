@@ -125,6 +125,7 @@ def _calc_base(week: int, hours: float) -> float:
 )
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_siege_user_info(ctx: Context, public: bool):
     user_id = ctx.author_id
@@ -198,6 +199,7 @@ def test(ctx: Context) -> typing.Any:
 )
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_siege_proj_info(ctx: Context, public: bool):
     left_over = ctx.value.strip()
@@ -303,6 +305,9 @@ def get_siege_proj_info(ctx: Context, public: bool):
 @smart_msg_listen("siege.global")
 @irc_msg_listen("siege.global")
 @description("/global", "Uhh am I gonna get my global bet payout this time :nervous:")
+@utils.get_group
+@utils.filter_allowed
+@utils.require_group("siege", False)
 def get_total_proj_time(ctx: Context):
     p1 = time.perf_counter()
 
@@ -335,6 +340,7 @@ LEADERBOARD_AMOUNT = 20
 @description("/lb <lb_option>?", "The hall of fame!")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_leaderboard(ctx: Context, public: bool):
     opt = ctx.value or ""
@@ -537,6 +543,7 @@ def get_leaderboard(ctx: Context, public: bool):
 @description("/graph <graph_opt>?", "We need to remember the history")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def generate_graph(ctx: Context, public: bool):
     opt = ctx.value or ""
@@ -578,7 +585,7 @@ def generate_graph(ctx: Context, public: bool):
             all_user_id = set(user_result.keys()).union(set(proj_result.keys()))
             data = []
             for user_id in all_user_id:
-                coin_data = user_result.get(user_id, (0, "new"))
+                coin_data = user_result.get(user_id, ("new", 0))
                 proj_data = proj_result.get(user_id, 0)
                 data.append(
                     {
@@ -595,7 +602,7 @@ def generate_graph(ctx: Context, public: bool):
                 x="hours",
                 y="coins",
                 hue="status",
-                palette={"new": "blue", "working": "green", "out": "orange", "banned": "red"},
+                palette={"new": "slategray", "working": "green", "out": "orange", "banned": "red", "approved": "aqua", "fulfilled": "cornflowerblue"},
                 ax=ax,
             )
             ax.set_title("Total coins vs total project hours by user")
@@ -612,6 +619,84 @@ def generate_graph(ctx: Context, public: bool):
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile("coin_hours.png", img, "Total coins vs total project hours by user")
+        case "value_hours":
+            proj_list = get_all_projs()
+            user_result = core.analyse_per_person_coin_count_status(core.retrieve_every_user_record(Arrow.now().shift(minutes=-15)))
+            proj_mapping: dict[SiegePartialUser, list[SiegeProject]] = {}
+            for proj in proj_list:
+                user = proj.user
+                proj_mapping[user] = proj_mapping.get(user, [])
+                proj_mapping[user].append(proj)
+            hours_mapping = {user: sum(map(lambda x: x.hours, proj_mapping[user])) for user in proj_mapping}
+            value_mappings = {user: sum(map(lambda x: x.coin_value, proj_mapping[user])) for user in proj_mapping}
+            data = []
+            for user in hours_mapping:
+                data.append(
+                    {
+                        "user_id": user.id,
+                        "coins": value_mappings[user],
+                        "hours": hours_mapping[user],
+                        "status": user_result.get(user.id, ("new", 0))[0]
+                    }
+                )
+            df = pandas.DataFrame(data)
+            fig, ax = plt.subplots(figsize=(6, 8))
+            plot = sns.scatterplot(
+                df,
+                x="hours",
+                y="coins",
+                hue="status",
+                palette={"new": "slategray", "working": "green", "out": "orange", "banned": "red", "approved": "aqua", "fulfilled": "cornflowerblue"},
+                ax=ax,
+            )
+            ax.set_title("Total coins value vs total project hours by user")
+            ax.set_xlabel("Total project hours")
+            ax.set_ylabel("Total coins value")
+            ax.set_xlim(0, max(df["hours"]) * 1.1)
+            fig.tight_layout()
+            iodt = BytesIO()
+            img = b""
+            if fig:
+                try:
+                    fig.savefig(iodt, format="png")  # type: ignore
+                    img = iodt.getvalue()
+                except Exception as e:
+                    logging.error(f"Failed to save figure: {e}")
+            media = PendingFile("coin_hours.png", img, "Total coins value vs total project hours by user")
+        case "pvh":
+            proj_list = get_all_projs()
+            data = []
+            for proj in proj_list:
+                if proj.coin_value == 0: continue
+                data.append(
+                    {
+                        "project_id": proj.id,
+                        "coins": proj.coin_value,
+                        "hours": proj.hours
+                    }
+                )
+            df = pandas.DataFrame(data)
+            fig, ax = plt.subplots(figsize=(6, 8))
+            plot = sns.scatterplot(
+                df,
+                x="hours",
+                y="coins",
+                ax=ax,
+            )
+            ax.set_title("Coins value vs project hours by projects")
+            ax.set_xlabel("Project hours")
+            ax.set_ylabel("Project coins value")
+            ax.set_xlim(0, max(df["hours"]) * 1.1)
+            fig.tight_layout()
+            iodt = BytesIO()
+            img = b""
+            if fig:
+                try:
+                    fig.savefig(iodt, format="png")  # type: ignore
+                    img = iodt.getvalue()
+                except Exception as e:
+                    logging.error(f"Failed to save figure: {e}")
+            media = PendingFile("coin_hours.png", img, "Coins value vs project hours by projects")
         case "global":
             week = guess_week()
             proj_heartbeats: list[core.ProjHeartbeatRecord] = core.retrieve_all_week_record(week)
@@ -651,7 +736,7 @@ def generate_graph(ctx: Context, public: bool):
             )
             fig, ax = plt.subplots(figsize=(6, 8))
             plot = sns.lineplot(df, x="time", y="count", ax=ax, hue="status",
-                palette={"new": "blue", "working": "green", "out": "orange", "banned": "red"},)
+                palette={"new": "slategray", "working": "green", "out": "orange", "banned": "red", "approved": "aqua", "fulfilled": "cornflowerblue"},)
             ax.locator_params(axis="x", nbins=7)
             ax.locator_params(axis="y", nbins=15)
             ax.set_title(f"User status over time")
@@ -677,12 +762,12 @@ def generate_graph(ctx: Context, public: bool):
         if media:
             ctx.public_send(files=[media])
         else:
-            ctx.public_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`")
+            ctx.public_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`, `user_status`")
     else:
         if media:
             ctx.private_send(files=[media])
         else:
-            ctx.private_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`")
+            ctx.private_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`, `user_status`")
 
 
 @slash_listen("/stats")
@@ -692,6 +777,7 @@ def generate_graph(ctx: Context, public: bool):
 @description("/stats", "Stats for the Siege YSWS")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_stats(ctx: Context, public: bool):
     all_projs = get_all_projs()
@@ -742,6 +828,7 @@ SIMILARITY_THRESHOLD = 0.9
 @description("/searchs <keyword>?", "Search for project by keyword")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def search_project(ctx: Context, public: bool):
     req = ctx.value.lower()
@@ -874,6 +961,7 @@ def fetch_dictionary(word: str) -> dictionary.DictError | dictionary.DictResult:
 @description("/define <word>", "Get a dictionary definition of a word")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_define(ctx: Context, public: bool):
     if public:
@@ -887,6 +975,7 @@ def get_define(ctx: Context, public: bool):
 @description("/proj_details <proj_id>", "Peeking at every change you made :)")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_user_details(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):
@@ -948,6 +1037,7 @@ def get_user_details(ctx: Context, public: bool):
 )
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_shop(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):
@@ -975,6 +1065,7 @@ def get_shop(ctx: Context, public: bool):
 @description("/user_details <user_id>?", "Staring...")
 @utils.get_group
 @utils.filter_allowed
+@utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_proj_details(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):

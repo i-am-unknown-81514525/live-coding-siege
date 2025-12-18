@@ -334,7 +334,7 @@ def update_turn_status(
             "UPDATE game_turn SET status = ?, timeout_notified = FALSE WHERE game_id = ? AND user_id = ? AND status IN ('PENDING', 'IN_PROGRESS')",
             (new_status, game_id, user_id),
         )
-
+        # Bug on repeat press for wrong metadata v
         if new_status == "COMPLETED":
             cursor.execute(
                 "UPDATE game_participant SET successful_rounds = successful_rounds + 1, consecutive_skips = 0 WHERE game_id = ? AND user_id = ?",
