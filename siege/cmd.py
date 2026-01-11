@@ -12,7 +12,7 @@ from slack.reg import (
 import blockkit
 from siege.api import get_coin_leaderboard, get_shop_item
 import re
-from schema.interactive import BlockActionEvent
+from slack.schema.interactive import BlockActionEvent
 from slack_sdk.web import WebClient
 import logging
 import os
@@ -35,7 +35,7 @@ from siege.core import (
 from siege.utils import guess_week
 import seaborn as sns
 import pandas
-from schema.file import PendingFile
+from slack.schema.file import PendingFile
 from io import BytesIO
 import matplotlib.pyplot as plt
 from base import description

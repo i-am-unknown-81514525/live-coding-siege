@@ -3,10 +3,12 @@ from dataclasses import dataclass
 from typing import Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
 import threading
+# Slack specific message sending type
+if TYPE_CHECKING:
+    from slack.schema.file import Attachment, PendingFile, UploadedFile 
+    from slack_sdk.models.blocks import Block
 
-from schema.file import Attachment, PendingFile, UploadedFile
-from slack_sdk.models.blocks import Block
-
+# Client import
 if TYPE_CHECKING:
     import slack.client
     import irc.client
@@ -107,12 +109,12 @@ class Context[T: Client](ABC):
     def private_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
-        files: list[PendingFile | UploadedFile] | None = None,
+        files: list["PendingFile | UploadedFile"] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
-        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
-        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        attachments: str | Sequence[dict[str, Any] | "Attachment"] | None = None,
+        blocks: str | Sequence[dict[str, Any] | "Block"] | None = None,
         thread_ts: str | None = None,
         icon_emoji: str | None = None,
         icon_url: str | None = None,
@@ -125,12 +127,12 @@ class Context[T: Client](ABC):
     def public_send(  # pyright: ignore[reportInconsistentOverload]
         self,
         always_thread: bool = False,
-        files: list[PendingFile | UploadedFile] | None = None,
+        files: list["PendingFile | UploadedFile"] | None = None,
         *,
         text: str | None = None,
         as_user: bool | None = None,
-        attachments: str | Sequence[dict[str, Any] | Attachment] | None = None,
-        blocks: str | Sequence[dict[str, Any] | Block] | None = None,
+        attachments: str | Sequence[dict[str, Any] | "Attachment"] | None = None,
+        blocks: str | Sequence[dict[str, Any] | "Block"] | None = None,
         thread_ts: str | None = None,
         icon_emoji: str | None = None,
         icon_url: str | None = None,

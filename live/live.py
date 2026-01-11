@@ -12,9 +12,9 @@ import re
 import json
 from base import Client, ExecutionContext, ExecutionContext
 from config import get_config
-from schema.message import MessageEvent
-from schema.huddle import HuddleChange, HuddleState
-from schema.interactive import BlockActionEvent
+from slack.schema.message import MessageEvent
+from slack.schema.huddle import HuddleChange, HuddleState
+from slack.schema.interactive import BlockActionEvent
 from slack.reg import (
     InteractionContext,
     huddle_listen,

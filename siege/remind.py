@@ -3,7 +3,7 @@ import logging, time
 
 from base import ExecutionContext
 from siege.core import prox_get_user, retrieve_all_user_proj_record
-from schema.user import UserProfile
+from slack.schema.user import UserProfile
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 from siege.schema.siege import SiegeUser
 
