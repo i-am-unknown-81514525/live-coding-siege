@@ -987,7 +987,6 @@ def get_ticket_list(ctx: MessageContext, game_id: int):
 )
 @require_game_manager
 def pick_user(ctx: MessageContext, game_id: int):
-    return ctx.private_send(text="For data preservation reason. this is temporary locked")
     channel_id = ctx.channel_id
 
     with get_game_lock(game_id):

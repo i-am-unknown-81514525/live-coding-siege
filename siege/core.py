@@ -143,12 +143,14 @@ def get_user_id_from_proj() -> list[int]:
         rows = cursor.fetchall()
         return [row["user_id"] for row in rows]
 
+
 def get_user_id_from_user() -> list[int]:
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""SELECT user_id FROM user_record GROUP BY user_id""")
         rows = cursor.fetchall()
         return [row["user_id"] for row in rows]
+
 
 def get_user_proj(user_id: int, week: int | None) -> int | None:
     if week is None:
@@ -247,9 +249,12 @@ IDV_DELAY = 0.5
 def user_loop():
     while True:
         start = time.perf_counter()
-        user_id_list: list[int] = list(sorted(set(get_user_id_from_proj() + get_user_id_from_user())))
         users: list[SiegeUser] = []
         try:
+            user_id_list: list[int] = list(
+                sorted(set(get_user_id_from_proj() + get_user_id_from_user()))
+            )
+            users: list[SiegeUser] = []
             for user_id in user_id_list:
                 try:
                     idv_start = time.perf_counter()
@@ -391,7 +396,8 @@ def retrieve_every_user_record(since: Arrow | None = None) -> list[UserHeartbeat
         since = arrow.get(0)
     with get_siege_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
         SELECT
             user_id,
             measurement_time,
@@ -401,7 +407,9 @@ def retrieve_every_user_record(since: Arrow | None = None) -> list[UserHeartbeat
         FROM user_record
         WHERE measurement_time >= ?
         ORDER BY measurement_time DESC
-        """, (since.datetime,))
+        """,
+            (since.datetime,),
+        )
         rows = cursor.fetchall()
         records = []
         for row in rows:
@@ -469,6 +477,7 @@ def retrieve_all_week_record(week: int) -> list[ProjHeartbeatRecord]:
             records.append(record)
         return records
 
+
 def retrieve_every_proj_record(since: Arrow | None = None) -> list[ProjHeartbeatRecord]:
     if since is None:
         since = arrow.get(0)
@@ -491,7 +500,7 @@ def retrieve_every_proj_record(since: Arrow | None = None) -> list[ProjHeartbeat
         WHERE measurement_time >= ?
         ORDER BY measurement_time DESC
         """,
-        (since.datetime,),
+            (since.datetime,),
         )
         rows = cursor.fetchall()
         records = []
@@ -499,6 +508,7 @@ def retrieve_every_proj_record(since: Arrow | None = None) -> list[ProjHeartbeat
             record = ProjHeartbeatRecord.from_row(row)
             records.append(record)
         return records
+
 
 def analyse_hour_by_time_in_week(
     heartbeats: list[ProjHeartbeatRecord],
@@ -536,7 +546,10 @@ def analyse_hour_by_time_in_week(
         for row in total_hours_df.iter_rows(named=True)
     }
 
-def analyse_per_person_coin_count_status(heartbeats: list[UserHeartbeatRecord]) -> dict[int, tuple[str, int]]:
+
+def analyse_per_person_coin_count_status(
+    heartbeats: list[UserHeartbeatRecord],
+) -> dict[int, tuple[str, int]]:
     result: dict[int, tuple[str, int]] = {}
     if not heartbeats:
         return result
@@ -564,7 +577,10 @@ def analyse_per_person_coin_count_status(heartbeats: list[UserHeartbeatRecord]) 
 
     return result
 
-def analyse_per_person_proj_hours(heartbeats: list[ProjHeartbeatRecord]) -> dict[int, float]:
+
+def analyse_per_person_proj_hours(
+    heartbeats: list[ProjHeartbeatRecord],
+) -> dict[int, float]:
     result: dict[int, float] = {}
     if not heartbeats:
         return result
@@ -587,45 +603,49 @@ def analyse_per_person_proj_hours(heartbeats: list[ProjHeartbeatRecord]) -> dict
         ]
     )
 
-    total_hours_df = (
-        latest_df.group_by("user_id")
-        .agg(pl.sum("hours"))
-    )
+    total_hours_df = latest_df.group_by("user_id").agg(pl.sum("hours"))
 
     for row in total_hours_df.iter_rows(named=True):
         result[row["user_id"]] = row["hours"]
 
     return result
 
-def analyse_overall_user_status(heartbeats: list[UserHeartbeatRecord]) -> list[tuple[Arrow, str, int]]:
+
+def analyse_overall_user_status(
+    heartbeats: list[UserHeartbeatRecord],
+) -> list[tuple[Arrow, str, int]]:
     if not heartbeats:
         return []
     df = pl.DataFrame(
         {
             "time": [hb.measurement_time.datetime for hb in heartbeats],
             "user_id": [hb.user_id for hb in heartbeats],
-            "status": [hb.user_status for hb in heartbeats]
+            "status": [hb.user_status for hb in heartbeats],
         }
     )
 
     df.sort("time")
 
     def user_df_handler(df: pl.DataFrame) -> pl.DataFrame:
-        return (df.sort("time")
-        .group_by_dynamic("time", every="15m")
-        .agg(
-            pl.col("status").fill_null(strategy="backward").last().alias("status"),
-            pl.col("user_id").first()
-        )
+        return (
+            df.sort("time")
+            .group_by_dynamic("time", every="15m")
+            .agg(
+                pl.col("status").fill_null(strategy="backward").last().alias("status"),
+                pl.col("user_id").first(),
+            )
         )
 
     user_dfs = df.group_by("user_id").map_groups(user_df_handler)
-    total_status_df = user_dfs.group_by("time", "status").agg(pl.col("user_id").count().alias("count"))
+    total_status_df = user_dfs.group_by("time", "status").agg(
+        pl.col("user_id").count().alias("count")
+    )
 
     return [
         (arrow.get(row["time"]), row["status"], row["count"])
         for row in total_status_df.iter_rows(named=True)
     ]
+
 
 # def analyse_overall_user_status_raw(heartbeats: list[UserHeartbeatRecord]) -> pl.DataFrame:
 #     if not heartbeats:
@@ -653,6 +673,7 @@ def analyse_overall_user_status(heartbeats: list[UserHeartbeatRecord]) -> list[t
 #     total_status_df = user_dfs.group_by("time", "status").agg(pl.col("user_id").count().alias("count"))
 #     logging.info(total_status_df)
 #     return total_status_df
+
 
 def analyse_coin_count(heartbeats: list[UserHeartbeatRecord]) -> dict[Arrow, int]:
     if not heartbeats:

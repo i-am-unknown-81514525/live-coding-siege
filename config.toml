@@ -113,3 +113,12 @@ namespace = [
     "channel:C09KTR863L3", # Internal 1
 ]
 module = "impl.hackatime"
+
+[bot.group.homelab]
+allowed = ["U092BGL0UUQ"]
+authorized = ["U092BGL0UUQ"]
+namespace = [
+    "r:cmd:homelab\\..*",
+    "channel:C09U5BFU3GA",
+    "r:interaction:homelab_.*",
+]

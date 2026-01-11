@@ -46,7 +46,7 @@ CLIENTS = [
     )
 ]
 START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live", "timer"]
-LOAD_MODULE = ["siege.cmd", "live.live"]
+LOAD_MODULE = ["siege.cmd", "live.live", "homelab.cmd"]
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
 CONTEXT = ExecutionContext(
     slack_client=CLIENTS[0],

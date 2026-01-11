@@ -35,7 +35,7 @@ def _as_project(project: ProjAlike) -> ProjId:
 def get_user(user_id: UserAlike) -> SiegeUser:
     user_id = _as_user(user_id)
     url = f"https://siege.hackclub.com/api/public-beta/user/{user_id}"  # https://siege.hackclub.com/api/public-beta/user/138
-    response = requests.get(url)
+    response = requests.get(url, timeout=(10, 20))
     logging.info(f"GET {url} {response.status_code}")
     data = response.json()
     return SiegeUser.parse(data)
@@ -44,7 +44,7 @@ def get_user(user_id: UserAlike) -> SiegeUser:
 def get_project(project_id: ProjAlike) -> SiegeProject:
     project_id = _as_project(project_id)
     url = f"https://siege.hackclub.com/api/public-beta/project/{project_id}"  # https://siege.hackclub.com/api/public-beta/project/1262
-    response = requests.get(url)
+    response = requests.get(url, timeout=(300, 300))
     logging.info(f"GET {url} {response.status_code}")
     data = response.json()
     return SiegeProject.parse(data)
