@@ -33,7 +33,7 @@ def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
 @dataclass
 class ExecutionContext:
     slack_client: "slack.client.SlackClient"
-    irc_client: "irc.client.IRCClient"
+    # irc_client: "irc.client.IRCClient"
 
 class Client[T](ABC):
     def __init__(self, inner: T):

@@ -34,23 +34,23 @@ CLIENTS = [
         app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
         web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
     )),
-    IRCClient(
-        server="irc.hackclub.com",
-        port=6667,
-        nickname="livecoding",
-        realname="Live Coding Bot",
-        boot_events=[
-            Event.from_parts(cmd="JOIN", params=["#livecoding"]),
-            Event.from_parts(cmd="JOIN", params=["#siege"])
-        ],
-    )
+    # IRCClient(
+    #     server="irc.hackclub.com",
+    #     port=6667,
+    #     nickname="livecoding",
+    #     realname="Live Coding Bot",
+    #     boot_events=[
+    #         Event.from_parts(cmd="JOIN", params=["#livecoding"]),
+    #         Event.from_parts(cmd="JOIN", params=["#siege"])
+    #     ],
+    # )
 ]
 START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live", "timer", "homelab.core"]
 LOAD_MODULE = ["siege.cmd", "live.live", "homelab.cmd"]
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
 CONTEXT = ExecutionContext(
     slack_client=CLIENTS[0],
-    irc_client=CLIENTS[1],
+    # irc_client=CLIENTS[1],
 )
 
 all_module: dict[str, ModuleType] = {}
