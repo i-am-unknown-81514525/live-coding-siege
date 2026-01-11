@@ -45,7 +45,7 @@ CLIENTS = [
         ],
     )
 ]
-START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live", "timer"]
+START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live", "timer", "homelab.core"]
 LOAD_MODULE = ["siege.cmd", "live.live", "homelab.cmd"]
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
 CONTEXT = ExecutionContext(

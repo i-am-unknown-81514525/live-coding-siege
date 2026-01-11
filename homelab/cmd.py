@@ -10,7 +10,7 @@ from slack.reg import (
     InteractionContext,
 )
 import blockkit
-from homelab.api import get_all_projs, get_project, get_user
+from homelab.core import prox_get_all_projs as get_all_projs, get_project, get_user
 import re
 import utils
 
