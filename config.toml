@@ -115,8 +115,8 @@ namespace = [
 module = "impl.hackatime"
 
 [bot.group.homelab]
-allowed = ["U092BGL0UUQ"]
-authorized = ["U092BGL0UUQ"]
+allowed = ["U092BGL0UUQ", "U0971C3C44D"]
+authorized = ["U092BGL0UUQ", "U0971C3C44D"]
 namespace = [
     "r:cmd:homelab\\..*",
     "channel:C09U5BFU3GA",
