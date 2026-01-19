@@ -1,4 +1,6 @@
 import re
+
+from slack_sdk import WebClient
 from slack.reg import smart_msg_listen, Context
 from slack_utils.core import get_user_info
 from base import description
@@ -145,3 +147,37 @@ def export_status(ctx: Context):
         ctx.public_send(text=f"Export completed. Processed {total_users} users.", files=[PendingFile(filename, json_str, "Status Export")])
     except Exception:
         logging.warning("Failed to send final export message", exc_info=True)
+
+
+@smart_msg_listen("slack.delete ")
+@utils.get_group
+@utils.filter_allowed
+@utils.require_group("owner", False)
+def delete_message(ctx: Context):
+    text = ctx.value.strip()
+    if not text:
+        return ctx.private_send(text="Please provide a message timestamp or URL.")
+
+    channel_id = ctx.channel_id
+    ts = text
+
+    # Try to parse as URL
+    # https://hackclub.slack.com/archives/C08SKC6P85V/p1762120187655269
+    url_match = re.search(r"archives/([A-Z0-9]+)/p([0-9]+)", text)
+    if url_match:
+        channel_id = url_match.group(1)
+        ts = url_match.group(2)
+
+    if ts.lower().startswith("p"):
+        ts = ts[1:]
+
+    if "." not in ts and len(ts) > 6:
+        ts = f"{ts[:-6]}.{ts[-6:]}"
+
+    client: WebClient = ctx.client.client.web_client
+    try:
+        client.chat_delete(channel=channel_id, ts=ts)
+        ctx.public_send(text=f"Deleted message `{ts}` in <#{channel_id}>.")
+    except Exception as e:
+        logging.warning("Failed to delete message", exc_info=True)
+        ctx.private_send(text=f"Failed to delete message: {e}")

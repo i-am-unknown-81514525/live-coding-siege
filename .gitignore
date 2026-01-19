@@ -15,6 +15,7 @@ wheels/
 history/
 *.db*
 data/dt2.json
+data/status_export_*.json
 
 # Redacted
 #redacted_*
