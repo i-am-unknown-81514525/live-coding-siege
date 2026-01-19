@@ -124,3 +124,11 @@ namespace = [
     "channel:C09U5BFU3GA",
     "r:interaction:homelab_.*",
 ]
+
+[bot.group.owner]
+allowed = ["U092BGL0UUQ"]
+authorized = ["U092BGL0UUQ"]
+namespace = [
+    "channel:C09KTR863L3", # Internal 1
+    "r:cmd:slack\\..*"
+]
