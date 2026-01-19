@@ -23,6 +23,7 @@ allowed = [
     "U0929F6RWL9",
     "U07BN55GN3D",
     "U08DDHGPBCM",
+    "U07L45W79E1"
 ]
 authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D", "U0828FYS2UC"] 
 namespace = [
@@ -88,7 +89,8 @@ allowed = [
     "U082WTQLCVA",
     "U09879W4PG8",
     "U0785D5VDEK",
-    "U091JJ2JF8E"
+    "U091JJ2JF8E",
+    "U07L45W79E1"
 ]
 authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D", "U0828FYS2UC"] 
 namespace = [

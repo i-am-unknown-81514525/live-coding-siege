@@ -3,9 +3,9 @@ import logging
 import os
 import re
 from base import Client, Context, CtxFn
-from schema.message import MessageEvent
-from schema.interactive import BlockActionEvent
-from schema.huddle import HuddleChange, HuddleState
+from slack.schema.message import MessageEvent
+from slack.schema.interactive import BlockActionEvent
+from slack.schema.huddle import HuddleChange, HuddleState
 from slack_sdk.web import WebClient
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 import threading
@@ -16,16 +16,24 @@ from abc import ABC, abstractmethod
 from slack_sdk.models.blocks import Block
 from slack_sdk.webhook.client import WebhookClient
 
-from schema.slash_cmd import CommandEvent
-from schema.file import PendingFile, UploadedFile, Attachment
+from slack.schema.slash_cmd import CommandEvent
+from slack.schema.file import PendingFile, UploadedFile, Attachment
 import random
 
-MESSAGE_HANDLERS: dict[str, list[Callable[[MessageEvent, Client[BaseSocketModeClient]], Any]]] = {}
-ACTION_HANDLERS: dict[str, list[Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]]] = {}
+from slack.utils import filter_ping
+
+MESSAGE_HANDLERS: dict[
+    str, list[Callable[[MessageEvent, Client[BaseSocketModeClient]], Any]]
+] = {}
+ACTION_HANDLERS: dict[
+    str, list[Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]]
+] = {}
 ACTION_PREFIX_HANDLERS: dict[
     str, list[Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]]
 ] = {}
-HUDDLE_HANDLERS: dict[HuddleState, list[Callable[[HuddleChange, Client[BaseSocketModeClient]], Any]]] = {}
+HUDDLE_HANDLERS: dict[
+    HuddleState, list[Callable[[HuddleChange, Client[BaseSocketModeClient]], Any]]
+] = {}
 SLASH_HANDLER: dict[str, list[Callable[["SlashContext"], Any]]] = {}
 
 # def msg_listen[A: Callable](
@@ -75,12 +83,12 @@ def file_upload(
     }
     # noinspection PyTypeChecker
     uploaded_raw = client.files_upload_v2(
-        file_uploads=[k.export(v) for k, v in mapping.items()],   # pyright: ignore[reportArgumentType]
+        file_uploads=[k.export(v) for k, v in mapping.items()],  # pyright: ignore[reportArgumentType]
         channels=channels,
         thread_ts=thread_ts,
     )
     uploaded = (
-        [UploadedFile.parse(item) for item in uploaded_raw["files"]]   # pyright: ignore[reportOptionalIterable]
+        [UploadedFile.parse(item) for item in uploaded_raw["files"]]  # pyright: ignore[reportOptionalIterable]
         if uploaded_raw.get("files")
         else []
     )
@@ -175,7 +183,9 @@ class MessageContext(Context):
     ):
         if files:
             file_list = auto_upload(
-                files, self.client.client.web_client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]
+                files,
+                self.client.client.web_client,
+                [os.getenv("UPLOAD_CHANNEL", self.channel_id)],
             )  # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
             if (
@@ -255,6 +265,8 @@ class MessageContext(Context):
                 [self.channel_id],
                 self.thread_ts or (self.message_ts if always_thread else None),
             )
+        if isinstance(text:=kwargs.get("text"), str):
+            kwargs["text"] = filter_ping(text, True)
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
@@ -328,7 +340,9 @@ class SlashContext(Context):
     ):
         if files:
             file_list = auto_upload(
-                files, self.client.client.web_client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]
+                files,
+                self.client.client.web_client,
+                [os.getenv("UPLOAD_CHANNEL", self.channel_id)],
             )  # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
             if (
@@ -400,10 +414,14 @@ class SlashContext(Context):
         **kwargs: P.kwargs,
     ):
         if files:
-            kwargs["attachments"] = auto_upload(files, self.client.client.web_client, [self.channel_id])
+            kwargs["attachments"] = auto_upload(
+                files, self.client.client.web_client, [self.channel_id]
+            )
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
+        if isinstance(text:=kwargs.get("text"), str):
+            kwargs["text"] = filter_ping(text, True)
         return self.webhook_client.send(response_type="in_channel", *args, **kwargs)
 
 
@@ -468,7 +486,9 @@ class InteractionContext(Context):
     ):
         if files:
             file_list = auto_upload(
-                files, self.client.client.web_client, [os.getenv("UPLOAD_CHANNEL", self.channel_id)]
+                files,
+                self.client.client.web_client,
+                [os.getenv("UPLOAD_CHANNEL", self.channel_id)],
             )  # , [self.channel_id], self.thread_ts or (self.message_ts if always_thread else None)
             content: str | None = None
             if (
@@ -542,10 +562,14 @@ class InteractionContext(Context):
         **kwargs: P.kwargs,
     ):
         if files:
-            kwargs["attachments"] = auto_upload(files, self.client.client.web_client, [self.channel_id])
+            kwargs["attachments"] = auto_upload(
+                files, self.client.client.web_client, [self.channel_id]
+            )
         thread_ts = self.thread_ts
         if thread_ts is None and always_thread and self.message_ts:
             thread_ts = self.message_ts
+        if isinstance(text:=kwargs.get("text"), str):
+            kwargs["text"] = filter_ping(text, True)
         return self.client.client.web_client.chat_postMessage(
             channel=self.channel_id, thread_ts=thread_ts, *args, **kwargs
         )
@@ -583,8 +607,9 @@ def smart_msg_listen[A: Callable[[MessageContext], Any]](
 
     return decorator
 
+
 def smart_multi_msg_listen[A: Callable[[MessageContext], Any]](
-    message_keys: list[str]
+    message_keys: list[str],
 ) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a specific message key.
@@ -592,11 +617,16 @@ def smart_multi_msg_listen[A: Callable[[MessageContext], Any]](
     Args:
         message_keys: The keys for the messages that the decorated function will handle.
     """
-    if not isinstance(message_keys, list) or not all(isinstance(k, str) for k in message_keys):
-        raise TypeError("The message_keys for @smart_multi_msg_listen must be a list of strings.")
+    if not isinstance(message_keys, list) or not all(
+        isinstance(k, str) for k in message_keys
+    ):
+        raise TypeError(
+            "The message_keys for @smart_multi_msg_listen must be a list of strings."
+        )
 
     def decorator[F: Callable[[MessageContext], Any]](func: F) -> F:
         """The actual decorator that performs the registration."""
+
         def inner(event: MessageEvent, client: Client[BaseSocketModeClient]):
             if event.message.text is not None:
                 msg_data = replace(
@@ -605,6 +635,7 @@ def smart_multi_msg_listen[A: Callable[[MessageContext], Any]](
                 event = replace(event, message=msg_data)
             ctx = MessageContext(event, client)
             return func(ctx)
+
         for message_key in message_keys:
             handlers = MESSAGE_HANDLERS.setdefault(message_key, [])
             handlers.append(inner)
@@ -612,6 +643,7 @@ def smart_multi_msg_listen[A: Callable[[MessageContext], Any]](
         return func  # type: ignore
 
     return decorator
+
 
 def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
     """
@@ -623,7 +655,9 @@ def action_listen[A: Callable](action_id: str) -> Callable[[A], A]:
     if not isinstance(action_id, str):
         raise TypeError("The action_id for @action_listen must be a string.")
 
-    def decorator[F: Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]](func: F) -> F:
+    def decorator[F: Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]](
+        func: F,
+    ) -> F:
         """The actual decorator that performs the registration."""
         if ACTION_HANDLERS.get(action_id) is None:
             ACTION_HANDLERS[action_id] = []
@@ -646,7 +680,9 @@ def action_prefix_listen[A: Callable](action_id_prefix: str) -> Callable[[A], A]
             "The action_id_prefix for @action_prefix_listen must be a string."
         )
 
-    def decorator[F: Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]](func: F) -> F:
+    def decorator[F: Callable[[BlockActionEvent, Client[BaseSocketModeClient]], Any]](
+        func: F,
+    ) -> F:
         """The actual decorator that performs the registration."""
         if ACTION_PREFIX_HANDLERS.get(action_id_prefix) is None:
             ACTION_PREFIX_HANDLERS[action_id_prefix] = []
@@ -706,9 +742,6 @@ def smart_action_prefix_listen[A: Callable[[InteractionContext], Any]](
     return decorator
 
 
-
-
-
 def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
     """
     A decorator factory that registers a function to handle a user's huddle state change.
@@ -719,7 +752,9 @@ def huddle_listen[A: Callable](state: HuddleState) -> Callable[[A], A]:
     if not isinstance(state, HuddleState):
         raise TypeError("The state for @huddle_listen must be a HuddleState enum.")
 
-    def decorator[F: Callable[[HuddleChange, Client[BaseSocketModeClient]], Any]](func: F) -> F:
+    def decorator[F: Callable[[HuddleChange, Client[BaseSocketModeClient]], Any]](
+        func: F,
+    ) -> F:
         """The actual decorator that performs the registration."""
         if HUDDLE_HANDLERS.get(state) is None:
             HUDDLE_HANDLERS[state] = []
@@ -779,7 +814,9 @@ def message_dispatch(event: MessageEvent, client: Client[BaseSocketModeClient]) 
                 thread.start()
 
 
-def action_dispatch(event: BlockActionEvent, client: Client[BaseSocketModeClient]) -> None:
+def action_dispatch(
+    event: BlockActionEvent, client: Client[BaseSocketModeClient]
+) -> None:
     """
     Dispatches the block action event to handlers based on action_id.
     Each handler is run in a separate thread.

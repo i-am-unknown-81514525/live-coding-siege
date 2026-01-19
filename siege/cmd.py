@@ -178,14 +178,12 @@ def get_siege_user_info(ctx: Context, public: bool):
         ctx.private_send(**message.build())
 
 
-@smart_msg_listen("internal.test ")
+@smart_msg_listen("internal.echo ")
 @utils.get_group
 @utils.filter_authorised
 @utils.require_group("siege", False)
 def test(ctx: Context) -> typing.Any:
-    return ctx.private_send(
-        False, files=[PendingFile("test.txt", b"Hello world!", "A test file")]
-    )
+    return ctx.public_send(False, text=f"Echo from <@{ctx.author_id}>: {ctx.value}")
 
 
 @slash_listen("/proj")
@@ -726,7 +724,7 @@ def generate_graph(ctx: Context, public: bool):
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile(f"global_w{week}.png", img, f"Tracked hour by time in week W{week}")
         case "user_status":
-            dt = core.analyse_overall_user_status(core.retrieve_every_user_record())
+            dt = core.analyse_overall_user_status(core.retrieve_every_user_record(since=Arrow.now().shift(days=-14)))
             df = pandas.DataFrame(
                 {
                     "time": [t[0].datetime for t in dt],

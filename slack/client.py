@@ -4,12 +4,18 @@ from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 from threading import Event
 import logging
-from slack.reg import SlashContext, message_dispatch, huddle_dispatch, action_dispatch, slash_dispatch
-from schema.base import Recv
-from schema.message import MessageEvent
-from schema.huddle import HuddleChange
-from schema.interactive import BlockActionEvent
-from schema.slash_cmd import CommandEvent
+from slack.reg import (
+    SlashContext,
+    message_dispatch,
+    huddle_dispatch,
+    action_dispatch,
+    slash_dispatch,
+)
+from slack.schema.base import Recv
+from slack.schema.message import MessageEvent
+from slack.schema.huddle import HuddleChange
+from slack.schema.interactive import BlockActionEvent
+from slack.schema.slash_cmd import CommandEvent
 
 
 def process_message(client: "SlackClient", req: SocketModeRequest):
@@ -56,6 +62,7 @@ class SlackClient(Client[BaseSocketModeClient]):
                     logging.error(f"Uncaught exception:", exc_info=True)
         except Exception as e:
             logging.error(f"Failed to start SocketModeClient:", exc_info=True)
-    
+
     def wrapper(self, _: BaseSocketModeClient, req: SocketModeRequest):
         process_message(self, req)
+

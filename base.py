@@ -1,11 +1,12 @@
 from collections.abc import Sequence, Callable
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Union
 from abc import ABC, abstractmethod
 import threading
+
 # Slack specific message sending type
 if TYPE_CHECKING:
-    from slack.schema.file import Attachment, PendingFile, UploadedFile 
+    from slack.schema.file import Attachment, PendingFile, UploadedFile
     from slack_sdk.models.blocks import Block
 
 # Client import
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 type CtxFn[C: Context, T] = Callable[[C], T]
 DESCRIPTION: dict[str, str] = {}
+
 
 def description[A: Callable](cmd: str, description: str) -> Callable[[A], A]:
     """
@@ -37,14 +39,14 @@ class ExecutionContext:
     slack_client: "slack.client.SlackClient"
     # irc_client: "irc.client.IRCClient"
 
+
 class Client[T](ABC):
     def __init__(self, inner: T):
         self._client: T = inner
 
     @abstractmethod
-    def start(self):
-        ...
-    
+    def start(self): ...
+
     @property
     def client(self) -> T:
         return self._client
@@ -53,6 +55,7 @@ class Client[T](ABC):
         thread = threading.Thread(target=self.start)
         thread.start()
         return thread
+
 
 class Context[T: Client](ABC):
     client: T
@@ -82,7 +85,6 @@ class Context[T: Client](ABC):
     def channel_id(self) -> str:
         raise NotImplementedError()
 
-    
     @property
     @abstractmethod
     def cmd(self) -> str:
@@ -113,8 +115,8 @@ class Context[T: Client](ABC):
         *,
         text: str | None = None,
         as_user: bool | None = None,
-        attachments: str | Sequence[dict[str, Any] | "Attachment"] | None = None,
-        blocks: str | Sequence[dict[str, Any] | "Block"] | None = None,
+        attachments: str | Sequence[Union[dict[str, Any], "Attachment"]] | None = None,
+        blocks: str | Sequence[Union[dict[str, Any], "Block"]] | None = None,
         thread_ts: str | None = None,
         icon_emoji: str | None = None,
         icon_url: str | None = None,
@@ -131,8 +133,8 @@ class Context[T: Client](ABC):
         *,
         text: str | None = None,
         as_user: bool | None = None,
-        attachments: str | Sequence[dict[str, Any] | "Attachment"] | None = None,
-        blocks: str | Sequence[dict[str, Any] | "Block"] | None = None,
+        attachments: str | Sequence[Union[dict[str, Any], "Attachment"]] | None = None,
+        blocks: str | Sequence[Union[dict[str, Any], "Block"]] | None = None,
         thread_ts: str | None = None,
         icon_emoji: str | None = None,
         icon_url: str | None = None,
@@ -141,3 +143,4 @@ class Context[T: Client](ABC):
         parse: str | None = None,
         **kwargs,
     ) -> Any: ...
+

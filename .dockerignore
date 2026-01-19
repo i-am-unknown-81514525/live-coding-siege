@@ -9,3 +9,5 @@ __pycache__/*
 *.log.*
 key.event
 .gitkeep
+.idea
+.ruff_cache

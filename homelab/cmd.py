@@ -13,6 +13,7 @@ import blockkit
 from homelab.core import prox_get_all_projs as get_all_projs, get_project, get_user
 import re
 import utils
+from slack.utils import private_on_interaction
 
 def _time_to_slack(time: Arrow) -> str:
     t1 = "{date_num}"
@@ -20,11 +21,13 @@ def _time_to_slack(time: Arrow) -> str:
     utc = Arrow.utcfromtimestamp(time.timestamp())
     return f"<!date^{int(utc.timestamp())}^{t1}|{utc.date().strftime('%Y-%m-%d')}> <!date^{int(utc.timestamp())}^{t2}|{utc.time().strftime('%H:%M:%S')} UTC>"
 
-@smart_msg_listen("homelab.user ")
+
 @smart_action_listen("homelab_user_view")
+@smart_msg_listen("homelab.user ")
 @utils.get_group
 @utils.filter_allowed
 @utils.has_group("homelab")
+@private_on_interaction()
 def get_homelab_user_info(ctx: Context, public: bool):
     user_id = ctx.author_id
     left_over = ctx.value
@@ -68,6 +71,7 @@ def get_homelab_user_info(ctx: Context, public: bool):
 @utils.get_group
 @utils.filter_allowed
 @utils.has_group("homelab")
+@private_on_interaction()
 def get_homelab_proj_info(ctx: Context, public: bool):
     left_over = ctx.value.strip()
     if left_over:
