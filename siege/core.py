@@ -186,6 +186,7 @@ def fetch_all_user_link(used_ids: list[int]) -> list[int]:
 def prox_get_all_projs() -> list[SiegeProject]:
     result = api.get_all_projs()
     try:
+        return result
         push_proj(result)
     except Exception as e:
         logging.warning(f"Failed to push update to db", exc_info=True)
@@ -195,6 +196,7 @@ def prox_get_all_projs() -> list[SiegeProject]:
 def prox_get_project(proj_id: api.ProjAlike) -> SiegeProject:
     project = api.get_project(proj_id)
     try:
+        return project
         push_proj([project])
     except Exception as e:
         logging.warning(f"Failed to push update to db", exc_info=True)
@@ -204,6 +206,7 @@ def prox_get_project(proj_id: api.ProjAlike) -> SiegeProject:
 def prox_get_user(user_id: api.UserAlike) -> SiegeUser:
     user = api.get_user(user_id)
     try:
+        return user
         push_user([user])
     except Exception as e:
         logging.warning(f"Fail to push update to db", exc_info=True)
@@ -832,6 +835,7 @@ def get_user_ticket(game_id: int, user_id: str, week_num: int, from_time: Arrow)
 
 def start(client: ExecutionContext):
     init_db()
+    return
     thread_proj = threading.Thread(target=proj_loop)
     thread_proj.start()
     thread_user = threading.Thread(target=user_loop)
