@@ -30,10 +30,12 @@ import utils
 load_dotenv()
 
 CLIENTS = [
-    SlackClient(SocketModeClient(
-        app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
-        web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
-    )),
+    SlackClient(
+        SocketModeClient(
+            app_token=os.environ["SLACK_APP_LEVEL_TOKEN"],
+            web_client=WebClient(token=os.environ["SLACK_BOT_OAUTH_TOKEN"]),
+        )
+    ),
     # IRCClient(
     #     server="irc.hackclub.com",
     #     port=6667,
@@ -45,8 +47,14 @@ CLIENTS = [
     #     ],
     # )
 ]
-START_MODULE = ["live.server", "siege.core", "siege.remind", "live.live", "timer", "homelab.core"]
-LOAD_MODULE = ["siege.cmd", "live.live", "homelab.cmd", "slack_utils.cmd"]
+START_MODULE = [
+    "live.server",
+    "siege.core",
+    "siege.remind",
+    "live.live",
+    "timer",
+]  # "homelab.core"
+LOAD_MODULE = ["siege.cmd", "live.live", "slack_utils.cmd"]  # "homelab.cmd"
 HELP_CMD = ["live.help", "siege.help", "live.helps", "siege.helps"]
 CONTEXT = ExecutionContext(
     slack_client=CLIENTS[0],
@@ -81,7 +89,6 @@ def help(ctx: Context, public: bool):
         ctx.private_send(text=message)
 
 
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     for module_name in START_MODULE:
@@ -105,4 +112,3 @@ if __name__ == "__main__":
                 thread.join()
         except KeyboardInterrupt:
             break
-

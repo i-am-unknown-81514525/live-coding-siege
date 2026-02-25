@@ -19,7 +19,12 @@ import os
 from arrow import Arrow
 import time
 import logging
-from siege.schema.siege import ProjectStatus, SiegePartialUser, SiegeUserStatus, SiegeProject
+from siege.schema.siege import (
+    ProjectStatus,
+    SiegePartialUser,
+    SiegeUserStatus,
+    SiegeProject,
+)
 from collections import Counter
 from rapidfuzz import fuzz
 import utils
@@ -125,7 +130,7 @@ def _calc_base(week: int, hours: float) -> float:
 )
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_siege_user_info(ctx: Context, public: bool):
     user_id = ctx.author_id
@@ -155,19 +160,19 @@ def get_siege_user_info(ctx: Context, public: bool):
         for item in sorted(proj_list, key=lambda x: x[0])
     ]
 
-    text = (f"*User info:*\n"
-            f"*Slack ID:* `{user.slack_id}`\n"
-            f"*User ID:* `{user.id}`\n"
-            f"*Name:* {user.name}\n"
-            f"*Display Name:* {user.display_name}\n"
-            f"*Coins:* {user.coins}\n"
-            f"*Rank:* {user.rank.readable}\n"
-            f"*Status:* {user.status.readable}\n"
-            + (f"*Common identity:* {id_string}" if id_string else ""))
-
-    message = blockkit.Message(text).add_block(
-        blockkit.Section(text)
+    text = (
+        f"*User info:*\n"
+        f"*Slack ID:* `{user.slack_id}`\n"
+        f"*User ID:* `{user.id}`\n"
+        f"*Name:* {user.name}\n"
+        f"*Display Name:* {user.display_name}\n"
+        f"*Coins:* {user.coins}\n"
+        f"*Rank:* {user.rank.readable}\n"
+        f"*Status:* {user.status.readable}\n"
+        + (f"*Common identity:* {id_string}" if id_string else "")
     )
+
+    message = blockkit.Message(text).add_block(blockkit.Section(text))
 
     if buttons:
         message.add_block(blockkit.Actions(buttons))
@@ -197,7 +202,7 @@ def test(ctx: Context) -> typing.Any:
 )
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_siege_proj_info(ctx: Context, public: bool):
     left_over = ctx.value.strip()
@@ -226,26 +231,24 @@ def get_siege_proj_info(ctx: Context, public: bool):
     ]
 
     text = (
-                f"*Week {proj.week} - {proj.name}*\n"
-                f"*ID:* `{proj.id}`\n"
-                f"*Status:* {proj.status.readable}\n"
-                f"*Created At:* {_time_to_slack(proj.created_at)}\n"
-                f"*Description:* {proj.description}\n"
-                f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
-                f"*Is Updated:* {proj.is_update}\n"
-                f"*Hours:* {proj.hours} hours\n"
-                + (
-                    f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
-                    if proj.repo_url
-                    else ""
-                )
-            )
+        f"*Week {proj.week} - {proj.name}*\n"
+        f"*ID:* `{proj.id}`\n"
+        f"*Status:* {proj.status.readable}\n"
+        f"*Created At:* {_time_to_slack(proj.created_at)}\n"
+        f"*Description:* {proj.description}\n"
+        f"*Coin Value:* {proj.coin_value or 'N/A'}\n"
+        f"*Is Updated:* {proj.is_update}\n"
+        f"*Hours:* {proj.hours} hours\n"
+        + (
+            f"*Repo user:* <{construct_from_short(_parse_repo_user(proj.repo_url))}|{_parse_repo_user(proj.repo_url)}>"
+            if proj.repo_url
+            else ""
+        )
+    )
 
     message = (
         blockkit.Message(text)
-        .add_block(
-            blockkit.Section(text)
-        )
+        .add_block(blockkit.Section(text))
         .add_block(blockkit.Actions(buttons))
     )
 
@@ -315,7 +318,6 @@ def get_total_proj_time(ctx: Context):
 
     week = max(proj_list, key=lambda x: x.week).week
     curr_week_proj = [proj for proj in proj_list if proj.week == week]
-    
 
     p3 = time.perf_counter()
 
@@ -338,7 +340,7 @@ LEADERBOARD_AMOUNT = 20
 @description("/lb <lb_option>?", "The hall of fame!")
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_leaderboard(ctx: Context, public: bool):
     opt = ctx.value or ""
@@ -417,8 +419,13 @@ def get_leaderboard(ctx: Context, public: bool):
                 user = proj.user
                 proj_mapping[user] = proj_mapping.get(user, [])
                 proj_mapping[user].append(proj)
-            hours_mapping = {user: sum(map(lambda x: x.hours, proj_mapping[user])) for user in proj_mapping}
-            sorted_order = sorted(hours_mapping.items(), key=lambda x: x[1], reverse=True)
+            hours_mapping = {
+                user: sum(map(lambda x: x.hours, proj_mapping[user]))
+                for user in proj_mapping
+            }
+            sorted_order = sorted(
+                hours_mapping.items(), key=lambda x: x[1], reverse=True
+            )
             message = blockkit.Message().add_block(
                 blockkit.Section(
                     "\n".join(
@@ -438,8 +445,13 @@ def get_leaderboard(ctx: Context, public: bool):
                 user = proj.user
                 proj_mapping[user] = proj_mapping.get(user, [])
                 proj_mapping[user].append(proj)
-            hours_mapping = {user: sum(map(lambda x: x.coin_value, proj_mapping[user])) for user in proj_mapping}
-            sorted_order = sorted(hours_mapping.items(), key=lambda x: x[1], reverse=True)
+            hours_mapping = {
+                user: sum(map(lambda x: x.coin_value, proj_mapping[user]))
+                for user in proj_mapping
+            }
+            sorted_order = sorted(
+                hours_mapping.items(), key=lambda x: x[1], reverse=True
+            )
             message = blockkit.Message().add_block(
                 blockkit.Section(
                     "\n".join(
@@ -488,6 +500,10 @@ def get_leaderboard(ctx: Context, public: bool):
                     reverse=True,
                 )
             )
+            uids = set(map(lambda x: x.user.id, sorted_order))
+            s: dict[int, bool] = {}
+            for uid in uids:
+                s[uid] = get_user(uid).status not in [SiegeUserStatus.BANNED, SiegeUserStatus.OUT]
             selected: list[SiegeProject] = []
             for proj in sorted_order:
                 if len(selected) >= LEADERBOARD_AMOUNT:
@@ -497,17 +513,16 @@ def get_leaderboard(ctx: Context, public: bool):
                 if proj.coin_value / _calc_base(proj.week, proj.hours) > 15:
                     continue
                 user_id = proj.user.id
-                status = get_user(user_id).status
-                if status == SiegeUserStatus.WORKING:
+                if s.get(user_id, False):
                     selected.append(proj)
             message = (
                 blockkit.Message(
                     "\n".join(
-                    [
-                        f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours:.1f}h,{proj.coin_value}c, {proj.coin_value / _calc_base(proj.week, proj.hours):.3f}x"
-                        for index, proj in enumerate(selected, start=1)
-                    ]
-                )
+                        [
+                            f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours:.1f}h,{proj.coin_value}c, {proj.coin_value / _calc_base(proj.week, proj.hours):.3f}x"
+                            for index, proj in enumerate(selected, start=1)
+                        ][:20]
+                    )
                 )
                 .add_block(
                     blockkit.Section(
@@ -515,10 +530,63 @@ def get_leaderboard(ctx: Context, public: bool):
                             [
                                 f"*{index}*: W{proj.week} {proj.name} (`{proj.id}`) - {proj.hours:.1f}h,{proj.coin_value}c, {proj.coin_value / _calc_base(proj.week, proj.hours):.3f}x"
                                 for index, proj in enumerate(selected, start=1)
-                            ]
+                            ][:20]
                         )
                     )
                 )
+                .add_block(
+                    blockkit.Section(
+                        "Note for the underlying assumption/filter used for this leaderboard:\n- Any result with >15 multiplier is discarded as it is not possible\n- Only user who have status `working` is consider\n- Project with < 10 hours is discarded\n- Assumption is made that no project have used mercenary, as such information cannot be collected over API"
+                    )
+                )
+            )
+        case "efw":
+            proj_list = get_all_projs()
+            candidates = [
+                proj
+                for proj in proj_list
+                if proj.status == ProjectStatus.FINISHED
+                and proj.hours >= 10
+                and proj.coin_value > 0
+                and (proj.coin_value / _calc_base(proj.week, proj.hours)) <= 15
+                and 1 <= proj.week <= 15
+            ]
+
+            uids = {p.user.id for p in candidates}
+            s: dict[int, bool] = {}
+            for uid in uids:
+                s[uid] = get_user(uid).status not in [
+                    SiegeUserStatus.BANNED,
+                    SiegeUserStatus.OUT,
+                ]
+
+            weeks = defaultdict(list)
+            for proj in candidates:
+                if s.get(proj.user.id, False):
+                    weeks[proj.week].append(proj)
+
+            output_lines = []
+            for w in range(1, 16):
+                projs = weeks.get(w, [])
+                if not projs:
+                    continue
+                projs.sort(
+                    key=lambda x: x.coin_value / _calc_base(x.week, x.hours),
+                    reverse=True,
+                )
+
+                output_lines.append(f"*Week {w}*")
+                for i, proj in enumerate(projs[:3], start=1):
+                    eff = proj.coin_value / _calc_base(proj.week, proj.hours)
+                    output_lines.append(
+                        f"{i}. {proj.name} (`{proj.id}`) - {proj.hours:.1f}h, {proj.coin_value}c, {eff:.3f}x"
+                    )
+
+            text_content = "\n".join(output_lines) or "No matching projects found."
+
+            message = (
+                blockkit.Message(text_content)
+                .add_block(blockkit.Section(text_content))
                 .add_block(
                     blockkit.Section(
                         "Note for the underlying assumption/filter used for this leaderboard:\n- Any result with >15 multiplier is discarded as it is not possible\n- Only user who have status `working` is consider\n- Project with < 10 hours is discarded\n- Assumption is made that no project have used mercenary, as such information cannot be collected over API"
@@ -549,7 +617,9 @@ def generate_graph(ctx: Context, public: bool):
     media: PendingFile | None = None
     match opt:
         case "coin":
-            heartbeats: list[core.UserHeartbeatRecord] = core.retrieve_every_user_record()
+            heartbeats: list[core.UserHeartbeatRecord] = (
+                core.retrieve_every_user_record()
+            )
             result: dict[Arrow, int] = core.analyse_coin_count(heartbeats)
             df = pandas.DataFrame(
                 {
@@ -578,8 +648,12 @@ def generate_graph(ctx: Context, public: bool):
                     logging.error(f"Failed to save figure: {e}")
             media = PendingFile("coin.png", img, "Tracked coin count over time")
         case "coin_hours":
-            user_result = core.analyse_per_person_coin_count_status(core.retrieve_every_user_record(Arrow.now().shift(minutes=-15)))
-            proj_result = core.analyse_per_person_proj_hours(core.retrieve_every_proj_record(Arrow.now().shift(minutes=-15)))
+            user_result = core.analyse_per_person_coin_count_status(
+                core.retrieve_every_user_record(Arrow.now().shift(minutes=-15))
+            )
+            proj_result = core.analyse_per_person_proj_hours(
+                core.retrieve_every_proj_record(Arrow.now().shift(minutes=-15))
+            )
             all_user_id = set(user_result.keys()).union(set(proj_result.keys()))
             data = []
             for user_id in all_user_id:
@@ -600,7 +674,14 @@ def generate_graph(ctx: Context, public: bool):
                 x="hours",
                 y="coins",
                 hue="status",
-                palette={"new": "slategray", "working": "green", "out": "orange", "banned": "red", "approved": "aqua", "fulfilled": "cornflowerblue"},
+                palette={
+                    "new": "slategray",
+                    "working": "green",
+                    "out": "orange",
+                    "banned": "red",
+                    "approved": "aqua",
+                    "fulfilled": "cornflowerblue",
+                },
                 ax=ax,
             )
             ax.set_title("Total coins vs total project hours by user")
@@ -616,17 +697,27 @@ def generate_graph(ctx: Context, public: bool):
                     img = iodt.getvalue()
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
-            media = PendingFile("coin_hours.png", img, "Total coins vs total project hours by user")
+            media = PendingFile(
+                "coin_hours.png", img, "Total coins vs total project hours by user"
+            )
         case "value_hours":
             proj_list = get_all_projs()
-            user_result = core.analyse_per_person_coin_count_status(core.retrieve_every_user_record(Arrow.now().shift(minutes=-15)))
+            user_result = core.analyse_per_person_coin_count_status(
+                core.retrieve_every_user_record(Arrow.now().shift(minutes=-15))
+            )
             proj_mapping: dict[SiegePartialUser, list[SiegeProject]] = {}
             for proj in proj_list:
                 user = proj.user
                 proj_mapping[user] = proj_mapping.get(user, [])
                 proj_mapping[user].append(proj)
-            hours_mapping = {user: sum(map(lambda x: x.hours, proj_mapping[user])) for user in proj_mapping}
-            value_mappings = {user: sum(map(lambda x: x.coin_value, proj_mapping[user])) for user in proj_mapping}
+            hours_mapping = {
+                user: sum(map(lambda x: x.hours, proj_mapping[user]))
+                for user in proj_mapping
+            }
+            value_mappings = {
+                user: sum(map(lambda x: x.coin_value, proj_mapping[user]))
+                for user in proj_mapping
+            }
             data = []
             for user in hours_mapping:
                 data.append(
@@ -634,7 +725,7 @@ def generate_graph(ctx: Context, public: bool):
                         "user_id": user.id,
                         "coins": value_mappings[user],
                         "hours": hours_mapping[user],
-                        "status": user_result.get(user.id, ("new", 0))[0]
+                        "status": user_result.get(user.id, ("new", 0))[0],
                     }
                 )
             df = pandas.DataFrame(data)
@@ -644,7 +735,14 @@ def generate_graph(ctx: Context, public: bool):
                 x="hours",
                 y="coins",
                 hue="status",
-                palette={"new": "slategray", "working": "green", "out": "orange", "banned": "red", "approved": "aqua", "fulfilled": "cornflowerblue"},
+                palette={
+                    "new": "slategray",
+                    "working": "green",
+                    "out": "orange",
+                    "banned": "red",
+                    "approved": "aqua",
+                    "fulfilled": "cornflowerblue",
+                },
                 ax=ax,
             )
             ax.set_title("Total coins value vs total project hours by user")
@@ -660,17 +758,22 @@ def generate_graph(ctx: Context, public: bool):
                     img = iodt.getvalue()
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
-            media = PendingFile("coin_hours.png", img, "Total coins value vs total project hours by user")
+            media = PendingFile(
+                "coin_hours.png",
+                img,
+                "Total coins value vs total project hours by user",
+            )
         case "pvh":
             proj_list = get_all_projs()
             data = []
             for proj in proj_list:
-                if proj.coin_value == 0: continue
+                if proj.coin_value == 0:
+                    continue
                 data.append(
                     {
                         "project_id": proj.id,
                         "coins": proj.coin_value,
-                        "hours": proj.hours
+                        "hours": proj.hours,
                     }
                 )
             df = pandas.DataFrame(data)
@@ -694,13 +797,22 @@ def generate_graph(ctx: Context, public: bool):
                     img = iodt.getvalue()
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
-            media = PendingFile("coin_hours.png", img, "Coins value vs project hours by projects")
+            media = PendingFile(
+                "coin_hours.png", img, "Coins value vs project hours by projects"
+            )
         case "global":
             week = guess_week()
-            proj_heartbeats: list[core.ProjHeartbeatRecord] = core.retrieve_all_week_record(week)
-            proj_hour_result: dict[Arrow, float] = core.analyse_hour_by_time_in_week(proj_heartbeats)
+            proj_heartbeats: list[core.ProjHeartbeatRecord] = (
+                core.retrieve_all_week_record(week)
+            )
+            proj_hour_result: dict[Arrow, float] = core.analyse_hour_by_time_in_week(
+                proj_heartbeats
+            )
             df = pandas.DataFrame(
-                {"time": [t.datetime for t in proj_hour_result.keys()], "hours": list(proj_hour_result.values())}
+                {
+                    "time": [t.datetime for t in proj_hour_result.keys()],
+                    "hours": list(proj_hour_result.values()),
+                }
             )
             fig, ax = plt.subplots(figsize=(6, 8))
             plot = sns.lineplot(df, x="time", y="hours", ax=ax)
@@ -722,19 +834,36 @@ def generate_graph(ctx: Context, public: bool):
                     img = iodt.getvalue()
                 except Exception as e:
                     logging.error(f"Failed to save figure: {e}")
-            media = PendingFile(f"global_w{week}.png", img, f"Tracked hour by time in week W{week}")
+            media = PendingFile(
+                f"global_w{week}.png", img, f"Tracked hour by time in week W{week}"
+            )
         case "user_status":
-            dt = core.analyse_overall_user_status(core.retrieve_every_user_record(since=Arrow.now().shift(days=-14)))
+            dt = core.analyse_overall_user_status(
+                core.retrieve_every_user_record(since=Arrow.now().shift(days=-14))
+            )
             df = pandas.DataFrame(
                 {
                     "time": [t[0].datetime for t in dt],
                     "status": [t[1] for t in dt],
-                    "count": [t[2] for t in dt]
+                    "count": [t[2] for t in dt],
                 }
             )
             fig, ax = plt.subplots(figsize=(6, 8))
-            plot = sns.lineplot(df, x="time", y="count", ax=ax, hue="status",
-                palette={"new": "slategray", "working": "green", "out": "orange", "banned": "red", "approved": "aqua", "fulfilled": "cornflowerblue"},)
+            plot = sns.lineplot(
+                df,
+                x="time",
+                y="count",
+                ax=ax,
+                hue="status",
+                palette={
+                    "new": "slategray",
+                    "working": "green",
+                    "out": "orange",
+                    "banned": "red",
+                    "approved": "aqua",
+                    "fulfilled": "cornflowerblue",
+                },
+            )
             ax.locator_params(axis="x", nbins=7)
             ax.locator_params(axis="y", nbins=15)
             ax.set_title(f"User status over time")
@@ -760,12 +889,16 @@ def generate_graph(ctx: Context, public: bool):
         if media:
             ctx.public_send(files=[media])
         else:
-            ctx.public_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`, `user_status`")
+            ctx.public_send(
+                text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`, `user_status`"
+            )
     else:
         if media:
             ctx.private_send(files=[media])
         else:
-            ctx.private_send(text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`, `user_status`")
+            ctx.private_send(
+                text="No graph generated... Expected argument: `coin`, `coin_hours`, `global`, `user_status`"
+            )
 
 
 @slash_listen("/stats")
@@ -775,7 +908,7 @@ def generate_graph(ctx: Context, public: bool):
 @description("/stats", "Stats for the Siege YSWS")
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_stats(ctx: Context, public: bool):
     all_projs = get_all_projs()
@@ -826,7 +959,7 @@ SIMILARITY_THRESHOLD = 0.9
 @description("/searchs <keyword>?", "Search for project by keyword")
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def search_project(ctx: Context, public: bool):
     req = ctx.value.lower()
@@ -959,7 +1092,7 @@ def fetch_dictionary(word: str) -> dictionary.DictError | dictionary.DictResult:
 @description("/define <word>", "Get a dictionary definition of a word")
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_define(ctx: Context, public: bool):
     if public:
@@ -1035,7 +1168,7 @@ def get_user_details(ctx: Context, public: bool):
 )
 @utils.get_group
 @utils.filter_allowed
-@utils.require_group("siege", True)
+# @utils.require_group("siege", True)
 @utils.has_group("siege")
 def get_shop(ctx: Context, public: bool):
     if isinstance(ctx, InteractionContext):
