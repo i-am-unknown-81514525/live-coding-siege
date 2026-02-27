@@ -137,5 +137,7 @@ namespace = [
 allowed = ["*"]
 authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D", "U0828FYS2UC"]
 namespace = [
-    "channel:C0AAA2KD63X"
+    "channel:C0AAA2KD63X",
+    "channel:C09KTR863L3", # Internal 1
 ]
+module = "impl.live_blank"
