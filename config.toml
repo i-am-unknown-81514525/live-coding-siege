@@ -132,3 +132,10 @@ namespace = [
     "channel:C09KTR863L3", # Internal 1
     "r:cmd:slack\\..*"
 ]
+
+[bot.group.none]
+allowed = ["*"]
+authorized = ["U092BGL0UUQ", "U0929F6RWL9", "U07BN55GN3D", "U0828FYS2UC"]
+namespace = [
+    "channel:C0AAA2KD63X"
+]
