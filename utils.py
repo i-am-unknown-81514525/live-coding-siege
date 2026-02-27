@@ -36,7 +36,7 @@ def get_is_authorized(user_id: str, group: str) -> bool:
     configs = get_config()["bot"]["group"]
     if group not in configs:
         return False
-    return user_id in configs[group]["authorized"]
+    return user_id in configs[group]["authorized"] or "*" in configs[group]["authorized"]
 
 def get_all_authorized(group: str) -> list[str]:
     configs = get_config()["bot"]["group"]
@@ -50,7 +50,7 @@ def get_is_allowed(user_id: str, group: str) -> bool:
     if group not in configs:
         return False
     return (
-        user_id in configs[group]["allowed"] or user_id in configs[group]["authorized"]
+        user_id in configs[group]["allowed"] or user_id in configs[group]["authorized"] or "*" in configs[group]["allowed"] or "*" in configs[group]["authorized"]
     )
 
 def get_all_allowed(group: str) -> list[str]:
@@ -103,6 +103,8 @@ def filter_allowed[**P, T, C: Context](
             if (
                 ctx.author_id not in configs[group]["allowed"]
                 and ctx.author_id not in configs[group]["authorized"]
+                and "*" not in configs[group]["allowed"]
+                and "*" not in configs[group]["authorized"]
             ):
                 clo.remove(group)
         return func(ctx, clo, *args, **kwargs)
@@ -117,7 +119,7 @@ def filter_authorised[**P, T, C: Context](
         configs = get_config()["bot"]["group"]
         clo = groups.copy()
         for group in groups:
-            if ctx.author_id not in configs[group]["authorized"]:
+            if ctx.author_id not in configs[group]["authorized"] and "*" not in configs[group]["authorized"]:
                 clo.remove(group)
         return func(ctx, clo, *args, **kwargs)
 
