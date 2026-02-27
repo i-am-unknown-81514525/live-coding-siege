@@ -33,7 +33,7 @@ from ws_mgr import controller, signals
 import jwt
 from utils import get_group, require_allowed, require_authorised
 from live.base import get_module
-from live.utils import require_any_game_manager, require_game_thread, require_game_manager
+from live.utils import require_any_game_manager, require_game_thread, require_game_manager, get_game_group
 from slack_sdk.socket_mode.client import BaseSocketModeClient
 from base import description
 
@@ -55,22 +55,6 @@ def get_game_lock(game_id: int) -> Lock:
             return GAME_LOCK[game_id]
         GAME_LOCK[game_id] = Lock()
         return GAME_LOCK[game_id]
-
-
-def get_game_group[**P, T, C: Context](
-    func: Callable[Concatenate[C, list[str], P], T],
-) -> Callable[Concatenate[C, P], T]:
-    # noinspection PyTypeChecker
-    def inner(ctx: C, *args: P.args, **kwargs: P.kwargs) -> T:
-        ret: list[str] = []
-        if ctx.thread_ts:
-            game_id = db.get_active_game_by_thread(ctx.channel_id, ctx.thread_ts)
-            if game_id:
-                instance = db.get_game_instance(game_id, ctx.client)
-                ret = [instance.mode]
-        return func(ctx, ret, *args, **kwargs)
-
-    return inner
 
 
 def filter_by_value[**P, T, C: Context](
@@ -749,6 +733,8 @@ def add_manager(ctx: Context, game_id: int, group: str):
 
     if ctx.value.strip() == "all":
         allowed = utils.get_all_allowed(group)
+        if "*" in allowed:
+            return ctx.public_send(text="Everyone is in allowed list and therefore `all` is not possible. Any allowed user would also be implcitly be given usage to most game manager command. If the command require otherwise, enroll yourself to it by your specific user mention/id.")
         added = []
         for user in allowed:
             if not db.has_game_manager(user):
